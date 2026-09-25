@@ -1,0 +1,33 @@
+# Notices and attribution
+
+Each example under `examples/` contains testing files copied from an upstream project and then
+refactored into the single top-level layout. The upstream source, the exact commit the files
+were taken from, and the license are listed below. Copied files keep their original license and
+copyright notices, and each example's `before/` carries the upstream `LICENSE` file from the pinned
+commit. Each refactored `after/molecule.yml`, and each modified upstream copy under an
+`in-between/` stage, carries the license of its source in a comment header at the top of the file:
+the SPDX identifier, the copyright line from the upstream license file where that file names a
+holder, and a line recording that the layout was changed.
+
+The commit column is filled in when each example is populated, so the copied state is always
+traceable to an exact upstream revision.
+
+| Example | Upstream source | Commit | License | Files copied | Change made |
+|---|---|---|---|---|---|
+| linux-system-roles-network | https://github.com/linux-system-roles/network | be29a9ffe1862ac6ba1d216488a227db34fccdf9 | BSD-3-Clause | test playbooks, tox / test config | refactored to single top-level `molecule.yml` |
+| linux-system-roles-storage | https://github.com/linux-system-roles/storage | bd96ce4e96f49906daf8dacd0ab9d286c60dc033 | MIT | test playbooks, tox / test config | refactored to single top-level `molecule.yml` |
+| linux-system-roles-storage (`in-between/`) | https://github.com/linux-system-roles/storage | bd96ce4e96f49906daf8dacd0ab9d286c60dc033 | MIT | 31 shared `tests/` playbooks and task files under `utils/playbooks/shared/`, `tests/tests_default.yml` and `tests/tests_luks.yml` as `utils/playbooks/default.yml` and `luks.yml` | shared files unchanged, the two converge playbooks have their include paths repointed at `shared/` and a licence and change header added |
+| dev-sec-hardening | https://github.com/dev-sec/ansible-collection-hardening | 64a97293a230899c1584e788cdbfb486f329d649 | Apache-2.0 | `molecule/` scenarios and shared prerequisites | refactored to single top-level `molecule.yml` |
+| prometheus-community | https://github.com/prometheus-community/ansible | e2f46e17d33651c3c09042aaa9c8f29b87a9753f | Apache-2.0 | per-role `molecule/` scenarios, `_common` role | refactored to single top-level `molecule.yml`, and in `roles/alertmanager/molecule/alternative/molecule.yml` the placeholder Slack webhook URL is replaced by a comment recording the change |
+| arista-avd | https://github.com/aristanetworks/avd | 4d7cbccb0218d414a2cd2034b081d01b6768c487 | Apache-2.0 | `extensions/molecule/` scenarios, scenario manifest | refactored to single top-level `molecule.yml` |
+| nginxinc-nginx | https://github.com/nginxinc/ansible-role-nginx | 157e0e97406f798bd6f50db37430a78c4269aa92 | Apache-2.0 | `molecule/` scenarios, `common/` build template | refactored to single top-level `molecule.yml` |
+| openstack-systemd-service | https://github.com/openstack/ansible-role-systemd_service | c3c75c26c31665b0a6d09289529c6ea6d79aec61 | Apache-2.0 | `molecule/default`, shared `tests/` playbooks | refactored to single top-level `molecule.yml` |
+| osism-commons | https://github.com/osism/ansible-collection-commons | baa46b2c635ab75d49a12fbe51aeae5440952144 | Apache-2.0 | `molecule/` scenarios, delegated `prepare/` tree | refactored to single top-level `molecule.yml` |
+| david-igou-armbian | https://github.com/david-igou/ansible-collection-armbian | 1a57db4eeffeed2fa2a2e6f65176955bd4ba919d | MIT | `extensions/molecule/` scenarios and shared config, one `roles/` template referenced by symlink | refactored to single top-level `molecule.yml` |
+
+`vendor/molecule.json` is the Molecule configuration schema, copied unchanged from
+https://github.com/ansible/molecule at v26.6.0, commit de548442a6e43ff33bc72ea928feb0af21854362,
+under the MIT license. Molecule's `LICENSE` from the same commit is beside it in `vendor/`.
+
+Everything in this repository not covered above is original material, licensed under
+Apache-2.0, copyright 2026 Jeff Pullen.

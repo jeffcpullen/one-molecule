@@ -1,0 +1,96 @@
+---
+###
+# For each platform be sure to look at the Python version included and filter out
+# incompatible versinos from the upstream support table.
+#
+# https://docs.ansible.com/projects/ansible/latest/reference_appendices/release_and_maintenance.html
+#
+###
+dependency:
+  name: galaxy
+prerun: false
+driver:
+  name: docker
+platforms:
+  - name: almalinux-9
+    image: ghcr.io/test-kitchen/dokken/almalinux-9:sha-5a9ecd6
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+  - name: almalinux-10
+    image: ghcr.io/test-kitchen/dokken/almalinux-10:sha-5a9ecd6
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+  - name: debian-11
+    image: ghcr.io/test-kitchen/dokken/debian-11:sha-5a9ecd6
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+  - name: debian-12
+    image: ghcr.io/test-kitchen/dokken/debian-12:sha-5a9ecd6
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+  - name: debian-13
+    image: ghcr.io/test-kitchen/dokken/debian-13:sha-5a9ecd6
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+  - name: ubuntu-22.04
+    image: ghcr.io/test-kitchen/dokken/ubuntu-22.04:sha-5a9ecd6
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+  - name: ubuntu-24.04
+    image: ghcr.io/test-kitchen/dokken/ubuntu-24.04:sha-5a9ecd6
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+  - name: ubuntu-26.04
+    image: ghcr.io/test-kitchen/dokken/ubuntu-26.04:sha-5a9ecd6
+    pre_build_image: true
+    privileged: true
+    command: /lib/systemd/systemd
+verifier:
+  name: testinfra
+  additional_files_or_dirs:
+    - "../../../../../.testinfra/testinfra_helpers.py"
+  env:
+    PYTHONPATH: "${MOLECULE_PROJECT_DIRECTORY}/../../.testinfra:${PYTHONPATH}"
+provisioner:
+  env:
+    ANSIBLE_INJECT_FACT_VARS: false
+  playbooks:
+    converge: "${MOLECULE_PROJECT_DIRECTORY}/../../.config/molecule/converge.yml"
+  inventory:
+    hosts:
+      target_hosts:
+        hosts: {}
+    host_vars:
+      almalinux-9:
+        ansible_become_method: su
+        # Python 3.9, ansible-core support 2.14 to 2.15
+        exclude_ansible_vers: ["2.16", "2.17", "2.18", "2.19", "2.20", "2.21"]
+      almalinux-10:
+        ansible_become_method: su
+        # Python 3.12, ansible-core support 2.16 to 2.21
+        exclude_ansible_vers: ["2.14", "2.15"]
+      debian-11:
+        # Python 3.9, ansible-core support 2.14 to 2.15
+        exclude_ansible_vers: ["2.16", "2.17", "2.18", "2.19", "2.20", "2.21"]
+      debian-12:
+        # Python 3.11, ansible-core support 2.14 to 2.19
+        exclude_ansible_vers: ["2.20", "2.21"]
+      debian-13:
+        # Python 3.13, ansible-core support 2.18 to 2.21
+        exclude_ansible_vers: ["2.14", "2.15", "2.16", "2.17"]
+      ubuntu-22.04:
+        # Python 3.10, ansible-core support 2.12 to 2.17
+        exclude_ansible_vers: ["2.18", "2.19", "2.20", "2.21"]
+      ubuntu-24.04:
+        # Python 3.12, ansible-core support 2.16 to 2.21
+        exclude_ansible_vers: ["2.14", "2.15"]
+      ubuntu-26.04:
+        # Python 3.14, ansible-core support 2.20 to 2.21
+        exclude_ansible_vers: ["2.14", "2.15", "2.16", "2.17", "2.18", "2.19"]

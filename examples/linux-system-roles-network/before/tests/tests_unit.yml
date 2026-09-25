@@ -1,0 +1,94 @@
+# SPDX-License-Identifier: BSD-3-Clause
+---
+- name: Setup for test running
+  hosts: all
+  tasks:
+    - name: Include the task 'el_repo_setup.yml'
+      include_tasks: tasks/el_repo_setup.yml
+
+    - name: Install dependencies
+      package:
+        name: "{{ item }}"
+        state: present
+        use: "{{ (__network_is_ostree | d(false)) |
+                 ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+      # Ignore error because some package names might not be available
+      ignore_errors: true  # noqa ignore-errors
+      loop:
+        - NetworkManager-libnm
+        - python2-gobject-base
+        - python3-gobject-base
+        - python-gobject-base
+        - python2-mock
+
+- name: Execute python unit tests
+  hosts: all
+  tasks:
+    - name: Execute python unit tests
+      block:
+        - name: Copy python files to the remote system
+          include_tasks: tasks/setup_remote_pytest.yml
+
+        - name: Check if python2 is available
+          command: python2 --version
+          ignore_errors: true
+          register: python2_available
+          when: true
+          changed_when: false
+
+        - name: Run python2 unit tests
+          command: >
+            python2 {{ _rundir.path }}/unit/test_network_connections.py --verbose
+          environment:
+            PYTHONPATH: "{{ _lsr_python_path }}"
+          when: >
+            python2_available is succeeded and ansible_facts['distribution'] != 'Fedora'
+          register: python2_result
+          changed_when: false
+
+        - name: Check if python3 is available
+          command: python3 --version
+          ignore_errors: true
+          register: python3_available
+          when: true
+          changed_when: false
+
+        - name: Run python3 unit tests
+          command: >
+            python3 {{ _rundir.path }}/unit/test_network_connections.py --verbose
+          environment:
+            PYTHONPATH: "{{ _lsr_python_path }}"
+          when: python3_available is succeeded
+          register: python3_result
+          changed_when: false
+
+        - name: Show python2 unit test results
+          debug:
+            var: python2_result.stderr_lines
+          when: python2_result is succeeded
+
+        - name: Show python3 unit test results
+          debug:
+            var: python3_result.stderr_lines
+          when: python3_result is succeeded
+
+      always:
+        - name: Remove local tar file
+          file:
+            state: absent
+            path: "{{ temptar.path }}"
+          delegate_to: localhost
+
+        - name: Remove tempdir
+          file:
+            state: absent
+            path: "{{ _rundir.path }}"
+
+        - name: Verify network state restored to default
+          include_tasks: tasks/check_network_dns.yml
+
+    - name: Ensure that at least one python unit test ran
+      fail:
+        msg: Tests did not run with python2 or python3
+      when: not python2_available is succeeded and
+        not python3_available is succeeded

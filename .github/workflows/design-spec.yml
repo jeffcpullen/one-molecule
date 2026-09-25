@@ -1,0 +1,73 @@
+---
+name: design-spec
+
+# The tool-independent backstop for the design corpus. The local hooks and
+# pre-commit keep an interactive session honest. This gate catches what slips
+# past them: a schema violation committed from a plain editor, a hand-edited
+# generated file, a source changed without regenerating.
+
+on:
+  push:
+    paths: &spec-paths
+      - 'design/data/**'
+      - 'design/structure/**'
+      - 'spec/**'
+      - 'generated/**'
+      - 'vendor/**'
+      - 'tools/build.py'
+      - 'examples/*/after/molecule.yml'
+      - '.github/workflows/design-spec.yml'
+  pull_request:
+    paths: *spec-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tools
+        run: pip install pyyaml check-jsonschema
+
+      # Convention: a source design/data/X.yml is validated by its validator
+      # design/structure/X.schema.yml. The validators are YAML, the same form
+      # they are authored in, and nothing is emitted to JSON. A new source is
+      # picked up here with no change to this job.
+      - name: Validate each design source against its validator
+        run: |
+          shopt -s nullglob
+          fail=0
+          for src in design/data/*.yml; do
+            base="$(basename "${src%.yml}")"
+            schema="design/structure/${base}.schema.yml"
+            if [ -f "$schema" ]; then
+              echo "validating $src against $schema"
+              check-jsonschema --schemafile "$schema" "$src" || fail=1
+            else
+              echo "ERROR: $src has no design/structure/${base}.schema.yml"
+              fail=1
+            fi
+          done
+          exit "$fail"
+
+      # The core gate: the one generated file must match its source, and the
+      # corpus linters (house style, clean room) must pass.
+      - name: Check the generated schema is in sync
+        run: python3 tools/build.py --check
+
+      # The example configs are held to the same config surface the spec defines.
+      - name: Lint example configs against the config schema
+        run: |
+          shopt -s nullglob
+          files=(examples/*/after/molecule.yml)
+          if [ ${#files[@]} -gt 0 ]; then
+            check-jsonschema --schemafile generated/molecule-config.schema.json "${files[@]}"
+          fi

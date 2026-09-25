@@ -1,0 +1,136 @@
+---
+# Local gates, same ones CI runs. Install with: pre-commit install
+#
+# Four things are checked here. Each design source matches the shape its
+# validator in design/structure/ fixes. The after/ example configs match the
+# generated config schema. YAML everywhere matches the repo .yamllint, errors
+# only, strict, so any finding fails. And no staged change carries a secret,
+# under the policy in .gitleaks.toml.
+#
+# A validator is a YAML schemafile, which check-jsonschema accepts, and a $ref
+# between validators names the sibling .yml. Nothing here is emitted to JSON.
+
+repos:
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.38.0
+    hooks:
+      - id: check-jsonschema
+        alias: check-jsonschema-conventions
+        name: conventions.yml against its validator
+        files: ^design/data/conventions\.yml$
+        args: [--schemafile, design/structure/conventions.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-defaults
+        name: defaults.yml against its validator
+        files: ^design/data/defaults\.yml$
+        args: [--schemafile, design/structure/defaults.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-documentation-plan
+        name: documentation-plan.yml against its validator
+        files: ^design/data/documentation-plan\.yml$
+        args: [--schemafile, design/structure/documentation-plan.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-environment
+        name: environment.yml against its validator
+        files: ^design/data/environment\.yml$
+        args: [--schemafile, design/structure/environment.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-ephemeral
+        name: ephemeral.yml against its validator
+        files: ^design/data/ephemeral\.yml$
+        args: [--schemafile, design/structure/ephemeral.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-execution-environments
+        name: execution-environments.yml against its validator
+        files: ^design/data/execution-environments\.yml$
+        args: [--schemafile, design/structure/execution-environments.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-interfaces
+        name: interfaces.yml against its validator
+        files: ^design/data/interfaces\.yml$
+        args: [--schemafile, design/structure/interfaces.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-layout
+        name: layout.yml against its validator
+        files: ^design/data/layout\.yml$
+        args: [--schemafile, design/structure/layout.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-lifecycle
+        name: lifecycle.yml against its validator
+        files: ^design/data/lifecycle\.yml$
+        args: [--schemafile, design/structure/lifecycle.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-lint
+        name: lint.yml against its validator
+        files: ^design/data/lint\.yml$
+        args: [--schemafile, design/structure/lint.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-naming
+        name: naming.yml against its validator
+        files: ^design/data/naming\.yml$
+        args: [--schemafile, design/structure/naming.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-open-questions
+        name: open-questions.yml against its validator
+        files: ^design/data/open-questions\.yml$
+        args: [--schemafile, design/structure/open-questions.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-provisioning
+        name: provisioning.yml against its validator
+        files: ^design/data/provisioning\.yml$
+        args: [--schemafile, design/structure/provisioning.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-rejected-ideas
+        name: rejected-ideas.yml against its validator
+        files: ^design/data/rejected-ideas\.yml$
+        args: [--schemafile, design/structure/rejected-ideas.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-scheduling
+        name: scheduling.yml against its validator
+        files: ^design/data/scheduling\.yml$
+        args: [--schemafile, design/structure/scheduling.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-state
+        name: state.yml against its validator
+        files: ^design/data/state\.yml$
+        args: [--schemafile, design/structure/state.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-target
+        name: target.yml against its validator
+        files: ^design/data/target\.yml$
+        args: [--schemafile, design/structure/target.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-tree-spec
+        name: tree-spec.yml against its validator
+        files: ^design/data/tree-spec\.yml$
+        args: [--schemafile, design/structure/tree-spec.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-upstream-baseline
+        name: upstream-baseline.yml against its validator
+        files: ^design/data/upstream-baseline\.yml$
+        args: [--schemafile, design/structure/upstream-baseline.schema.yml]
+      - id: check-jsonschema
+        alias: check-jsonschema-examples
+        name: example configs against the generated config schema
+        files: ^examples/[^/]+/after/molecule\.yml$
+        args: [--schemafile, generated/molecule-config.schema.json]
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        args: [--strict, -c, .yamllint]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: build-check
+        name: generated schema is in sync and the corpus linters pass
+        entry: python3 tools/build.py --check
+        language: system
+        pass_filenames: false
+        always_run: true

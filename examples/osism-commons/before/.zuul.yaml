@@ -1,0 +1,408 @@
+---
+- secret:
+    name: SECRET_ANSIBLE_COLLECTION_COMMONS
+    data:
+      # Changed by the one-molecule project: upstream's !encrypted/pkcs1-oaep
+      # ciphertext for each value below is replaced by a placeholder.
+      DTRACK_API_KEY: ENCRYPTED_DTRACK_API_KEY
+      DOCKER_PASSWORD: ENCRYPTED_DOCKER_PASSWORD
+      DOCKER_USERNAME: ENCRYPTED_DOCKER_USERNAME
+      COSIGN_PASSWORD: ENCRYPTED_COSIGN_PASSWORD
+      COSIGN_PRIVATE_KEY: ENCRYPTED_COSIGN_PRIVATE_KEY
+
+- job:
+    name: ansible-collection-commons-container-image-osism-ansible-push
+    parent: abstract-container-image-osism-ansible-push
+    secrets:
+      - name: secret
+        secret: SECRET_ANSIBLE_COLLECTION_COMMONS
+        pass-to-parent: true
+
+- job:
+    name: ansible-collection-commons-osism-kubernetes-push
+    parent: abstract-osism-kubernetes-push
+    secrets:
+      - name: secret
+        secret: SECRET_ANSIBLE_COLLECTION_COMMONS
+        pass-to-parent: true
+
+- job:
+    name: abstract-ansible-collection-commons-molecule
+    parent: ansible-molecule
+    abstract: true
+    nodeset:
+      nodes:
+        - name: debian-bookworm
+          label: debian-bookworm
+        - name: ubuntu-noble
+          label: ubuntu-noble
+    vars:
+      ansible_molecule_ansible_version: "12.3.0"
+    files:
+      - '^\.zuul\.yaml$'
+      - '^molecule\/delegated\/[^\/]*yml$'
+      - '^molecule\/requirements\.txt$'
+
+- job:
+    name: ansible-collection-commons-molecule-certificates
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: certificates
+    files:
+      - '^roles\/certificates\/.*$'
+      - '^molecule\/delegated\/tests\/certificates.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-cleanup
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: cleanup
+    files:
+      - '^roles\/cleanup\/.*$'
+      - '^molecule\/delegated\/tests\/cleanup.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-configfs
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: configfs
+    files:
+      - '^roles\/configfs\/.*$'
+      - '^molecule\/delegated\/tests\/configfs.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-configuration
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: configuration
+    files:
+      - '^roles\/configuration\/.*$'
+      - '^molecule\/delegated\/tests\/configuration.*$'
+      - '^molecule\/delegated\/prepare\/configuration.*$'
+      - '^molecule\/delegated\/vars\/configuration.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-docker_compose
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: docker_compose
+    files:
+      - '^roles\/docker_compose\/.*$'
+      - '^molecule\/delegated\/tests\/docker_compose.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-docker_login
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: docker_login
+    files:
+      - '^roles\/docker_login\/.*$'
+      - '^molecule\/delegated\/tests\/docker_login.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-facts
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: facts
+    files:
+      - '^roles\/facts\/.*$'
+      - '^molecule\/delegated\/tests\/facts.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-firewall
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: firewall
+    files:
+      - '^roles\/firewall\/.*$'
+      - '^molecule\/delegated\/tests\/firewall.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-hostname
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: hostname
+    files:
+      - '^roles\/hostname\/.*$'
+      - '^molecule\/delegated\/tests\/hostname.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-hosts
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: hosts
+    files:
+      - '^roles\/hosts\/.*$'
+      - '^molecule\/delegated\/tests\/hosts.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-ipmitool
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: ipmitool
+    files:
+      - '^roles\/ipimtool\/.*$'
+      - '^molecule\/delegated\/tests\/ipmitool.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-kernel_modules
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: kernel_modules
+    files:
+      - '^roles\/kernel_modules\/.*$'
+      - '^molecule\/delegated\/tests\/kernel_modules.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-known_hosts
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: known_hosts
+    files:
+      - '^roles\/known_hosts\/.*$'
+      - '^molecule\/delegated\/tests\/known_hosts.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-limits
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: limits
+    files:
+      - '^roles\/limits\/.*$'
+      - '^molecule\/delegated\/tests\/limits.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-lynis
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: lynis
+    files:
+      - '^roles\/lynis\/.*$'
+      - '^molecule\/delegated\/tests\/lynis.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-microcode
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: microcode
+    files:
+      - '^roles\/microcode\/.*$'
+      - '^molecule\/delegated\/tests\/microcode.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-motd
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: motd
+    files:
+      - '^roles\/motd\/.*$'
+      - '^molecule\/delegated\/tests\/motd.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-network
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: network
+    files:
+      - '^roles\/network\/.*$'
+      - '^molecule\/delegated\/tests\/network.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-operator
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: operator
+    files:
+      - '^roles\/operator\/.*$'
+      - '^molecule\/delegated\/tests\/operator.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-packages
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: packages
+    files:
+      - '^roles\/packages\/.*$'
+      - '^molecule\/delegated\/tests\/packages.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-podman
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: podman
+    files:
+      - '^roles\/podman\/.*$'
+      - '^molecule\/delegated\/tests\/podman.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-proxy
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: proxy
+    files:
+      - '^roles\/proxy\/.*$'
+      - '^molecule\/delegated\/tests\/proxy.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-repository
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: repository
+    files:
+      - '^roles\/repository\/.*$'
+      - '^molecule\/delegated\/tests\/repository.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-resolvconf
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: resolvconf
+    files:
+      - '^roles\/resolvconf\/.*$'
+      - '^molecule\/delegated\/tests\/resolvconf.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-runc
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: runc
+    files:
+      - '^roles\/runc\/.*$'
+      - '^molecule\/delegated\/tests\/runc.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-services
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: services
+    files:
+      - '^roles\/services\/.*$'
+      - '^molecule\/delegated\/tests\/services.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-sosreport
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: sosreport
+    files:
+      - '^roles\/sosreport\/.*$'
+      - '^molecule\/delegated\/tests\/sosreport.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-sshconfig
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: sshconfig
+    files:
+      - '^roles\/sshconfig\/.*$'
+      - '^molecule\/delegated\/tests\/sshconfig.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-state
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: state
+    files:
+      - '^roles\/state\/.*$'
+      - '^molecule\/delegated\/tests\/state.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-sysctl
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: sysctl
+    files:
+      - '^roles\/sysctl\/.*$'
+      - '^molecule\/delegated\/tests\/sysctl.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-systohc
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: systohc
+    files:
+      - '^roles\/systohc\/.*$'
+      - '^molecule\/delegated\/tests\/systohc.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-timezone
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: timezone
+    files:
+      - '^roles\/timezone\/.*$'
+      - '^molecule\/delegated\/tests\/timezone.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-trivy
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: trivy
+    files:
+      - '^roles\/trivy\/.*$'
+      - '^molecule\/delegated\/tests\/trivy.*$'
+
+- job:
+    name: ansible-collection-commons-molecule-user
+    parent: abstract-ansible-collection-commons-molecule
+    vars:
+      ansible_role: user
+    files:
+      - '^roles\/user\/.*$'
+      - '^molecule\/delegated\/tests\/user.*$'
+
+- project:
+    merge-mode: squash-merge
+    default-branch: main
+    check:
+      jobs:
+        - ansible-collection-commons-molecule-certificates
+        - ansible-collection-commons-molecule-cleanup
+        - ansible-collection-commons-molecule-configfs
+        - ansible-collection-commons-molecule-configuration
+        - ansible-collection-commons-molecule-docker_compose
+        - ansible-collection-commons-molecule-docker_login
+        - ansible-collection-commons-molecule-facts
+        - ansible-collection-commons-molecule-firewall
+        - ansible-collection-commons-molecule-hostname
+        - ansible-collection-commons-molecule-hosts
+        - ansible-collection-commons-molecule-ipmitool
+        - ansible-collection-commons-molecule-kernel_modules
+        - ansible-collection-commons-molecule-known_hosts
+        - ansible-collection-commons-molecule-limits
+        - ansible-collection-commons-molecule-lynis
+        - ansible-collection-commons-molecule-microcode
+        - ansible-collection-commons-molecule-motd
+        - ansible-collection-commons-molecule-network
+        - ansible-collection-commons-molecule-operator
+        - ansible-collection-commons-molecule-packages
+        - ansible-collection-commons-molecule-podman
+        - ansible-collection-commons-molecule-proxy
+        - ansible-collection-commons-molecule-repository
+        - ansible-collection-commons-molecule-resolvconf
+        - ansible-collection-commons-molecule-runc
+        - ansible-collection-commons-molecule-services
+        - ansible-collection-commons-molecule-sosreport
+        - ansible-collection-commons-molecule-sshconfig
+        - ansible-collection-commons-molecule-state
+        - ansible-collection-commons-molecule-sysctl
+        - ansible-collection-commons-molecule-systohc
+        - ansible-collection-commons-molecule-timezone
+        - ansible-collection-commons-molecule-trivy
+        - ansible-collection-commons-molecule-user
+        - ansible-collection-ensure-readme
+        - ansible-lint
+        - flake8
+        - yamllint
+        - python-black
+    periodic-daily:
+      jobs:
+        - yamllint
+        - ansible-lint
+        - python-black
+    post:
+      jobs:
+        - ansible-collection-commons-container-image-osism-ansible-push:
+            branches: main
+        - ansible-collection-commons-osism-kubernetes-push:
+            branches: main

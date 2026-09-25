@@ -1,0 +1,75 @@
+---
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Terms glossary source (every term of art the design uses, and what each means)
+description: 'The bespoke shape for the vocabulary register: a titled document of groups, each group a list of terms. A term is a one-line meaning, and an optional one-line never-means for a term that collides with a near neighbor. This is the whole vocabulary the design is written in, one entry per word of art (concepts, components, config keys, flags, environment variables, and retired terms), so every reference has a single agreed sense. This schema fixes STRUCTURE and forbids the semicolon and em/en dash on every text string (a house writing-style rule). Norms it cannot express, enforced in review: one idea per meaning, a term placed in exactly one group, and a never-means only where a real collision earns it.'
+type: object
+additionalProperties: false
+required:
+  - title
+  - intro
+  - status
+  - groups
+properties:
+  title:
+    $ref: '#/$defs/line'
+  intro:
+    allOf:
+      - $ref: '#/$defs/line'
+    description: One line naming what this glossary is and what it exists to hold.
+  status:
+    $ref: '#/$defs/line'
+  usage:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/line'
+    description: Optional bounded rules for reading and maintaining the glossary (one idea per line).
+  groups:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/group'
+$defs:
+  line:
+    type: string
+    minLength: 1
+    not:
+      pattern: '[;—–]'
+    description: A non-empty text string with no semicolon and no em or en dash. Split into two, or use a comma, a period, or parentheses.
+  group:
+    type: object
+    additionalProperties: false
+    required:
+      - title
+      - terms
+    properties:
+      title:
+        $ref: '#/$defs/line'
+      intro:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional one-line framing for the group.
+      terms:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/term'
+  term:
+    type: object
+    additionalProperties: false
+    required:
+      - term
+      - means
+    properties:
+      term:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The term as spelled. A config key carries its trailing colon in backticks (`parent:`), a flag its dashes (`--workers`), an environment variable its name (`MOLECULE_GLOB`), and a concept is a plain word (Scenario).
+      means:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: One line, the single sense the term carries. No raw pipe character, which breaks the rendered table. Use a comma or the word or.
+      never:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional one line, the sense the term must not be read as. Present only where the term collides with a near neighbor.

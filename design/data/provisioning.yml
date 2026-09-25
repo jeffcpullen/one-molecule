@@ -1,0 +1,101 @@
+# yaml-language-server: $schema=../structure/provisioning.schema.yml
+---
+# provisioning source, the pre-create provisioning gap and how the tree fills it:
+# a node can own something that is not an instance, an artifact is machine-global,
+# the platform-to-provider link stays untied with verify as the check, and the
+# line molecule must not cross. State the rule, never the reasoning. Rejected
+# alternatives live in design/data/rejected-ideas.yml.
+# One idea per rule, no semicolons, no em or en dashes. design/data/target.yml property 4 is the
+# constraint that decides most of this, design/data/tree-spec.yml owns derived ownership, this
+# file owns provisioning.
+
+title: Providing the environment
+intro: >-
+  The step that must happen before `create` and has nowhere to live, and how the tree fills
+  it. `design/data/target.yml` property 4 is the constraint that decides most of what follows. Rejected
+  alternatives are in `design/data/rejected-ideas.yml`.
+status: proposed, the node owning a non-instance artifact and the reference-example scaffolding are proposed, the machine-global artifact and the untied platform-to-provider link are decided
+
+sections:
+  - title: The provisioning gap
+    intro: A create playbook consumes an input that must exist before it runs, and molecule has nowhere to make it.
+    rules:
+      - A `create` playbook consumes an input that must exist before it runs.
+      - That input is frequently something the project has to make, such as a container image, a VM template, a base AMI, an OVA, a VPC, or an execution environment.
+      - Molecule has no action for that step, no node role for the thing that performs it, and no vocabulary for it.
+      - With no home the step goes inside `create`, in every scenario that needs it, unordered, ungated, and re-run on every scenario every time.
+      - The gap is the absence of a place to put a step that precedes create and outlives it, not a missing container feature.
+      - Containers are the common case, not the shape of the problem.
+      - A design that solves this for podman but not for a Packer build has solved the example instead of the gap.
+
+  - title: Most of the gap is the tree
+    intro: The largest part of this topic needs nothing new.
+    rules:
+      - A node whose `create` builds the artifacts, whose `verify` asserts they exist, whose `destroy` removes them, and whose children are the scenarios that consume them fills the gap.
+      - The image build earns a node because it is a genuine shared dependency, since no scenario can run until the images exist.
+      - The test for a shared node is whether the shared thing being absent leaves a scenario unable to run rather than merely unconfigured.
+      - Scenarios that do not share instances are not parented to a shared node, because that invents a dependency and serializes independent work (`design/data/tree-spec.yml`).
+      - Each scenario that creates and destroys its own containers owns the instances its own `create` produces (`design/data/tree-spec.yml`) and destroys them (`design/data/lifecycle.yml`).
+    code:
+      - lang: yaml
+        caption: The node that owns the images, which its defined `create` makes the owner.
+        body: |
+          provisioner:
+            playbooks:
+              create: build.yml      # a defined create makes this node the owner
+              destroy: remove.yml
+              verify: verify.yml
+
+  - title: A node can own something that is not an instance
+    intro: Proposed.
+    rules:
+      - A node owns whatever its `create` playbook brings into existence and records, not specifically an instance.
+      - An image-building node's `create` makes something that is not an instance but carries the identical invariant.
+      - Only the owner destroys what its `create` made.
+      - Teardown of an owned artifact is post-order.
+      - An owned artifact's lifetime must exceed that of the children using it.
+      - Ownership is derived from whether a node has a defined `create`, so an artifact node needs no new key (`design/data/tree-spec.yml`).
+      - "`design/data/target.yml`'s day-one surface stays the root file with `children:` nesting, and ownership is derived rather than a key."
+      - An author recording built image names in `instance_config.yml` is using it as designed, not abusing it (`design/data/tree-spec.yml`).
+      - Document that what a node owns is whatever its `create` recorded, which is a documentation line rather than a key.
+
+  - title: An artifact is machine-global, a run is not
+    intro: Decided, and it belongs to run identity.
+    rules:
+      - An image tag lives in the local engine's store, visible to every run on the host.
+      - Two concurrent runs of one project build the same tag.
+      - Two unrelated projects collide outright if they pick the same name.
+      - Molecule cannot make the tag unique, because the author writes the build playbook and the tag is theirs.
+      - What molecule owes the author is a run identity they can compose into a name for isolation and ignore for a shared cache.
+      - This adds no mechanism, it is a second motivating case for the run identity proposed in `design/data/ephemeral.yml`.
+      - An artifact node's output is shared state that molecule does not own, and the docs say so where the pattern is introduced.
+      - The docs show both spellings, a stable tag for a warm local cache and a run-scoped tag for isolation.
+      - Leaving an implicitly built ancestor standing is the point here, not merely acceptable (`design/data/lifecycle.yml`).
+
+  - title: Nothing ties a platform to the node that provides it
+    intro: "Decided: it stays untied."
+    rules:
+      - A child names an image and the parent built something, and nothing connects them.
+      - The parent's `verify` is the check, so a node that builds artifacts asserts in its `verify` that they exist.
+      - This is the readiness gate doing its specified job, with no new key.
+      - The residual risk is stated in the docs rather than engineered away.
+      - A child can name an image its parent never built, and finds out when `create` fails.
+      - That is a typo failing at the point of use, the same deal molecule already offers for every other string in `platforms[]`.
+
+  - title: What molecule must not do
+    intro: The boundary of what molecule does for the provisioning step.
+    rules:
+      - No distro-aware image recipes, because resolving a dependency set is explicitly outside the aim (`design/data/target.yml`).
+      - No registry, tag scheme, or cache policy.
+      - "No build key on `platforms[]`."
+      - Molecule orders and gates the step, and the author writes the step.
+      - Every provisioning workaround is a failure of ordering, gating, or ownership, not molecule failing to know about a container engine.
+
+  - title: Shipping a reference example is not shipping a resolver
+    intro: Proposed, and proposed separately from the tree.
+    rules:
+      - Scaffolding a create and destroy pair alongside an example Containerfile the author owns and edits gives molecule no knowledge of what is inside an image.
+      - A reference example adds no schema and removes the from-scratch cost for the common case.
+      - An example is inert, so when it is wrong for a project the author edits it and molecule never had an opinion to be wrong about.
+      - This is a documentation-and-scaffolding proposal and is proposed separately from the tree.
+      - Keeping it separate keeps the ordering model independent of image building.

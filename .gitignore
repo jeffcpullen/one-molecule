@@ -1,0 +1,38 @@
+.molecule/
+*.retry
+__pycache__/
+*.pyc
+.tox/
+.venv/
+*.egg-info/
+.pytest_cache/
+.ansible/
+
+# All internal working material lives under one root: research notes, process
+# scaffolding, rendered assets and outward drafts. Kept local, never pushed.
+# Everything tracked is publishable. tools/check-private-paths.sh enforces this
+# at push time.
+/internal/
+
+# Local editor and agent config. Ignored wholesale except for what is published
+# on purpose: the om-* agent definitions and the update-the-docs skill. Git will
+# not descend into an excluded directory, so each level is excluded by its
+# contents and then re-included by name. AGENTS.md carries the published agent
+# rules, and CLAUDE.md stays local.
+/CLAUDE.md
+.claude/*
+!.claude/agents/
+.claude/agents/*
+!.claude/agents/om-*.md
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/update-the-docs/
+.claude/skills/update-the-docs/*
+!.claude/skills/update-the-docs/SKILL.md
+
+# The private names the clean-room gate rejects, kept out so the gate does not
+# publish them.
+/tools/private-names.txt
+
+# Local test-harness scaffolding and caches.
+.harness/

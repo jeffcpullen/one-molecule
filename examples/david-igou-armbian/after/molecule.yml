@@ -1,0 +1,164 @@
+---
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 David Igou
+# Converted by the one-molecule project from the upstream per-scenario Molecule layout to the single top-level layout.
+platforms:
+  - name: debian-13-qemu
+    vars:
+      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
+      mp_defaults:
+        qemu:
+          cpus: 2
+          memory: 2048
+          ssh_user: debian
+      mp:
+        qemu:
+          image: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
+          disk_size: 4G
+  - name: ubuntu-2404-podman
+    vars:
+      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('podman', true) }}"
+      mp_defaults:
+        podman:
+          command: sleep 1d
+          privileged: false
+      mp:
+        podman:
+          image: docker.io/geerlingguy/docker-ubuntu2404-ansible:latest
+  - name: armbian-uefi-qemu
+    vars:
+      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
+      mp_defaults:
+        qemu:
+          cpus: 2
+          memory: 2048
+          ssh_user: cloud-user
+          cpu_model: Nehalem
+      mp:
+        qemu:
+          image: https://dl.armbian.com/uefi-x86/Trixie_cloud_minimal-qcow2
+          firmware: uefi
+  - name: armbian-builder-qemu
+    vars:
+      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
+      mp_defaults:
+        qemu:
+          cpus: 8
+          memory: 16384
+          ssh_user: debian
+      mp:
+        qemu:
+          image: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
+          disk_size: 100G
+
+defaults:
+  dependency:
+    name: galaxy
+    enabled: true
+    options:
+      requirements-file: extensions/molecule/requirements-test.yml
+  ansible:
+    executor:
+      args:
+        ansible_playbook:
+          - --inventory=${MOLECULE_EPHEMERAL_DIRECTORY}/inventory/
+  scenario:
+    test_sequence:
+      - dependency
+      - syntax
+      - create
+      - prepare
+      - converge
+      - verify
+      - destroy
+  verifier:
+    name: ansible
+  playbooks:
+    create: david_igou.molecule_provisioners.create
+    destroy: david_igou.molecule_provisioners.destroy
+    prepare: david_igou.armbian.molecule_shared_prepare
+
+scenarios:
+  - name: board_boot_verify
+    platforms:
+      - debian-13-qemu
+    playbooks:
+      converge: david_igou.armbian.molecule_board_boot_verify_converge
+      verify: david_igou.armbian.molecule_board_boot_verify_verify
+  - name: board_boot_wait
+    platforms:
+      - ubuntu-2404-podman
+    playbooks:
+      converge: david_igou.armbian.molecule_board_boot_wait_converge
+      verify: david_igou.armbian.molecule_board_boot_wait_verify
+  - name: bootstrap_armbian
+    platforms:
+      - armbian-uefi-qemu
+    playbooks:
+      prepare: david_igou.armbian.molecule_bootstrap_armbian_prepare
+      converge: david_igou.armbian.molecule_bootstrap_armbian_converge
+      verify: david_igou.armbian.molecule_bootstrap_armbian_verify
+  - name: disk_image
+    platforms:
+      - debian-13-qemu
+    playbooks:
+      prepare: david_igou.armbian.molecule_disk_image_prepare
+      converge: david_igou.armbian.molecule_disk_image_converge
+      verify: david_igou.armbian.molecule_disk_image_verify
+  - name: disk_provision
+    platforms:
+      - debian-13-qemu
+    playbooks:
+      prepare: david_igou.armbian.molecule_disk_provision_prepare
+      converge: david_igou.armbian.molecule_disk_provision_converge
+      verify: david_igou.armbian.molecule_disk_provision_verify
+  - name: image_build
+    platforms:
+      - armbian-builder-qemu
+    provisioner:
+      inventory:
+        group_vars:
+          molecule:
+            scenario_userpatches:
+              - dest: config/boards/orangepi5pro.conf
+                content: |
+                  function pre_config_uboot_target__orangepi5pro_pxe_first() {
+                      declare -a t=("pxe" "dhcp" "mmc1" "mmc0" "nvme" "scsi" "usb" "spi")
+                      sed -i -e "s/#define BOOT_TARGETS.*/#define BOOT_TARGETS \"${t[*]}\"/" \
+                          include/configs/rockchip-common.h
+                  }
+    playbooks:
+      prepare: david_igou.armbian.molecule_image_build_prepare
+      converge: david_igou.armbian.molecule_image_build_converge
+      verify: david_igou.armbian.molecule_image_build_verify
+  - name: local_kernel_render
+    platforms:
+      - ubuntu-2404-podman
+    playbooks:
+      converge: david_igou.armbian.molecule_local_kernel_render_converge
+      verify: david_igou.armbian.molecule_local_kernel_render_verify
+  - name: persist_uboot_env
+    platforms:
+      - ubuntu-2404-podman
+    playbooks:
+      converge: david_igou.armbian.molecule_persist_uboot_env_converge
+      verify: david_igou.armbian.molecule_persist_uboot_env_verify
+  - name: pxelinux_render
+    platforms:
+      - ubuntu-2404-podman
+    playbooks:
+      converge: david_igou.armbian.molecule_pxelinux_render_converge
+      verify: david_igou.armbian.molecule_pxelinux_render_verify
+  - name: rootfs_provision
+    platforms:
+      - debian-13-qemu
+    provisioner:
+      inventory:
+        host_vars:
+          instance:
+            armbian_nfs_rootfs_path: /var/lib/armbian/test-nfs
+            armbian_image_cache: /var/lib/armbian/test-cache
+    playbooks:
+      prepare: david_igou.armbian.molecule_rootfs_provision_prepare
+      converge: david_igou.armbian.molecule_rootfs_provision_converge
+      verify: david_igou.armbian.molecule_rootfs_provision_verify

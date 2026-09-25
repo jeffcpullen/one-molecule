@@ -1,0 +1,102 @@
+---
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Design tracker / register source (grouped items with a status, a backing tag, or an owning doc)
+description: 'The shared shape for a machine-readable register: a titled document of groups, each group an owning doc (or theme) carrying a list of items. Each item is a one-line gist plus a bounded one-line reason and up to two backing tags. Reused by any register-archetype source. This schema fixes the STRUCTURE and forbids the semicolon and em/en dash on every text string (a house writing-style rule). One norm it cannot express, enforced in review: one idea per item, and the reason stays a single bounded line, never a stacked essay. A register indexes decisions and adds none of its own.'
+type: object
+additionalProperties: false
+required:
+  - title
+  - intro
+  - status
+  - groups
+properties:
+  title:
+    $ref: '#/$defs/line'
+  intro:
+    allOf:
+      - $ref: '#/$defs/line'
+    description: One line naming what this register is and what it exists to prevent.
+  status:
+    $ref: '#/$defs/line'
+  usage:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/line'
+    description: Optional bounded operating rules for reading and maintaining the register (one idea per line).
+  tags:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/tagdef'
+    description: Optional legend decoding the backing tags used on items.
+  groups:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/group'
+$defs:
+  line:
+    type: string
+    minLength: 1
+    not:
+      pattern: '[;—–]'
+    description: A non-empty text string with no semicolon and no em or en dash. Split into two, or use a comma, a period, or parentheses.
+  tagdef:
+    type: object
+    additionalProperties: false
+    required:
+      - tag
+      - means
+    properties:
+      tag:
+        $ref: '#/$defs/tag'
+      means:
+        $ref: '#/$defs/line'
+  tag:
+    type: string
+    enum:
+      - src
+      - issue
+      - measured
+      - reasoned
+  group:
+    type: object
+    additionalProperties: false
+    required:
+      - title
+      - items
+    properties:
+      title:
+        $ref: '#/$defs/line'
+      intro:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional one-line framing for the group.
+      items:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/item'
+  item:
+    type: object
+    additionalProperties: false
+    required:
+      - gist
+      - why
+    properties:
+      gist:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The rejected idea, one line, rendered as the bold lead.
+      why:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The bounded one-line reason it was rejected.
+      tags:
+        type: array
+        maxItems: 2
+        uniqueItems: true
+        items:
+          $ref: '#/$defs/tag'
+        description: Zero to two backing tags.

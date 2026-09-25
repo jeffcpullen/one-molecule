@@ -1,0 +1,4 @@
+---
+$schema: https://json-schema.org/draft/2020-12/schema
+$comment: upstream-baseline.yml uses the shared sectioned shape (see sectioned.schema.yml). The baseline states upstream behavior as atomic rules with check `none`, which is what the sectioned shape already holds, and the audited revision is carried in `status`. Thin sibling to keep the CI convention pure.
+$ref: sectioned.schema.yml

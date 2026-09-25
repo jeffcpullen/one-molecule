@@ -1,0 +1,26 @@
+# Secret scanning policy, and the single source of truth for it.
+#
+# The upstream default ruleset is the baseline and is not narrowed. It already
+# covers everything this repo needs to catch, including Anthropic API keys
+# (anthropic-api-key, anthropic-admin-api-key), other AI provider keys
+# (openai-api-key, gcp-api-key, cohere-api-token, huggingface-access-token,
+# perplexity-api-key), and any PEM private key block (private-key). No custom
+# rule is added, because adding one that duplicates a default rule is a second
+# place to keep in sync.
+#
+# ERRORS ONLY. gitleaks exits non-zero on any finding and both the pre-commit
+# hook and the CI job take that exit code as the verdict. Nothing here is
+# advisory.
+#
+# There is no allowlist. An entry added later names the one reason that exact
+# value is safe. Never allowlist a path to silence a finding nobody has read.
+#
+# This is the one gate in the repo that carries no committed must-catch fixture,
+# and the exception is deliberate. The CI job scans the whole history, so a
+# fixture credential committed once would fail every build from then on, even
+# after its file was deleted. The fixture is run out of tree instead: plant a
+# synthetic sk-ant key and a PEM private key block in a throwaway repo, confirm
+# the hook and the CI command both exit non-zero, then throw the repo away.
+
+[extend]
+useDefault = true

@@ -1,0 +1,7 @@
+---
+# All shared config comes from ../config.yml (the auto-loaded base config).
+# This file only sets the converge playbook that makes the scenario distinct.
+provisioner:
+  name: ansible
+  playbooks:
+    converge: ../utils/playbooks/luks.yml

@@ -1,0 +1,866 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Converted by the one-molecule project from the upstream per-scenario Molecule layout to the single top-level layout.
+defaults:
+  driver:
+    name: docker
+  platforms:
+    - name: almalinux-8
+      image: almalinux:8
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: almalinux-9
+      image: almalinux:9
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: almalinux-10
+      image: almalinux:10
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: alpine-3.21
+      image: alpine:3.21
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /sbin/init
+    - name: alpine-3.22
+      image: alpine:3.22
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /sbin/init
+    - name: alpine-3.23
+      image: alpine:3.23
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /sbin/init
+    - name: amazonlinux-2023
+      image: amazonlinux:2023
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: debian-bullseye
+      image: debian:bullseye-slim
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /sbin/init
+    - name: debian-bookworm
+      image: debian:bookworm-slim
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /sbin/init
+    - name: debian-trixie
+      image: debian:trixie-slim
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /sbin/init
+    - name: oraclelinux-8
+      image: oraclelinux:8
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: oraclelinux-9
+      image: oraclelinux:9
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: oraclelinux-10
+      image: oraclelinux:10
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: rhel-8
+      image: redhat/ubi8:8.10
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: rhel-9
+      image: redhat/ubi9:9.5
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: rhel-10
+      image: redhat/ubi10:10.2
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: rockylinux-8
+      image: rockylinux/rockylinux:8
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: rockylinux-9
+      image: rockylinux/rockylinux:9.0
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: rockylinux-10
+      image: rockylinux/rockylinux:10
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: sles-15
+      image: registry.suse.com/suse/sle15:15.7
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: sles-16
+      image: registry.suse.com/bci/bci-base:16.0
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /usr/sbin/init
+    - name: ubuntu-jammy
+      image: ubuntu:jammy
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /sbin/init
+    - name: ubuntu-noble
+      image: ubuntu:noble
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /sbin/init
+    - name: ubuntu-resolute
+      image: ubuntu:resolute
+      dockerfile: molecule/common/Dockerfile.j2
+      privileged: true
+      cgroupns_mode: host
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /sbin/init
+  provisioner:
+    name: ansible
+    log: true
+    env:
+      ANSIBLE_ROLES_PATH: ~/.cache/molecule/ansible-role-nginx/${MOLECULE_SCENARIO_NAME}/roles:${MOLECULE_PROJECT_DIRECTORY}/..:~/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles
+    inventory:
+      host_vars:
+        sles-15:
+          ansible_python_interpreter: /usr/bin/python3.11
+scenarios:
+  - name: default
+    provisioner:
+      playbooks:
+        converge: molecule/default/converge.yml
+        verify: molecule/default/verify.yml
+  - name: distribution
+    provisioner:
+      playbooks:
+        converge: molecule/distribution/converge.yml
+        verify: molecule/distribution/verify.yml
+  - name: downgrade
+    provisioner:
+      config_options:
+        defaults:
+          fact_caching: jsonfile
+          fact_caching_connection: /tmp/facts_cache
+          fact_caching_timeout: 7200
+      playbooks:
+        prepare: molecule/downgrade/prepare.yml
+        converge: molecule/downgrade/converge.yml
+        verify: molecule/downgrade/verify.yml
+  - name: source
+    provisioner:
+      playbooks:
+        converge: molecule/source/converge.yml
+        verify: molecule/source/verify.yml
+  - name: source-version
+    provisioner:
+      config_options:
+        defaults:
+          fact_caching: jsonfile
+          fact_caching_connection: /tmp/facts_cache
+          fact_caching_timeout: 7200
+      playbooks:
+        converge: molecule/source-version/converge.yml
+        verify: molecule/source-version/verify.yml
+  - name: stable
+    provisioner:
+      playbooks:
+        converge: molecule/stable/converge.yml
+        verify: molecule/stable/verify.yml
+  - name: uninstall
+    provisioner:
+      playbooks:
+        prepare: molecule/uninstall/prepare.yml
+        converge: molecule/uninstall/converge.yml
+        verify: molecule/uninstall/verify.yml
+  - name: upgrade
+    provisioner:
+      playbooks:
+        prepare: molecule/upgrade/prepare.yml
+        converge: molecule/upgrade/converge.yml
+        verify: molecule/upgrade/verify.yml
+  - name: version
+    provisioner:
+      config_options:
+        defaults:
+          fact_caching: jsonfile
+          fact_caching_connection: /tmp/facts_cache
+          fact_caching_timeout: 7200
+      playbooks:
+        converge: molecule/version/converge.yml
+        verify: molecule/version/verify.yml
+  - name: agent
+    platforms:
+      - name: almalinux-8
+        image: almalinux:8
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: almalinux-9
+        image: almalinux:9
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: almalinux-10
+        image: almalinux:10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: alpine-3.21
+        image: alpine:3.21
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: alpine-3.22
+        image: alpine:3.22
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: alpine-3.23
+        image: alpine:3.23
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: amazonlinux-2023
+        image: amazonlinux:2023
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: debian-bullseye
+        image: debian:bullseye-slim
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: debian-bookworm
+        image: debian:bookworm-slim
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: debian-trixie
+        image: debian:trixie-slim
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: oraclelinux-8
+        image: oraclelinux:8
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: oraclelinux-9
+        image: oraclelinux:9
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: oraclelinux-10
+        image: oraclelinux:10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rhel-8
+        image: redhat/ubi8:8.10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rhel-9
+        image: redhat/ubi9:9.5
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rhel-10
+        image: redhat/ubi10:10.2
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rockylinux-8
+        image: rockylinux/rockylinux:8
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rockylinux-9
+        image: rockylinux/rockylinux:9.0
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rockylinux-10
+        image: rockylinux/rockylinux:10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: sles-15
+        image: registry.suse.com/suse/sle15:15.7
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: sles-16
+        image: registry.suse.com/bci/bci-base:16.0
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: ubuntu-jammy
+        image: ubuntu:jammy
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: ubuntu-noble
+        image: ubuntu:noble
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+    provisioner:
+      playbooks:
+        converge: molecule/agent/converge.yml
+        verify: molecule/agent/verify.yml
+        cleanup: molecule/agent/cleanup.yml
+  - name: downgrade-plus
+    platforms:
+      - name: almalinux-8
+        image: almalinux:8
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: almalinux-9
+        image: almalinux:9
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: alpine-3.21
+        image: alpine:3.21
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: alpine-3.22
+        image: alpine:3.22
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: alpine-3.23
+        image: alpine:3.23
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: amazonlinux-2023
+        image: amazonlinux:2023
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: debian-bullseye
+        image: debian:bullseye-slim
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: debian-bookworm
+        image: debian:bookworm-slim
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: debian-trixie
+        image: debian:trixie-slim
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: oraclelinux-8
+        image: oraclelinux:8
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: oraclelinux-9
+        image: oraclelinux:9
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: oraclelinux-10
+        image: oraclelinux:10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rhel-8
+        image: redhat/ubi8:8.10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rhel-9
+        image: redhat/ubi9:9.5
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rhel-10
+        image: redhat/ubi10:10.2
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rockylinux-8
+        image: rockylinux/rockylinux:8
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rockylinux-9
+        image: rockylinux/rockylinux:9.0
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rockylinux-10
+        image: rockylinux/rockylinux:10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: sles-15
+        image: registry.suse.com/suse/sle15:15.7
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: sles-16
+        image: registry.suse.com/bci/bci-base:16.0
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: ubuntu-jammy
+        image: ubuntu:jammy
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: ubuntu-noble
+        image: ubuntu:noble
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: ubuntu-resolute
+        image: ubuntu:resolute
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+    provisioner:
+      log: false
+      config_options:
+        defaults:
+          fact_caching: jsonfile
+          fact_caching_connection: /tmp/facts_cache
+          fact_caching_timeout: 7200
+      playbooks:
+        prepare: molecule/downgrade-plus/prepare.yml
+        converge: molecule/downgrade-plus/converge.yml
+        verify: molecule/downgrade-plus/verify.yml
+  - name: plus
+    provisioner:
+      log: false
+      playbooks:
+        prepare: molecule/plus/prepare.yml
+        converge: molecule/plus/converge.yml
+        verify: molecule/plus/verify.yml
+  - name: uninstall-plus
+    provisioner:
+      log: false
+      playbooks:
+        prepare: molecule/uninstall-plus/prepare.yml
+        converge: molecule/uninstall-plus/converge.yml
+        verify: molecule/uninstall-plus/verify.yml
+  - name: upgrade-plus
+    platforms:
+      - name: almalinux-8
+        image: almalinux:8
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: almalinux-9
+        image: almalinux:9
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: alpine-3.21
+        image: alpine:3.21
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: alpine-3.22
+        image: alpine:3.22
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: alpine-3.23
+        image: alpine:3.23
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: amazonlinux-2023
+        image: amazonlinux:2023
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: debian-bullseye
+        image: debian:bullseye-slim
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: debian-bookworm
+        image: debian:bookworm-slim
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: debian-trixie
+        image: debian:trixie-slim
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: oraclelinux-8
+        image: oraclelinux:8
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: oraclelinux-9
+        image: oraclelinux:9
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: oraclelinux-10
+        image: oraclelinux:10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rhel-8
+        image: redhat/ubi8:8.10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rhel-9
+        image: redhat/ubi9:9.5
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rhel-10
+        image: redhat/ubi10:10.2
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rockylinux-8
+        image: rockylinux/rockylinux:8
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rockylinux-9
+        image: rockylinux/rockylinux:9.0
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: rockylinux-10
+        image: rockylinux/rockylinux:10
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: sles-15
+        image: registry.suse.com/suse/sle15:15.7
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: sles-16
+        image: registry.suse.com/bci/bci-base:16.0
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /usr/sbin/init
+      - name: ubuntu-jammy
+        image: ubuntu:jammy
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: ubuntu-noble
+        image: ubuntu:noble
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+      - name: ubuntu-resolute
+        image: ubuntu:resolute
+        dockerfile: molecule/common/Dockerfile.j2
+        privileged: true
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        command: /sbin/init
+    provisioner:
+      log: false
+      playbooks:
+        prepare: molecule/upgrade-plus/prepare.yml
+        converge: molecule/upgrade-plus/converge.yml
+        verify: molecule/upgrade-plus/verify.yml

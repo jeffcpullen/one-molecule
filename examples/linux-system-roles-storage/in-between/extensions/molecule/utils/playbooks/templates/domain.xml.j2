@@ -1,0 +1,81 @@
+{#- Libvirt domain for a storage-role test node. vda is the OS overlay; the nine
+    data disks map interface -> bus exactly as standard-inventory-qcow2 does.
+    nvme has no native libvirt bus, so it goes through <qemu:commandline>, which
+    needs the qemu namespace on the root element. -#}
+<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  <name>{{ instance }}</name>
+  <memory unit='MiB'>{{ qemu_memory_mb }}</memory>
+  <vcpu>2</vcpu>
+  <os>
+    <type arch='x86_64' machine='q35'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <cpu mode='host-passthrough'/>
+  <features><acpi/><apic/></features>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+
+    {#- OS disk -#}
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='{{ workdir }}/root.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+
+    {#- cloud-init NoCloud seed -#}
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='{{ workdir }}/seed.iso'/>
+      <target dev='sdz' bus='sata'/>
+      <readonly/>
+    </disk>
+
+    <controller type='scsi' index='0' model='virtio-scsi'/>
+
+    {#- virtio and scsi data disks. file name is the global drive index (matches
+        create.yml disk{{ idx }}.raw); target letters count per interface. -#}
+    {%- set ns = namespace(v=0, s=0) -%}
+    {%- set vletters = 'bcdefghijk' -%}
+    {%- set sletters = 'abcdefghij' -%}
+    {%- for d in qemu_drives -%}
+      {%- if d.interface in [none, 'virtio'] %}
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='raw'/>
+      <source file='{{ workdir }}/disk{{ loop.index0 }}.raw'/>
+      <target dev='vd{{ vletters[ns.v] }}' bus='virtio'/>
+    </disk>
+        {%- set ns.v = ns.v + 1 -%}
+      {%- elif d.interface == 'scsi' %}
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='raw'/>
+      <source file='{{ workdir }}/disk{{ loop.index0 }}.raw'/>
+      <target dev='sd{{ sletters[ns.s] }}' bus='scsi'/>
+    </disk>
+        {%- set ns.s = ns.s + 1 -%}
+      {%- endif -%}
+    {%- endfor %}
+
+    <interface type='network'>
+      <source network='default'/>
+      <model type='virtio'/>
+    </interface>
+    <serial type='pty'><target port='0'/></serial>
+    <console type='pty'><target type='serial' port='0'/></console>
+    <channel type='unix'>
+      <target type='virtio' name='org.qemu.guest_agent.0'/>
+    </channel>
+  </devices>
+
+  {#- nvme data disks: -device nvme passthrough, id and serial by global drive
+      index to match standard-inventory-qcow2 (serial=def<dev_id>). -#}
+  <qemu:commandline>
+    {%- for d in qemu_drives -%}
+      {%- if d.interface == 'nvme' %}
+    <qemu:arg value='-drive'/>
+    <qemu:arg value='file={{ workdir }}/disk{{ loop.index0 }}.raw,if=none,id=nvme{{ loop.index0 }},format=raw'/>
+    <qemu:arg value='-device'/>
+    <qemu:arg value='nvme,drive=nvme{{ loop.index0 }},serial=def{{ loop.index0 }}'/>
+      {%- endif -%}
+    {%- endfor %}
+  </qemu:commandline>
+</domain>

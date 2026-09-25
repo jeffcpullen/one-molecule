@@ -1,0 +1,49 @@
+---
+# Repository yamllint policy, and the single source of truth for it.
+#
+# Your editor discovers this config at the repo root, the pre-commit yamllint
+# hook runs it locally, and the .github/workflows/lint.yml CI job runs it as the
+# blocking gate. One config, one set of rules, every surface.
+#
+# ERRORS ONLY. No rule sits at "warning": a check either blocks (error) or is
+# deliberately not applied to a path (a documented exception). A warning is a
+# defect that never has to be fixed, so it accumulates. We do not keep any.
+#
+# Vendored content we do not author and do not relint is ignored here, along
+# with the gitignored internal/ root, which holds working material and captured
+# before/after fixtures that CI never sees. The local tool environments are
+# ignored for the same reason: `yamllint .` walks the whole tree, so a
+# virtualenv built at the repo root would otherwise lint third-party YAML.
+
+extends: default
+
+ignore: |
+  examples/
+  .ansible/
+  vendor/
+  internal/
+  .venv/
+  .tox/
+
+rules:
+  # The design/data/ sources are one-atomic-rule-per-line prose: a rule or a
+  # table cell is a single long line BY DESIGN. Wrapping it to fit 120 would split
+  # one atomic entry across lines and fight that design, so line-length is not
+  # applied there. Their validators in design/structure/ and the config-schema
+  # source in spec/ carry the same single-line descriptions, so they are exempt
+  # for the same reason. It is enforced as an error everywhere else.
+  line-length:
+    max: 120
+    level: error
+    ignore: |
+      design/data/
+      design/structure/
+      spec/
+  # GitHub Actions spells a trigger map `on:`. Do not flag mapping keys as truthy
+  # (that false-positive is what pushed rules to "warning" before), but keep
+  # checking truthy VALUES as an error.
+  truthy:
+    check-keys: false
+  # Every document starts with the --- marker.
+  document-start:
+    present: true

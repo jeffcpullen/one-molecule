@@ -1,0 +1,140 @@
+# yaml-language-server: $schema=../structure/scheduling.schema.yml
+---
+# scheduling source, how a run schedules nodes across --workers: the current
+# flag, the submit-when-ready scheduler, the global concurrency cap, ordering
+# between trees and between siblings, the sibling-independence contract, and
+# per-tree fail-fast. State the rule, never the implementation reasoning. Rejected
+# alternatives live in design/data/rejected-ideas.yml, and open items in
+# design/data/open-questions.yml. One idea per rule, no semicolons, no em or en dashes.
+# design/data/lifecycle.yml owns teardown on failure and the lifting of the destroy-never
+# restriction, design/data/target.yml owns the run-context fan-out, this file owns scheduling.
+
+title: Scheduling
+intro: >-
+  How a run schedules nodes across `--workers`: the current flag and its guardrails, the
+  submit-when-ready scheduler, the global concurrency cap, ordering between trees and between
+  siblings, the sibling-independence contract, and per-tree fail-fast. `design/data/lifecycle.yml` owns
+  teardown on failure and the lifting of the destroy-never restriction, `design/data/target.yml` owns the
+  run-context fan-out, this file owns scheduling.
+status: the scheduler, ordering, sibling waves, the sibling contract, and per-tree fail-fast are decided, the sibling-collision guard is proposed
+
+sections:
+  - title: What `--workers` is
+    intro: The flag the scheduler is driven by, and the current behavior this design keeps.
+    rules:
+      - "`--workers` is an experimental flag on `test`, `destroy`, and `check` only."
+      - "`--workers` accepts an integer, `cpus`, or `cpus-1`, floored at 1."
+      - The unit of concurrency is one whole scenario.
+      - There is no concurrency inside a scenario.
+      - "`--workers` has no relation to ansible's `forks`."
+      - "`--workers` is available in collection mode only, so a `galaxy.yml` is required."
+      - A freed slot starts the next runnable unit, the same slot-refill semantics as a `forks` pool.
+
+  - title: The scheduler
+    intro: Submit-what-is-ready, refill on completion.
+    rules:
+      - Every node goes through the pool, roots included.
+      - "`--workers` is a single global cap on scenarios in flight, oriented to machine capacity."
+      - A root in the lowest wave is runnable immediately.
+      - A root's task runs its own sequence through `verify` inside the worker.
+      - On a node's success its children in the lowest wave become runnable and are submitted.
+      - On a node's failure its children are skipped and never submitted.
+      - "A node's trailing cleanup is its own scheduled unit, runnable once its subtree has completed."
+      - "A node's `destroy`, where it owns instances, is likewise its own scheduled unit runnable once its subtree has completed."
+      - A parent consumes a slot, the same as every other unit.
+      - "A single-tree project run with `--workers 8` idles seven slots during the root phase."
+      - The idle slots are the cost of the gate and disappear once a run has multiple trees.
+      - The unit of work is a node within a run context, not a bare node.
+      - The unit key carries the run as well as the node.
+      - "A fan-out over sealed environments is N runs over one tree, not a restructuring of the scheduler (`design/data/target.yml`)."
+      - "`--workers 1` is not a special case, it runs through the one scheduler with the cap set to 1."
+
+  - title: Ordering
+    description: Dependency is expressed by nesting, order without dependency by `wave`.
+    rules:
+      - name: trees-independent
+        description: Trees are independent by construction.
+        check: none
+      - name: dependent-trees-are-one-tree
+        description: If tree B needs tree A's result they are not two trees but one.
+        check: none
+      - name: dependency-is-nesting
+        description: A node that needs another node's result is nested under it.
+        check: none
+      - name: order-without-dependency-is-wave
+        description: Nodes that need order without a dependency declare it with `wave`.
+        check: none
+      - name: submit-order-list
+        description: Within a wave, submission order is list order.
+        check: none
+      - name: submit-order-not-semantic
+        description: Within a wave, submission order carries no meaning.
+        check: none
+      - name: completion-order-arbitrary
+        description: Within a wave, completion order is arbitrary.
+        check: none
+      - name: names-encode-no-order
+        description: Node names must not encode ordering.
+        check: none
+
+  - title: Sibling waves
+    description: Order among nodes that share a parent and do not depend on each other.
+    rules:
+      - name: wave-is-integer
+        description: "`wave` is a node-intrinsic integer."
+        check: static
+      - name: wave-default-zero
+        description: "`wave` defaults to 0."
+        check: none
+      - name: wave-never-cascades
+        description: "`wave` never cascades."
+        check: none
+      - name: roots-share-run-parent
+        description: Roots share the run, the virtual root, as their parent.
+        check: none
+      - name: wave-compares-within-parent
+        description: Wave numbers compare only between nodes that share a parent.
+        check: none
+      - name: waves-ascend
+        description: Nodes that share a parent run in ascending wave order.
+        check: runtime
+      - name: same-wave-concurrent
+        description: Nodes in the same wave run concurrently, up to the `--workers` cap.
+        check: runtime
+      - name: wave-waits-for-lower-subtrees
+        description: A wave starts once every node in a lower wave has completed its whole subtree.
+        check: runtime
+      - name: subtree-complete-after-teardown
+        description: A subtree is complete once its cleanup and destroy have run.
+        check: none
+      - name: wave-is-not-dependency
+        description: A node never depends on a node in a lower wave.
+        check: none
+      - name: wave-adds-no-skip
+        description: A failure skips nothing because of a wave boundary.
+        check: runtime
+
+  - title: Sibling independence is the user's contract
+    intro: Siblings in one wave run concurrently, so they must be independent of each other.
+    rules:
+      - Ancestor-to-descendant mutation is the point of the model.
+      - Ancestor-to-descendant mutation is strictly ordered by the gate, so it is always safe.
+      - Molecule provides no guard rails for sibling independence, no name prefixes and no allocation.
+      - Each escape hatch below is the model itself rather than a workaround.
+      - A sibling collision surfaces as a nondeterministic, worker-count-dependent failure.
+      - Molecule should at least detect two concurrent siblings whose inventories name the same host and report the collision in tree terms.
+    tables:
+      - header: [Need, Escape hatch]
+        rows:
+          - ["Safe together", "Give them a shared parent"]
+          - ["Needs another's result", "Nest it under that sibling"]
+          - ["Must run before or after, with no dependency", "Put them in different waves"]
+          - ["Do not want to reason about it", "`--workers 1`"]
+
+  - title: Fail-fast is per tree
+    rules:
+      - A failure in one tree does not stop other trees.
+      - Per-tree fail-fast drops that tree's pending descendants from the runnable set and continues the loop.
+      - "Teardown still runs for a failed tree, or infrastructure leaks on every failure (`design/data/lifecycle.yml`)."
+      - A gate-based scheduler cancels nothing that has started, it stops submitting.
+      - "The fail-fast notice says what it does now: scenarios that have not started are skipped, and running ones finish."

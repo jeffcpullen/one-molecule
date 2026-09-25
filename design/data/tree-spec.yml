@@ -1,0 +1,322 @@
+# yaml-language-server: $schema=../structure/tree-spec.schema.yml
+---
+# tree-spec source: the scenario tree's behavior, as rules.
+#
+# Each section is a purpose-level description, optional decision tables, and a list of
+# normative rules. A rule is {name, description, check}: a stable kebab-case id, the
+# firmed-up statement, and the context that can verify it (static | resolved | runtime | none).
+# A rule carries no predicate, see ../AUTHORING.md.
+# State the rule, never the implementation reasoning: how molecule globs, which source
+# line does what, and why an alternative was rejected are NOT spec. One idea per rule,
+# and no semicolons and no dashes. Split the clauses into two rules, or use a comma or a
+# period. Rejected alternatives live in design/data/rejected-ideas.yml.
+# spec/molecule-config.schema.yml owns the config surface, this owns behavior.
+
+title: Scenario tree behavior
+intro: >-
+  What a parent edge means, and how a run executes a tree: the handoff to molecule, the edge,
+  activation, gating, ancestor resolution, ownership, the snapshot, traversal, and failure. `spec/molecule-config.schema.yml` owns the config
+  surface (keys, placement, precedence). This file owns behavior.
+status: proposed, scope model settled
+
+sections:
+  - title: The handoff to molecule
+    description: >-
+      The orchestrator runs everything above a single scenario and hands each node to molecule, which
+      runs that one scenario. This section fixes what crosses that boundary.
+    rules:
+      - name: molecule-runs-one-scenario
+        description: Molecule has no concept of a tree, a parent, a sibling or a run.
+        check: none
+      - name: handoff-single-scenario
+        description: Each node reaches molecule as one single-scenario config in molecule's own schema.
+        check: resolved
+      - name: handoff-no-orchestrator-keys
+        description: "No run-only, reserved-structural or node-intrinsic key (`x-class` in `spec/molecule-config.schema.yml`) reaches molecule."
+        check: resolved
+      - name: handoff-molecule-refs-untouched
+        description: "A `${MOLECULE_*}` reference crosses the handoff untouched, and molecule fills it in from its own identity."
+        check: resolved
+
+  - title: The edge
+    description: >-
+      The parent edge is the tree's one structural relationship. This section fixes what a legal edge
+      is and the only checks a tree is validated against before a run begins.
+    rules:
+      - name: edge-one-parent
+        description: A node declares at most one parent.
+        check: static
+      - name: root-is-parentless
+        description: A node with no parent is a root.
+        check: none
+      - name: edge-is-nesting
+        description: "The edge is nesting under `children:` in the single file (`spec/molecule-config.schema.yml`)."
+        check: static
+      - name: cycle-errors
+        description: A cycle is an error at tree build, naming the full cycle path.
+        check: resolved
+      - name: edge-checks-exhaustive
+        description: These are the only structural checks.
+        check: none
+
+  - title: Activation
+    description: >-
+      Activation is what makes a project a tree. Only the single file declares one, and a scenario in
+      its own directory runs as molecule runs it today.
+    rules:
+      - name: nesting-activates
+        description: Nesting under `children:` is the only way to declare an edge, with no flag and no project setting.
+        check: none
+      - name: directory-mode-has-no-tree
+        description: "A scenario in its own `<name>/molecule.yml` directory has no edge."
+        check: none
+      - name: shared-state-unchanged
+        description: "`shared_state` keeps molecule's meaning in a directory-mode project."
+        check: none
+      - name: shared-state-not-in-single-file
+        description: "`shared_state` is not a key in the single file."
+        check: static
+
+  - title: Partial runs
+    description: >-
+      Selection narrows what is tested, never what is depended on. Ancestor closure is upward only,
+      with no siblings, no cousins, and no descendants.
+    tables:
+      - header: [Parent is, Effect]
+        rows:
+          - ["Not in this run's selection", "Resolved anyway"]
+
+  - title: The gate
+    description: >-
+      The gate is the guarantee that a child only runs against a parent that passed its own verify. A
+      freshly built parent must pass verify before any child starts, while a standing ancestor is
+      trusted from the run that built it.
+    rules:
+      - name: gate-parent-verify-first
+        description: A parent's verify must pass before any child starts.
+        check: none
+      - name: gate-standing-ancestor-trusted
+        description: A standing ancestor is trusted from the run that built it and is not re-verified, so the gate applies to a freshly built parent.
+        check: none
+      - name: child-begins-from-snapshot
+        description: A child begins from a snapshot of its parent, so the environment the parent stood up is present for the child to test against.
+        check: none
+      - name: verify-contract-side-effect-free
+        description: "Verify contract: a node's verify must be side-effect free, repeatable, and must not mutate the inventory."
+        check: none
+
+  - title: Ancestor resolution
+    description: >-
+      A run of any node resolves its full ancestor chain transitively, whether or not those ancestors
+      were selected. Each ancestor is resolved root first, a standing one reused and a non-standing one
+      run through its own sequence.
+    tables:
+      - header: [Ancestor state, What runs]
+        rows:
+          - ["Standing", "Nothing. It is already the layer the child needs"]
+          - ["Not standing", "Its own full sequence, minus `destroy`, including `verify`"]
+    rules:
+      - name: standing-definition
+        description: "Standing = the node's own state file shows `converged`, plus `created` when it owns instances."
+        check: none
+      - name: standing-read-by-orchestrator
+        description: Standing is read by the orchestrator, not the node.
+        check: none
+      - name: missing-parent-policy
+        description: "`missing_parent: create | fail` (default `create`, `--missing-parent` overrides): `create` brings a missing ancestor up, while `fail` refuses, naming the ancestor and the command that would build it."
+        check: none
+      - name: implicit-ancestor-left-standing
+        description: An implicitly built ancestor is left standing when the run ends.
+        check: none
+      - name: implicit-ancestor-reported
+        description: An implicitly built ancestor is listed in the end-of-run report.
+        check: none
+
+  - title: Ownership
+    description: >-
+      Ownership is the relationship between an object and the node whose `create` produced it. It is
+      derived from the `create` reference and never declared. What a node destroys and when is
+      `design/data/lifecycle.yml`.
+    rules:
+      - name: owner-is-creating-node
+        description: An object is owned by the node whose `create` produced it.
+        check: none
+      - name: owned-object-recorded-as-inventory-and-vars
+        description: A node's owned objects are recorded as the inventory and vars its `create` adds.
+        check: none
+      - name: owned-object-need-not-be-machine
+        description: An owned object need not be a machine.
+        check: none
+      - name: ownership-never-declared
+        description: Ownership is derived from the `create` reference and never declared.
+        check: none
+      - name: ownership-never-passes
+        description: Ownership of an object never passes to another node.
+        check: none
+      - name: no-default-create
+        description: Molecule ships no default `create` playbook.
+        check: none
+      - name: creator-defined
+        description: A creator is a node with a defined `create`.
+        check: none
+      - name: non-creator-owns-nothing
+        description: A node that is not a creator owns nothing.
+        check: none
+      - name: ownership-requires-creator
+        description: Every owned object traces to a creator.
+        check: runtime
+
+  - title: The snapshot
+    description: >-
+      The snapshot is the one-way handoff from parent to child, never up and never sideways. What flows
+      down is the inventory and only the inventory, copied once at node start and thereafter read from
+      the child's own files.
+    rules:
+      - name: snapshot-channel-is-inventory
+        description: The inventory directory is the channel.
+        check: none
+      - name: snapshot-is-named-file
+        description: The parent's snapshot is a named file inside the inventory directory, which the per-action regeneration leaves alone and Ansible merges as a second source.
+        check: none
+      - name: instance-config-not-snapshotted
+        description: "`instance_config.yml` does not flow down, and stays the creator's ownership record."
+        check: none
+      - name: ansible-cfg-not-snapshotted
+        description: "`ansible.cfg` is generated per node and is not snapshotted."
+        check: none
+      - name: snapshot-copied-once
+        description: A child copies its parent's inventory into its own ephemeral directory once, at node start, then reads only its own files.
+        check: none
+      - name: snapshot-parent-only
+        description: The child snapshots the parent only, because the parent's inventory is already parent-merged.
+        check: none
+      - name: retry-recopies
+        description: A retry re-copies.
+        check: none
+      - name: merge-deep-child-wins
+        description: Merge is deep and child wins, at key level not whole-host.
+        check: none
+      - name: precedence-root-to-leaf
+        description: Effective precedence runs root to leaf.
+        check: none
+      - name: lists-replaced-wholesale
+        description: Lists are replaced wholesale.
+        check: none
+      - name: snapshot-hosts-in-groups
+        description: Snapshotted hosts appear in `all` and in whatever groups their creator put them in.
+        check: none
+      - name: node-group-per-node
+        description: Molecule additionally places each node's instances in one group named for the node.
+        check: none
+      - name: generation-stamped-on-create
+        description: "Instance generation: an owner stamps a new generation when its `create` succeeds."
+        check: none
+      - name: generation-invalidates-state
+        description: At node start a different generation invalidates that node's `prepared` and `converged`.
+        check: none
+      - name: generation-read-by-orchestrator
+        description: The orchestrator reads the owner's generation, never the node.
+        check: none
+
+  - title: Traversal and teardown
+    description: >-
+      Setup runs pre-order and teardown post-order, so a parent is built before its children and torn
+      down only after its whole subtree. Traversal is iterative so that unbounded depth cannot overflow.
+    rules:
+      - name: setup-pre-order
+        description: Setup is pre-order, root first, each node gated on its parent's verify.
+        check: none
+      - name: teardown-post-order
+        description: Teardown is post-order, deepest first, up to the root.
+        check: none
+      - name: cleanup-waits-for-subtree
+        description: A node's trailing cleanup waits for its whole subtree, so a parent does not remove a layer its children still depend on.
+        check: none
+      - name: retry-cleans-subtree
+        description: "Retry of a node: clean up its subtree post-order, run the node, and above it resolve the ancestor chain, standing untouched and missing built."
+        check: none
+      - name: root-survives-retry
+        description: The expensive root survives.
+        check: none
+      - name: test-defined-as-traversal
+        description: "`molecule test -s <node>` is defined this way."
+        check: none
+      - name: traversal-iterative
+        description: Traversal is iterative, not recursive.
+        check: none
+
+  - title: Failure
+    description: >-
+      A failure before a node's gate opens skips its descendants rather than failing them, and a sibling
+      failure skips that tree's not-yet-started siblings. Any failure makes the whole run red.
+    tables:
+      - header: [Event, Effect]
+        rows:
+          - ["A node fails any phase before its gate opens", "Its descendants are skipped (not failed), the phase named in the note"]
+          - ["A sibling fails", "That tree's not-yet-started siblings are skipped (running ones finish)"]
+          - ["`--continue-on-failure`", "Do not skip siblings either"]
+          - ["Any failure", "The run is red. `failed` outranks everything in the verdict"]
+    rules:
+      - name: cleanups-run-on-failure
+        description: On failure, cleanups run post-order, always.
+        check: none
+      - name: destroy-governed-by-policy
+        description: "`destroy` at each owning node is governed only by the `--destroy` policy, with no failure-specific exception."
+        check: none
+
+  - title: Depth
+    description: >-
+      Tree depth is unbounded, guarded only by the structural cycle check at build. Resource cost is
+      serial and self-evident, which is why traversal must be iterative.
+    rules:
+      - name: depth-unbounded
+        description: Depth is unbounded, with no warning.
+        check: none
+      - name: cycles-caught-at-build
+        description: Cycles are caught structurally at tree build.
+        check: resolved
+      - name: cost-serial
+        description: Resource cost is self-evident and serial.
+        check: none
+      - name: depth-forces-iterative
+        description: This is why traversal must be iterative.
+        check: none
+
+  - title: Reporting
+    description: >-
+      `molecule matrix` prints the tree, and structural notices are reported once per run. The tree is
+      reported because it teaches.
+    rules:
+      - name: matrix-prints-tree
+        description: "`molecule matrix` prints the tree."
+        check: none
+      - name: structural-notices-once
+        description: Structural notices, such as a parent absent from a filtered run, are reported once per run, naming the scenarios they apply to.
+        check: none
+      - name: tree-reported-to-teach
+        description: The tree is reported because it teaches, so molecule states each node's parent and which ancestors it built implicitly.
+        check: none
+
+  - title: CLI is override, not source
+    description: >-
+      Every behavior knob lives in `molecule.yml` first, and a flag is only an override of that key.
+      Selection of what an invocation covers is the exception and stays on the command line.
+    rules:
+      - name: behavior-keyed-first
+        description: Any knob that changes how molecule behaves gets a key in `molecule.yml` first.
+        check: none
+      - name: flag-is-override
+        description: A flag is only an override of that key.
+        check: none
+      - name: flag-only-uncommittable
+        description: A behavior reachable only by a flag cannot be committed with the project.
+        check: none
+      - name: precedence-cli-to-default
+        description: "Precedence: CLI ▸ environment ▸ config ▸ built-in default (`spec/molecule-config.schema.yml` expands the config tier)."
+        check: none
+      - name: behavior-in-file
+        description: Behavior, meaning what molecule does, belongs in the file.
+        check: none
+      - name: selection-on-cli
+        description: Selection, meaning `-s`, `--exclude`, the sibling selector, and what this invocation covers, stays on the command line.
+        check: none

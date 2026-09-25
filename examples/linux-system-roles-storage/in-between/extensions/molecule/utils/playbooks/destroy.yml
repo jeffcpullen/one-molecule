@@ -1,0 +1,30 @@
+---
+# Molecule destroy: remove the objects create made. The whole domain is
+# transient, so the disks and every side effect go with it.
+- name: Destroy
+  hosts: localhost
+  gather_facts: false
+  vars:
+    instance: "{{ lookup('env', 'MOLECULE_SCENARIO_NAME') | default('default', true) }}-storage"
+    workdir: "{{ molecule_ephemeral_directory }}/{{ lookup('env', 'MOLECULE_SCENARIO_NAME') |
+      default('default', true) }}-storage"
+  tasks:
+    - name: Destroy and undefine the domain
+      community.libvirt.virt:
+        name: "{{ instance }}"
+        command: "{{ item }}"
+      loop:
+        - destroy
+        - undefine
+      failed_when: false
+
+    - name: Remove the backing files and seed
+      ansible.builtin.file:
+        path: "{{ workdir }}"
+        state: absent
+
+    - name: Truncate the instance config
+      ansible.builtin.copy:
+        dest: "{{ molecule_instance_config }}"
+        content: "{{ [] | to_nice_yaml }}"
+        mode: "0600"

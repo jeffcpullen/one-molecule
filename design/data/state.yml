@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=../structure/state.schema.yml
+---
+# state source, per-node state and the instance-generation rule that makes it
+# hold: state becomes strictly per-node, the invariants that let it work, what
+# it deletes, the generation that repairs the flag gap, and occupancy
+# reporting. State the rule, never the implementation reasoning. Rejected
+# alternatives live in design/data/rejected-ideas.yml.
+# One idea per rule, no semicolons, no em or en dashes. design/data/tree-spec.yml owns the
+# inventory copy and ownership derivation, this file owns per-node state.
+
+title: State
+intro: >-
+  State becomes strictly per-node: every node has one state file it alone reads and
+  writes, with no shared file at all. `design/data/tree-spec.yml` owns the inventory copy and the
+  ownership-derivation rule, this file owns per-node state and the instance-generation
+  rule that makes it hold.
+status: decided, per-node state and the generation rule settled, occupancy reporting still proposed
+
+sections:
+  - title: Per-node state
+    intro: "The result, and why it resolves molecule issue #4666."
+    rules:
+      - State becomes strictly per-node.
+      - Every node has one state file that it alone reads and writes.
+      - There is no shared state file at all.
+      - There is no shared file to race over, so the race is removed rather than defended against.
+
+  - title: Why per-node state holds
+    rules:
+      - "Any node that runs `create` owns its own `created` and `driver`, in its own state file."
+      - Ownership is per node, not per tree (`design/data/tree-spec.yml`).
+      - The gate replaces cross-node state reads.
+      - "A child never needs to read an ancestor's `created`, because it only runs after the ancestor's verify passed."
+      - The ordering guarantee carries the information the state read was standing in for.
+      - The inventory is copied, not shared (`design/data/tree-spec.yml`).
+      - A child snapshots its parent's inventory into its own directory once at start and reads only its own files afterwards.
+      - No node opens another node's file at all.
+
+  - title: What per-node state leaves alone
+    rules:
+      - "Molecule's `shared_state` path is unchanged for a directory-mode project (`design/data/tree-spec.yml`)."
+      - "A tree node never enters that path, because `shared_state` is not a key in the single file."
+      - "The `force: True` in `worker.py`, `execute_subcommand_default`, and the main-process create and destroy hoisting stay in molecule."
+      - "The #4443 inventory work stays relevant as the thing being copied, not as a shared artifact."
+
+  - title: The instance generation
+    intro: Decided. Per-node state removes the race and opens one flag gap that a generation repairs.
+    rules:
+      - "A node's lifecycle flags are only ever reset by `destroy`."
+      - A node that owns no instances has no `destroy`.
+      - "Without a generation, a child's `prepared` survives forever and its prepare is silently skipped on the second run."
+      - "An owner stamps a new instance generation when its `create` succeeds."
+      - A node records the generation its own flags were set against.
+      - "At node start, a different generation invalidates that node's `prepared` and `converged`."
+      - The generation invalidates only flags, never artifacts.
+      - The generation invalidates flags only for nodes that do not own the instances in question.
+
+  - title: The owner and how the generation travels
+    rules:
+      - The orchestrator reads the owner's generation, never the node.
+      - No node opens another node's files.
+      - Molecule already knows the whole tree and hands a child its parent's inventory at node start.
+      - The generation travels the same way, including into a worker process.
+      - The owner is the nearest ancestor that owns instances, not simply the parent.
+      - An intermediate node may own nothing.
+
+  - title: Occupancy has to be visible
+    intro: Proposed. What is standing decides what a targeted run costs, and filling a gap requires knowing there is one.
+    rules:
+      - Every run announces what it found standing versus what it built.
+      - A CI log then records the decision rather than only its consequences.
+      - "`molecule list` gains the tree and each node's occupancy."
+      - "`molecule list` already enumerates scenarios and already reads per-node state."
+      - Reading other nodes' state for a report is the orchestrator reading, not a node.
+      - The invariant that no node opens another node's files holds for the report too.

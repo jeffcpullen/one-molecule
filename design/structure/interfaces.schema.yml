@@ -1,0 +1,290 @@
+---
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Design interfaces register source (external-tool touchpoints, grouped by counterpart role)
+description: 'A machine-readable catalog of every boundary where a run touches software outside molecule. An interface is a contract, specified by the data that crosses and what it means, not by the tool on the other side or the transport that carries it. So each entry names the counterpart by ROLE (any conforming tool satisfies it), states what the run PROVIDES and what it ACCEPTS back with formats, states the SEMANTICS (timing, gating, meaning) that stay fixed as the transport changes, and lists candidate BINDINGS as swappable realizations, none load-bearing. Groups are counterpart roles. This schema fixes STRUCTURE and forbids the semicolon and em/en dash on every text string (the house writing-style rule). Norms it cannot express, enforced in review: one idea per field, each field a single bounded line, the counterpart is a role and never a product (products go in examples), and the register indexes boundaries without deciding them (the owning doc decides).'
+type: object
+additionalProperties: false
+required:
+  - title
+  - intro
+  - status
+  - groups
+properties:
+  title:
+    $ref: '#/$defs/line'
+  intro:
+    allOf:
+      - $ref: '#/$defs/line'
+    description: One line naming what this register catalogs and why it exists.
+  status:
+    $ref: '#/$defs/line'
+  usage:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/line'
+    description: Optional bounded rules for reading and maintaining the register (one idea per line).
+  tags:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/tagdef'
+    description: Optional legend decoding the backing tags used on entries.
+  groups:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/group'
+$defs:
+  line:
+    type: string
+    minLength: 1
+    not:
+      pattern: '[;—–]'
+    description: A non-empty text string with no semicolon and no em or en dash. Split into two, or use a comma, a period, or parentheses.
+  tagdef:
+    type: object
+    additionalProperties: false
+    required:
+      - tag
+      - means
+    properties:
+      tag:
+        $ref: '#/$defs/tag'
+      means:
+        $ref: '#/$defs/line'
+  tag:
+    type: string
+    enum:
+      - src
+      - issue
+      - measured
+      - reasoned
+  binding:
+    type: object
+    description: 'One candidate transport for the interface, a discriminated union on `type`. Base fields apply to every type, and the `type`-specific block adds the fields that kind needs. `unevaluatedProperties: false` closes the shape, which composes with the if/then branches (a draft 2020-12 feature) where `additionalProperties: false` would not.'
+    required:
+      - type
+      - status
+    properties:
+      type:
+        type: string
+        enum:
+          - shell
+          - api
+          - in-process
+          - config-key
+          - path-reference
+          - schema-ref
+          - environment
+        description: The transport kind, and the discriminator that selects the type-specific fields below.
+      status:
+        type: string
+        enum:
+          - chosen
+          - candidate
+          - deferred
+          - rejected
+        description: This binding's own disposition, independent of the interface's status. An interface can be proposed while one binding is chosen and another deferred.
+      notes:
+        $ref: '#/$defs/line'
+    allOf:
+      - if:
+          required:
+            - type
+          properties:
+            type:
+              const: shell
+        then:
+          $ref: '#/$defs/binding_shell'
+      - if:
+          required:
+            - type
+          properties:
+            type:
+              const: api
+        then:
+          $ref: '#/$defs/binding_api'
+    unevaluatedProperties: false
+  binding_shell:
+    description: Fields specific to a shell-command binding. All optional while the binding is still a candidate, so a deferred shell binding can be a bare type and status.
+    properties:
+      payload:
+        type: string
+        enum:
+          - args
+          - env
+          - file
+          - stdin
+        description: How the provided data reaches the tool.
+      result_source:
+        type: string
+        enum:
+          - stdout
+          - file
+        description: Where the accepted data comes back from.
+      outcome_map:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: How the tool's result maps to a run outcome (for example what gates the run).
+  binding_api:
+    description: Fields specific to an API binding. The request and response schemas are POINTERS to a contract that lives elsewhere (a published standard, or molecule's own generated spec page), never an inlined wire schema.
+    properties:
+      protocol:
+        type: string
+        enum:
+          - http
+          - mcp
+          - grpc
+        description: The API protocol.
+      request_schema:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Pointer to the schema of what molecule sends.
+      response_schema:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Pointer to the schema of what molecule accepts back.
+      auth:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The authentication model, if any.
+      mode:
+        type: string
+        enum:
+          - sync
+          - async
+        description: Whether molecule blocks on the result or collects it later.
+  group:
+    type: object
+    additionalProperties: false
+    required:
+      - title
+      - items
+    properties:
+      title:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: 'The counterpart role: the kind of software on the other side, not a product.'
+      intro:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional one-line framing for the role.
+      items:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/item'
+  item:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - capability
+      - counterpart_role
+      - provides
+      - accepts
+      - semantics
+      - owner
+      - class
+      - status
+      - owns
+    properties:
+      id:
+        type: string
+        pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+        description: Stable kebab-case handle for referencing this interface from other docs.
+      capability:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Tool-neutral name of what the boundary is for, rendered as the heading.
+      counterpart_role:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The kind of software on the other side, stated as a role any conforming tool fills, never a product.
+      provides:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The data the run supplies across the boundary, with its format.
+      accepts:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The data the run accepts back, with its format. `none` for a fire-and-forget boundary.
+      semantics:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: When it runs, what a result means, and the invariants that stay fixed as the binding changes.
+      initiator:
+        type: string
+        enum:
+          - molecule
+          - counterpart
+          - shared
+        description: 'Optional. Who starts the interaction: molecule calls out, the counterpart reads molecule''s surface, or either side.'
+      coupling:
+        type: string
+        enum:
+          - loose
+          - tight
+        description: Optional. How much each side must assume about the other. Loose = a conforming tool is substitutable, tight = the boundary is bound to a specific counterpart's shape.
+      bindings:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/binding'
+        description: Optional. Candidate transports that could realize the contract, each an object carrying its own disposition and its type-specific fields. None is load-bearing, the interface is the data and semantics above.
+      examples:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/line'
+        description: Optional. Concrete tools or formats that satisfy the role, as examples not requirements.
+      owner:
+        type: string
+        enum:
+          - molecule
+          - external
+          - project
+          - shared
+        description: 'Who defines the contract''s shape: molecule, the external tool, the project''s own config or environment, or shared between sides.'
+      class:
+        type: string
+        enum:
+          - seam
+          - passthrough
+        description: seam = a load-bearing interface this design owns. passthrough = a molecule config key merely forwarded, not this design's surface.
+      status:
+        type: string
+        enum:
+          - settled
+          - proposed
+          - open
+          - homeless
+        description: settled = decided and stable, proposed = this design's, unconfirmed, open = undecided, homeless = the touchpoint exists but has no owning place yet.
+      owns:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The design doc that carries the full spec of this interface.
+      guardrail:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional. The invariant that bounds what molecule knows across the seam.
+      opaque:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional. What molecule deliberately does not see across the boundary.
+      version_binding:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional. How the counterpart's version is fixed (project environment, molecule, or unpinned).
+      open:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional. What is not settled about the interface, with a pointer to the open item where one exists.
+      tags:
+        type: array
+        maxItems: 2
+        uniqueItems: true
+        items:
+          $ref: '#/$defs/tag'
+        description: Zero to two backing tags.

@@ -1,0 +1,4 @@
+---
+$schema: https://json-schema.org/draft/2020-12/schema
+$comment: state.yml uses the shared sectioned shape (see sectioned.schema.yml). Thin sibling to keep the CI convention pure.
+$ref: sectioned.schema.yml

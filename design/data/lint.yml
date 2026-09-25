@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=../structure/lint.schema.yml
+---
+# lint source, the run-level lint phase: a lint step that runs once per run
+# before any node starts, anchored at the content root, declared in the
+# project-level config, off by default, run as a command molecule knows nothing
+# about, gating the run on failure, and executed in the run's sealed
+# environment. State the rule, never the history or the argument. One idea
+# per rule, no semicolons, no em or en dashes.
+
+title: Lint
+intro: >-
+  The run-level lint phase: a lint step that runs once per run before any node starts,
+  anchored at the content root, declared in the project-level config, off by default, run
+  as a command molecule holds no linter knowledge of, gating the run on failure, and
+  executed in the run's sealed environment. `design/data/target.yml` owns the sealed environment and
+  `design/data/lifecycle.yml` owns the per-node readiness gate, this file owns the lint phase.
+status: proposed, the run-level lint phase and its sealed-environment execution
+
+sections:
+  - title: The run-level lint phase
+    intro: Proposed. A run-level lint phase rather than a per-node sequence action.
+    rules:
+      - The lint phase runs once per run, before any node starts.
+      - "It is not in `test_sequence`, not in any node's sequence, and not reachable per scenario."
+      - A run with a hundred scenarios lints once.
+      - The lint phase is anchored at the content root.
+      - "The lint phase is declared in the project-level config, not in a scenario's `molecule.yml`."
+      - A flag can skip the lint phase but never define it, because the CLI only overrides config.
+      - The lint phase is off by default.
+      - An existing project changes nothing while the phase is off.
+      - The lint phase is a command, not a plugin.
+      - Molecule runs the command it is told and holds no knowledge of specific linters.
+      - Molecule never acquires linter knowledge.
+      - If lint fails, nothing in the run starts.
+
+  - title: The sealed environment
+    intro: Proposed. The lint command runs in the run's sealed environment.
+    rules:
+      - The lint command runs in the same sealed environment the run uses.
+      - The linter version is pinned by the project's environment, not by molecule and not by the author's machine.
+      - Molecule holds no dependency on any linter.
+      - Molecule has no linter extra to install.

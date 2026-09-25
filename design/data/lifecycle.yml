@@ -1,0 +1,172 @@
+# yaml-language-server: $schema=../structure/lifecycle.schema.yml
+---
+# lifecycle source, the node lifecycle: actions per node, teardown of owned objects,
+# ancestor resolution on a targeted run, traversal order, failure and skip
+# semantics, retry, and teardown. State the rule, never the implementation reasoning. Rejected
+# alternatives live in design/data/rejected-ideas.yml. One idea per rule, no semicolons, no em
+# or en dashes. design/data/tree-spec.yml owns the parent edge and ownership-derivation, this
+# file owns the lifecycle.
+
+title: Lifecycle
+intro: >-
+  How a run executes each node over its life: the actions a node runs, teardown of owned
+  objects, how a targeted run resolves ancestors, traversal order, failure
+  and skip semantics, retry, and teardown. `design/data/tree-spec.yml` owns the parent edge and the
+  ownership-derivation rule, this file owns the lifecycle.
+status: proposed, actions and traversal settled, the destroy-policy additions still proposed
+
+sections:
+  - title: Actions per node
+    rules:
+      - name: create-runs-resolved-playbook
+        description: The `create` action runs the node's `create` playbook.
+        check: none
+      - name: create-absent-is-noop
+        description: The `create` action does nothing on a node with no `create` playbook, though the default `test_sequence` lists it.
+        check: runtime
+      - name: destroy-runs-resolved-playbook
+        description: The `destroy` action runs the node's `destroy` playbook.
+        check: none
+      - name: destroy-absent-is-noop
+        description: The `destroy` action does nothing on a node with no `destroy` playbook.
+        check: runtime
+      - "`cleanup` undoes this node's own layer, and every node has it."
+      - Every other action (dependency, syntax, prepare, converge, idempotence, side_effect, verify) is per node as today.
+      - A typical child sequence is dependency, cleanup, syntax, prepare, converge, idempotence, side_effect, verify, cleanup.
+      - The leading cleanup clears the node's prior layer on a re-run, and the trailing one undoes it at teardown.
+      - Both cleanups already exist in the default `test_sequence`, so no new action is needed.
+      - A node's prepare, converge and verify mean infra by virtue of the node having children, so no new vocabulary is introduced.
+      - Anything a user wants tested without gating descendants goes in a child.
+
+  - title: A node destroys only what it owns
+    description: Teardown of owned objects. What owning means is `design/data/tree-spec.yml`.
+    rules:
+      - name: teardown-at-owner
+        description: Molecule tears down an owned object only at its owner.
+        check: none
+      - name: teardown-never-ancestors
+        description: Molecule never runs an ancestor's `destroy` on behalf of a descendant.
+        check: none
+      - name: teardown-post-order
+        description: Post-order teardown runs a descendant's `destroy` before its ancestors'.
+        check: none
+      - name: no-default-destroy
+        description: Molecule ships no default `destroy` playbook.
+        check: none
+      - name: destroy-hosts-all-reaches-ancestors
+        description: "`hosts: all` in a child's `destroy` tears down snapshotted ancestor hosts."
+        check: none
+      - name: hosts-all-is-author-call
+        description: "Tearing down ancestor hosts through `hosts: all` is the author's call."
+        check: none
+      - name: no-inventory-shaping-guard
+        description: No inventory shaping keeps a `destroy` from reaching ancestor hosts through `all`.
+        check: none
+      - name: instance-config-records-created
+        description: "`instance_config.yml` records the objects a node created, per node."
+        check: none
+      - name: instance-config-drives-destroy
+        description: "`instance_config.yml` drives the common destroy playbook."
+        check: none
+
+  - title: The tree owns create and destroy
+    intro: A tree node runs its own create and destroy, never through molecule's main-process hoisting of the default scenario.
+    rules:
+      - "`default` is a node of the tree like any other."
+      - Molecule's main-process hoisting never runs for a tree node (`design/data/state.yml`).
+      - A filtered run still stands its ancestors up through ancestor resolution, attributed to the node that owns the work and visible in the run.
+      - Leave alone describes a standing ancestor only, and is never a licence to run a child without one.
+
+  - title: A parent is a dependency
+    intro: A parent is a dependency rather than a reference point, so there is no child without it.
+    tables:
+      - header: [Ancestor state, What runs]
+        rows:
+          - ["Standing", "Nothing. It is already the layer the child needs"]
+          - ["Not standing", "Its own full sequence minus destroy, including verify"]
+    rules:
+      - A run of any node resolves that node's full ancestor chain, transitively, whether or not those ancestors were selected.
+      - Selection narrows what is tested, never what is depended on (`design/data/tree-spec.yml`).
+      - Standing is read from the node's own state file by the orchestrator, not by a node.
+      - "Standing means `converged`, plus `created` when the node owns instances, and both halves are needed while neither alone is sufficient."
+      - The requested node then runs, with its snapshot restored from its parent exactly as in a complete run.
+      - Verify is included for a rebuilt ancestor because it is the readiness gate and a freshly built layer has not been through it.
+      - A standing ancestor is trusted rather than re-verified, which is what keeps a targeted run cheap.
+      - An implicitly built ancestor is left standing when the run ends.
+      - The end-of-run report lists what a filtered run leaves standing.
+      - "Refusing to build a missing ancestor is available per scenario via `missing_parent: fail` (`design/data/tree-spec.yml`), a behavior key rather than a flag-only mode."
+
+  - title: Filling in an undeclared dependency
+    intro: Proposed. Ancestor closure gives a node only what it declared, so when a node needs something off its chain the repair is to declare it, but the layer still has to be stood up meanwhile.
+    rules:
+      - An opt-in selector also runs the scenarios that share the target's parent.
+      - It is a selector, so it stays on the command line (`design/data/tree-spec.yml`).
+      - It is opt-in because a targeted run must not fan out sideways on its own.
+      - The default remains the target and its ancestors, nothing else.
+      - Each scenario it pulls in resolves its own ancestors, finds them standing, and builds only itself.
+      - That idempotence is why an already-standing ancestor must be a true no-op, not a create that is idempotent only by luck of the playbook.
+      - It depends on per-node state being accurate and independent (`design/data/state.yml`).
+
+  - title: Traversal order
+    rules:
+      - Setup is pre-order, root first, each node gated on its parent's verify.
+      - Teardown is post-order, deepest first, up to the root.
+      - A child that owns instances has its `destroy` run during teardown, before its ancestors'.
+      - A node's trailing cleanup waits until its whole subtree completes, or it would remove a layer a descendant still needs.
+
+  - title: Failure
+    tables:
+      - header: [Event, Effect]
+        rows:
+          - ["Node fails any phase before its gate opens", "Its descendants are skipped, with the phase named in the note"]
+          - ["A sibling fails", "That tree's not-yet-started siblings are skipped, and running ones finish"]
+          - ["`--continue-on-failure`", "Do not skip siblings either"]
+          - ["Any failure", "The run is red, and `failed` outranks everything in the overall verdict"]
+    rules:
+      - Descendants under a gate failure are marked skipped rather than failed, because nothing in them ran and a fabricated failure would send triage at the wrong scenario.
+      - The skip must carry a reason naming the gating phase, because a bare skipped would be worse than failed.
+      - Any parent failure skips descendants with no exception, because the parent's verify is the readiness gate and there is no infra-healthy-but-test-failed case to carve out.
+      - "Verify contract: a node's verify must be side-effect free, repeatable, and must not mutate the inventory, because the gate and the copy-at-start snapshot both depend on it."
+      - Document the verify contract with its failure mode named, not as good practice.
+      - The skip note on a parent-with-children verify failure states the rule that anything not gating descendants goes in a child, which is the cheapest place to teach it.
+
+  - title: Retry
+    rules:
+      - Retrying a node cleans up its subtree post-order, then runs the node's ordinary sequence, whose leading cleanup clears its own prior layer.
+      - Nothing above the node is touched, so the expensive root survives.
+      - "This also defines `molecule test -s <node>`: clean up and destroy the subtree below the node, run the node, and resolve the ancestor chain above it."
+      - Resolving the ancestor chain leaves a standing ancestor untouched and builds one that is missing.
+
+  - title: Teardown on failure
+    rules:
+      - On failure, cleanups run post-order, always.
+      - "`destroy` at each owning node is governed only by the `--destroy` policy, with no failure-specific exception."
+      - "Retrying via `molecule test -s <node>` tears down the subtree below the node and leaves every ancestor alone, so the root survives without the destroy policy being involved."
+      - The destroy policy covers the narrower case of a full run that fails midway where the author wants the wreckage to inspect.
+
+  - title: The destroy policy
+    intro: Proposed. `--destroy` gains `on-success`, so the values become always, on-success, never, with the default staying always.
+    tables:
+      - header: [Value, Meaning]
+        rows:
+          - ["`always` (default)", "Destroy every owning node, pass or fail. What a pipeline needs, so a pipeline configures nothing"]
+          - ["`on-success`", "Destroy only when the whole run is green, and keep everything when anything failed"]
+          - ["`never`", "Today's meaning, unchanged"]
+    rules:
+      - "Dev-box ergonomics come from adding `MOLECULE_DESTROY` to the env-var config mapping, so `export MOLECULE_DESTROY=on-success` is set once and the flag is never typed."
+      - CI sets nothing and gets `always`.
+
+  - title: Lifting the destroy-never plus workers restriction
+    intro: Proposed.
+    rules:
+      - "The current code rejects `--destroy=never` together with `--workers` greater than 1."
+      - That guard protected the hoisted main-process destroy, which per-node ownership removes.
+      - "`never` is an explicit user choice and the end-of-run summary covers the stranding risk, so the restriction goes."
+      - "`design/data/scheduling.yml` lists it as a current guardrail."
+
+  - title: Anything left standing is reported
+    rules:
+      - "Whatever `on-success` or `never` leaves behind is listed at the end of the run, per node, with the command to remove it."
+      - The same report covers the destructive-by-implication case, where retrying a node tears down its subtree without the user asking.
+      - An unasked-for teardown is announced rather than hidden behind a flag, because it costs a tool's trust permanently.
+      - On an interactive terminal the implied teardown is named before it runs, not only in the end-of-run summary.

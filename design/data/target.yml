@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=../structure/target.schema.yml
+---
+# Target source: the aim and the milestones toward it.
+#
+# Prose fields are bounded (a headline, short explanations, framing lines), never free
+# essays. No semicolons and no em or en dashes. Decisions live in
+# design/data/rejected-ideas.yml.
+
+title: "The aim"
+intro:
+  - "Read this before the topic files."
+  - "Everything else is a milestone toward it, and the milestones are shaped to avoid rework rather than to close a particular issue."
+
+what_should_be:
+  headline: "An orchestrator of layered, ordered test environments, where expensive infrastructure is stood up once and progressively tested against, rather than a runner of independent scenarios that happen to share a directory."
+  lead: "Six properties follow, and they are the things to aim at:"
+  properties:
+    - title: "Structure is declared, not implied."
+      explanation: "A scenario states its place in a tree. Ordering, gating and lifetime all derive from that one declaration, instead of from alphabetical directory order, filesystem layout, or which flags were passed."
+    - title: "Nothing is shared that can be owned."
+      explanation: "State per node, artifacts copied at start, lifetime shaped like the tree. Sharing a file between concurrent actors is the failure mode the whole design exists to remove."
+    - title: "A run has an identity."
+      explanation: "Concurrent runs of one project are correct by default, not by the user configuring paths or embedding environment names in their test data."
+    - title: "Execution is sealed and selectable."
+      explanation: "Playbooks run in the same kind of environment production uses. Molecule selects and iterates sealed environments, it never resolves dependency sets. An environment is an opaque handle, which is precisely why iterating it is molecule's business and looking inside it is not."
+    - title: "The tool teaches its own model."
+      explanation: "Output states the tree, what gated what, what was skipped and why, and what `default` is for. Concepts users currently infer should be stated by the tool on every run."
+    - title: "Molecule runs one scenario, the orchestrator runs everything above it."
+      explanation: "Molecule stays a single-scenario tool. The orchestrator owns the tree, the cascade, ordering and every read across nodes, and hands each node a config molecule already understands. What exists keeps working, and what is new lives above the handoff (`design/data/tree-spec.yml`)."
+
+day_one_surface:
+  - "Learning surface is the cost being held down: an existing project changes nothing, the whole feature on day one is the root file with `children:` nesting, and every other concept here (derived ownership, `--destroy=on-success`, `MOLECULE_DESTROY`, the location and scratch variables) is opt-in or invisible."
+  - "Trees are not collection-only: they work in flat non-collection layouts too, serially, so the standalone-role author gets them without moving into a collection (`design/data/tree-spec.yml`)."
+
+milestone_selection:
+  intro: "A milestone is worth taking when it moves toward the aim and does not have to be undone to get the rest. Three questions on every decision, in this order:"
+  questions:
+    - "Does it hold under the aim, or only under today's constraints?"
+    - "If the aim arrives later, is this cheap to extend or expensive to unpick?"
+    - "Does it add a file to trace, a concept to infer, or a non-YAML surface to edit, and so move away from the aim even where it is locally convenient?"
+  note: "Decisions that are only locally correct get taken anyway when the cost of the general version is real, but they get recorded as such here, not discovered later."
+
+rework_check:
+  header: [Decision, Under the aim, Verdict]
+  rows:
+    - ["Child nests under its parent", "Unchanged by sealed execution or matrices, the tree is orthogonal to how it runs", "Safe"]
+    - ["State strictly per node", "The precondition for everything else", "Safe"]
+    - ["Copy the parent's inventory at start", "Pays forward: a node's directory is self-contained, so it is **one** mount into a sealed environment. Live ancestor reads would have needed N", "Safe, and better than expected"]
+    - ["`--destroy` gains `on-success`, plus env var", "Orthogonal to structure", "Safe"]
+    - ["Depth unbounded, iterative traversal", "Iterative is required anyway once runs fan out", "Safe"]
+    - ["Ephemeral layout mirrors the tree", "Incomplete. A run dimension sits **above** the tree, and an environment dimension above that", "Shape now, see below"]
+    - ["Scheduler runs nodes", "Incomplete. The unit becomes a node **within a run context**, not a bare node", "Shape now, see below"]
+
+shape_now:
+  items:
+    - title: "Compose the ephemeral path from explicit dimensions."
+      detail: "Not a string assembled at two call sites as today (`scenario.py:141-154`, `188-195`), but location root, then run identity, then tree position. A single-run invocation collapses the run segment to a stable value, so nothing looks different today, and adding run identity or a runtime fan-out later is a new dimension rather than a new layout. Run identity here is the internal path segment that keeps concurrent runs disjoint (today's `--parallel` `run_uuid`), and it is not exported to playbooks."
+    - title: "Make the scheduler's unit a node within a run context."
+      detail: "The loop, the global worker cap and the runnable set are all unchanged in shape. What changes is that the key identifying a unit of work is not just the node name. A runtime fan-out over sealed environments is then N runs over one tree, which the scheduler already handles, instead of a restructuring of it. Cheap now, expensive later."
+  note:
+    - "**Two later topics both land here, which is confirmation rather than new scope.** An artifact built by a node lives outside molecule's filesystem and needs a per-run name so concurrent runs stay disjoint, which molecule can supply internally from the run segment above (`design/data/provisioning.yml`) the way it already names `--parallel` instances, rather than by exporting a run variable."
+    - "A repository-scoped action such as linting has no correct home until a run is a unit, which is precisely the granularity objection that removed linting in 2023 (`design/data/lint.yml`). The run is the missing unit in both, so shaping it now is doing more work than it looks like."
+
+not_in_aim:
+  - "Resolving dependency sets, building venvs, or otherwise knowing what is inside an environment."
+  - "Inter-tree dependency. Trees are independent by construction, and if B needs A's result they are one tree."
+  - "Inferring structure from filesystem layout. See `design/data/tree-spec.yml`."

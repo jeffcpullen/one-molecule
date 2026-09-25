@@ -1,0 +1,24 @@
+---
+# The disk objects the storage tests act on, copied byte-for-byte from
+# before/tests/provision.fmf (standard-inventory-qcow2 -> qemu). One shared file,
+# because provision.fmf sits at the tests root and every scenario gets the same node.
+qemu_memory_mb: 2048
+qemu_drives:
+  - size: 10737418240        # 10 GiB
+    interface: virtio
+  - size: 10737418240
+    interface: virtio
+  - size: 10737418240
+    interface: virtio
+  - size: 1099511627800      # ~1 TB
+    interface: scsi
+  - size: 1099511627800
+    interface: scsi
+  - size: 10737418240
+    interface: scsi
+  - size: 1099511627800
+    interface: nvme
+  - size: 10737418240
+    interface: nvme
+  - size: 10737418240
+    interface: nvme

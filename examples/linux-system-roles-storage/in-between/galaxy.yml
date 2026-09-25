@@ -1,0 +1,16 @@
+---
+# Present so this tree has a collection root. Molecule only auto-loads
+# extensions/molecule/config.yml when it finds a collection, and without that
+# every shared setting below it (driver, env, vars, create/destroy/cleanup) is
+# silently skipped: the run finds no create playbook, warns, and exits 0 having
+# created nothing. The real collection this is converted from carries its own
+# galaxy.yml, so this file restores a property of the source, it does not add one.
+namespace: example
+name: lsr_storage
+version: 1.0.0
+readme: README.md
+authors:
+  - one-molecule
+description: Conversion target for the linux-system-roles storage scenarios.
+license:
+  - MIT

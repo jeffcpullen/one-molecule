@@ -1,0 +1,165 @@
+# yaml-language-server: $schema=../structure/interfaces.schema.yml
+---
+# Interfaces source: every boundary where a run touches software outside molecule,
+# grouped by counterpart role. An interface is a contract, specified by the data
+# that crosses and what it means, never by the tool on the other side or the transport
+# that carries it. So each entry names the counterpart by role, states what the run
+# provides and accepts back with formats, states the fixed semantics, and lists
+# candidate bindings as swappable realizations. State the current-state contract, never
+# the reasoning. Closed alternatives live in design/data/rejected-ideas.yml, undecided items in
+# design/data/open-questions.yml. This register indexes boundaries and decides none of them, the
+# owning doc named in each entry decides. One idea per field, no semicolons, no dashes.
+
+title: Interfaces
+intro: "Every boundary where a run touches software outside molecule, grouped by counterpart role, stated as what the run provides and accepts back rather than which tool sits on the other side."
+status: "As-of 2026-09-21. The content linting and provisioning input seams are proposed, the executor seam is pluggable with ansible-runner the default, the playbook-path seam and molecule's own schema are settled."
+
+usage:
+  - "An interface is the data that crosses and what it means, so name the counterpart by role and put products in examples."
+  - "The binding (a shell command, an in-process call, a service endpoint) is a swappable realization, never the definition."
+  - "Each entry is a single boundary, and the owning doc named in it carries the full spec and wins on any conflict."
+  - "A `passthrough` is a molecule config key this design forwards unchanged, a `seam` is a load-bearing interface this design owns."
+  - "This register indexes boundaries and adds no decisions of its own."
+
+tags:
+  - {tag: src, means: "read from molecule source"}
+  - {tag: issue, means: "tracker item"}
+  - {tag: measured, means: "observed by running"}
+  - {tag: reasoned, means: "argued from the design's own invariants"}
+
+groups:
+  - title: "Molecule core (the scenario config surface)"
+    intro: "The scenario keys the design forwards to molecule's existing surface rather than restating."
+    items:
+      - id: molecule-scenario-schema
+        capability: "Passing molecule's own scenario config through"
+        counterpart_role: "Molecule core, which owns the scenario config surface"
+        provides: "Config keys (driver, provisioner, verifier, dependency, ansible) that conform to molecule's scenario schema."
+        accepts: "Conformance, the keys validate against molecule's scenario schema (`spec/molecule-config.schema.yml`)."
+        semantics: "The design forwards these keys unmodeled, a run carries them through to molecule."
+        initiator: molecule
+        coupling: tight
+        bindings:
+          - {type: config-key, status: chosen}
+          - {type: schema-ref, status: chosen}
+        examples: ["`molecule.json` as the vendored scenario schema"]
+        owner: external
+        class: passthrough
+        status: settled
+        owns: "`spec/molecule-config.schema.yml` (the key reference and the folded passthrough row)"
+        opaque: "The design does not model what these keys mean, only that a run carries them through."
+        tags: [src]
+
+  - title: "Ansible (the playbook and inventory runtime)"
+    intro: "The playbooks a run executes and the content resolution it relies on."
+    items:
+      - id: playbook-paths
+        capability: "Running the action playbooks"
+        counterpart_role: "Ansible, which executes the playbooks a run references"
+        provides: "Each action (converge, verify, create, destroy) mapped to a playbook path via `provisioner.playbooks` (`design/data/layout.yml`)."
+        accepts: "The play outcome (ok, changed, failed), which molecule reads as the action result."
+        semantics: "Molecule references playbooks by path rather than inlining tasks, the seam that already exists today."
+        initiator: molecule
+        coupling: loose
+        bindings:
+          - {type: path-reference, status: chosen}
+          - {type: shell, status: chosen}
+        examples: ["`ansible-playbook`"]
+        owner: molecule
+        class: seam
+        status: settled
+        owns: "`design/data/layout.yml` (one root config and the shared playbooks folder)"
+        tags: [src]
+
+      - id: fqcn-test-playbooks
+        capability: "Addressing test playbooks as collection content"
+        counterpart_role: "Ansible content resolution"
+        provides: "Test playbooks placed under the collection's `playbooks/` tree, addressable by FQCN and linted as ordinary content (`design/data/layout.yml`)."
+        accepts: "Resolution of the FQCN to the playbook file."
+        semantics: "Test playbooks are ordinary collection content, not scaffolding hidden under extensions/."
+        initiator: molecule
+        coupling: loose
+        bindings:
+          - {type: path-reference, status: candidate}
+        owner: molecule
+        class: seam
+        status: proposed
+        owns: "`design/data/layout.yml` (test playbooks become ordinary collection content)"
+        open: "Resolving test playbooks by FQCN is not yet shown to work, tracked in molecule #4244."
+        tags: [issue]
+
+  - title: "A linter or static-analysis provider"
+    intro: "The provider that analyzes the content set, which molecule holds no specific knowledge of."
+    items:
+      - id: content-linting
+        capability: "Linting the content set"
+        counterpart_role: "A linter or static-analysis provider"
+        provides: "The content set to analyze (paths under the content root) and the rule configuration to apply."
+        accepts: "Structured findings in an agreed result format, so any conforming tool satisfies the interface."
+        semantics: "Runs once per run before any node starts, in the run's sealed environment, and a finding at or above the configured severity gates the run."
+        initiator: molecule
+        coupling: loose
+        bindings:
+          - type: shell
+            status: candidate
+            payload: file
+            result_source: file
+          - type: api
+            status: deferred
+            protocol: http
+            request_schema: "The content set and rule configuration, shape undecided."
+            response_schema: "SARIF is a candidate, not yet chosen."
+          - {type: in-process, status: candidate}
+        examples: ["ansible-lint"]
+        owner: shared
+        class: seam
+        status: proposed
+        owns: "`design/data/lint.yml` (the run-level lint phase)"
+        guardrail: "Molecule defines the payload and the result contract and holds no knowledge of any specific linter or its rules."
+        version_binding: "The tool version is pinned by the project's environment, not by molecule or the author's machine."
+        open: "The result format is undecided, with SARIF a candidate rather than a requirement. How the phase relates to molecule #3983 is open (`design/data/open-questions.yml`)."
+        tags: [reasoned]
+
+  - title: "The artifact build toolchain"
+    intro: "The tooling that builds the input a create playbook consumes before it can run."
+    items:
+      - id: provisioning-input
+        capability: "Building the pre-create input"
+        counterpart_role: "The author's artifact build toolchain"
+        provides: "An artifact node whose `create` runs the author's build and whose `destroy` removes what it made (`design/data/provisioning.yml`)."
+        accepts: "The built artifact's existence, asserted by the node's `verify`."
+        semantics: "Molecule orders and gates the step, the author writes it, and the artifact outlives the children that consume it."
+        initiator: molecule
+        coupling: loose
+        bindings:
+          - {type: shell, status: candidate}
+        examples: ["a container build", "Packer", "an execution-environment build"]
+        owner: project
+        class: seam
+        status: proposed
+        owns: "`design/data/provisioning.yml` (a node can own something that is not an instance)"
+        guardrail: "Molecule orders and gates the step and the author writes it, with no distro-aware recipes and no registry, tag, or cache policy."
+        opaque: "Molecule holds no knowledge of what is inside an image, even when it ships a reference example."
+        tags: [reasoned]
+
+  - title: "The executor"
+    intro: "The pluggable executor a run's control plane runs under, selected by `runtime.executor`."
+    items:
+      - id: executor-backend
+        capability: "Running the control plane"
+        counterpart_role: "A pluggable executor that runs converge, verify and side_effect"
+        provides: "What to run (the playbook, the runtime, the inputs, mounts and env), for the executor to run however it runs (`design/data/execution-environments.yml`)."
+        accepts: "A standardized event and output stream the executor emits, which molecule reads for results, tracing and display."
+        semantics: "Molecule defines what to run and the executor decides how, so the executor is a swappable realization behind a fixed contract."
+        initiator: molecule
+        coupling: loose
+        bindings:
+          - {type: in-process, status: candidate}
+          - {type: shell, status: candidate}
+        examples: ["ansible-runner (default)", "ansible-navigator", "a remote podman or kubernetes executor"]
+        owner: molecule
+        class: seam
+        status: proposed
+        owns: "`design/data/execution-environments.yml` (the executor seam)"
+        guardrail: "Molecule defines what to run and stays agnostic about how, and ansible-runner is one implementation and never a binding."
+        tags: [reasoned]

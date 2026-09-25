@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=../structure/conventions.schema.yml
+---
+# conventions source, the durable working rules for the design set: where a new
+# file lives by kind, and the working laws the set holds itself to. State the rule,
+# never the reasoning.
+# design/ is published, so local harness detail and personal working rules do not
+# belong here. One idea per rule, no semicolons, no em or en dashes.
+
+title: Conventions
+intro: >-
+  The durable working rules for this design set: where a new file lives by kind, and the
+  working laws the set holds itself to. This file owns the conventions that change rarely.
+status: current, the durable conventions for the set, changed rarely
+
+sections:
+  - title: Where files live
+    intro: A new file goes in the subfolder that matches its kind.
+    tables:
+      - header: [Location, What it holds]
+        rows:
+          - ["`design/data/`", "The design corpus: one YAML source per subject, each owning a decision or anchoring the set"]
+          - ["`design/structure/`", "One validator per source, plus the shared shapes they reuse"]
+          - ["`design/docs/`", "The Diataxis documentation set, a user-altitude projection of the corpus"]
+          - ["`spec/`", "The authored source of the deliverable config schema"]
+          - ["`generated/`", "The one generated file, emitted from `spec/` by `tools/build.py`. Never hand-edited"]
+          - ["`vendor/`", "Files vendored from upstream. Re-vendored, never hand-edited"]
+          - ["`internal/`", "All working material: research, process scaffolding, rendered assets, archived drafts. Gitignored"]
+    rules:
+      - Create a new file in the folder that matches its kind.
+      - "A file earns a `design/data/` spot only when it is a design source that owns a decision or anchors the set."
+      - "A new source in `design/data/` gets a validator in `design/structure/` under the same name."
+      - "Everything tracked is publishable, so anything that is not goes under `internal/`."
+      - When in doubt a file is working material, not a design doc.
+      - "Design sources are cross-linked by their repo-relative path, so they stay put."
+      - Existing files are not relocated for tidiness.
+
+  - title: Working rules
+    rules:
+      - "Behavior is declared in the schema, and the CLI only overrides it (`design/data/tree-spec.yml`)."
+      - A knob reachable only by typing a flag cannot be committed with the project.
+      - Selection is the exception and stays on the command line.
+      - The design supports only the `default` driver, so no example shows any other.
+      - Pair parent with child in prose and in pictures, never root with child.
+      - Example configs use block-style YAML, with flow style only for an empty `{}` or `[]`.
+      - "`tools/yaml-block-format.py` applies that style, run it over a pulled upstream repo's molecule.yml files so before and after compare on line count."
+      - Design items are tagged Decided, Proposed, or Open.
+      - Do not silently promote a Proposed item.
+      - Code comments and docstrings stay one terse line.
+      - Do not put issue numbers in code.
+      - "Prose uses American spellings, such as `recognize` and `unrecognized`."
+      - State the positive reason a capability is wanted, never a deficiency in the people who want it.

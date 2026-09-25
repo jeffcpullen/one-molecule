@@ -1,0 +1,342 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2019 Arista Networks
+# Converted by the one-molecule project from the upstream per-scenario Molecule layout to the single top-level layout.
+defaults:
+  ansible:
+    executor:
+      backend: ansible-playbook
+      args:
+        ansible_playbook:
+          - --inventory=inventory/
+    env:
+      ANSIBLE_FORCE_COLOR: true
+    cfg:
+      defaults:
+        gathering: explicit
+  scenario:
+    converge_sequence:
+      - syntax
+      - converge
+      - verify
+    test_sequence:
+      - syntax
+      - create
+      - converge
+      - idempotence
+      - verify
+    cleanup_sequence:
+      - destroy
+  dependency:
+    name: galaxy
+    enabled: false
+  verifier:
+    name: ansible
+
+scenarios:
+  - name: ansible_only
+    playbooks:
+      converge: arista.avd.molecule_ansible_only_converge
+      verify: arista.avd.molecule_ansible_only_verify
+  - name: anta_runner
+    scenario:
+      converge_sequence:
+        - converge
+      test_sequence:
+        - create
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: arista.avd.molecule_anta_runner_converge
+  - name: cv_deploy
+    scenario:
+      converge_sequence:
+        - syntax
+        - converge
+      test_sequence:
+        - syntax
+        - converge
+        - cleanup
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: arista.avd.molecule_cv_deploy_converge
+  - name: cv_deploy_manifest
+    scenario:
+      converge_sequence:
+        - syntax
+        - converge
+      test_sequence:
+        - syntax
+        - converge
+        - cleanup
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: arista.avd.molecule_cv_deploy_manifest_converge
+  - name: cv_deploy_negative_tests
+    scenario:
+      converge_sequence:
+        - syntax
+        - converge
+      test_sequence:
+        - syntax
+        - converge
+        - cleanup
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: arista.avd.molecule_cv_deploy_negative_tests_converge
+  - name: cv_workflow
+    scenario:
+      converge_sequence:
+        - syntax
+        - converge
+      test_sequence:
+        - syntax
+        - create
+        - converge
+        - verify
+        - cleanup
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: arista.avd.molecule_cv_workflow_converge
+  - name: default
+  - name: digital_twin
+    playbooks:
+      converge: arista.avd.molecule_digital_twin_converge
+      verify: arista.avd.molecule_digital_twin_verify
+  - name: eos_cli_config_gen
+    scenario:
+      converge_sequence:
+        - syntax
+        - converge
+      test_sequence:
+        - syntax
+        - create
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: arista.avd.molecule_eos_cli_config_gen_converge
+  - name: eos_cli_config_gen_deprecated_vars
+    scenario:
+      converge_sequence:
+        - syntax
+        - converge
+      test_sequence:
+        - syntax
+        - create
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: arista.avd.molecule_eos_cli_config_gen_deprecated_vars_converge
+  - name: eos_cli_config_gen_negative_unit_tests
+    scenario:
+      converge_sequence:
+        - syntax
+        - converge
+      test_sequence:
+        - syntax
+        - create
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: arista.avd.molecule_eos_cli_config_gen_negative_unit_tests_converge
+  - name: eos_designs-l2ls
+    playbooks:
+      converge: arista.avd.molecule_eos_designs_l2ls_converge
+      verify: arista.avd.molecule_eos_designs_l2ls_verify
+  - name: eos_designs-mpls-isis-sr-ldp
+    playbooks:
+      converge: arista.avd.molecule_eos_designs_mpls_isis_sr_ldp_converge
+      verify: arista.avd.molecule_eos_designs_mpls_isis_sr_ldp_verify
+  - name: eos_designs-twodc-5stage-clos
+    playbooks:
+      converge: arista.avd.molecule_eos_designs_twodc_5stage_clos_converge
+      verify: arista.avd.molecule_eos_designs_twodc_5stage_clos_verify
+  - name: eos_designs_deprecated_vars
+    playbooks:
+      converge: arista.avd.molecule_eos_designs_deprecated_vars_converge
+      verify: arista.avd.molecule_eos_designs_deprecated_vars_verify
+  - name: eos_designs_negative_unit_tests
+    playbooks:
+      converge: arista.avd.molecule_eos_designs_negative_unit_tests_converge
+  - name: eos_designs_unit_tests
+    ansible:
+      env:
+        PYTHONPATH: ${PYTHONPATH}:${MOLECULE_SCENARIO_DIRECTORY}/custom_modules
+    playbooks:
+      converge: arista.avd.molecule_eos_designs_unit_tests_converge
+      verify: arista.avd.molecule_eos_designs_unit_tests_verify
+  - name: evpn_underlay_ebgp_overlay_ebgp
+    playbooks:
+      converge: arista.avd.molecule_evpn_underlay_ebgp_overlay_ebgp_converge
+      verify: arista.avd.molecule_evpn_underlay_ebgp_overlay_ebgp_verify
+  - name: evpn_underlay_isis_overlay_ibgp
+    playbooks:
+      converge: arista.avd.molecule_evpn_underlay_isis_overlay_ibgp_converge
+      verify: arista.avd.molecule_evpn_underlay_isis_overlay_ibgp_verify
+  - name: evpn_underlay_ospf_overlay_ebgp
+    playbooks:
+      converge: arista.avd.molecule_evpn_underlay_ospf_overlay_ebgp_converge
+      verify: arista.avd.molecule_evpn_underlay_ospf_overlay_ebgp_verify
+  - name: evpn_underlay_rfc5549_overlay_ebgp
+    playbooks:
+      converge: arista.avd.molecule_evpn_underlay_rfc5549_overlay_ebgp_converge
+      verify: arista.avd.molecule_evpn_underlay_rfc5549_overlay_ebgp_verify
+  - name: example-campus-fabric
+    ansible:
+      executor:
+        args:
+          ansible_playbook:
+            - --inventory=examples/campus-fabric/inventory.yml
+    scenario:
+      converge_sequence:
+        - converge
+      test_sequence:
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: examples/campus-fabric/build.yml
+  - name: example-cv-pathfinder
+    ansible:
+      executor:
+        args:
+          ansible_playbook:
+            - --inventory=examples/cv-pathfinder/inventory.yml
+      cfg:
+        defaults:
+          vault_password_file: examples/cv-pathfinder/.vault
+    scenario:
+      converge_sequence:
+        - converge
+      test_sequence:
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: examples/cv-pathfinder/build.yml
+  - name: example-dual-dc-l3ls
+    ansible:
+      executor:
+        args:
+          ansible_playbook:
+            - --inventory=examples/dual-dc-l3ls/inventory.yml
+    scenario:
+      converge_sequence:
+        - converge
+      test_sequence:
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: examples/dual-dc-l3ls/build.yml
+  - name: example-isis-ldp-ipvpn
+    ansible:
+      executor:
+        args:
+          ansible_playbook:
+            - --inventory=examples/isis-ldp-ipvpn/inventory.yml
+    scenario:
+      converge_sequence:
+        - converge
+      test_sequence:
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: examples/isis-ldp-ipvpn/build.yml
+  - name: example-l2ls-fabric
+    ansible:
+      executor:
+        args:
+          ansible_playbook:
+            - --inventory=examples/l2ls-fabric/inventory.yml
+    scenario:
+      converge_sequence:
+        - converge
+      test_sequence:
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: examples/l2ls-fabric/build.yml
+  - name: example-single-dc-l3ls
+    ansible:
+      executor:
+        args:
+          ansible_playbook:
+            - --inventory=examples/single-dc-l3ls/inventory.yml
+    scenario:
+      test_sequence:
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - cleanup
+    playbooks:
+      converge: examples/single-dc-l3ls/build.yml
+  - name: example-single-dc-l3ls-ipv6
+    ansible:
+      executor:
+        args:
+          ansible_playbook:
+            - --inventory=examples/single-dc-l3ls-ipv6/inventory.yml
+    scenario:
+      test_sequence:
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: examples/single-dc-l3ls-ipv6/build.yml
+  - name: example-single-dc-multipod-l3ls
+    ansible:
+      executor:
+        args:
+          ansible_playbook:
+            - --inventory=examples/single-dc-multipod-l3ls/inventory.yml
+    scenario:
+      test_sequence:
+        - converge
+        - idempotence
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: examples/single-dc-multipod-l3ls/build.yml
+  - name: howto
+    ansible:
+      env:
+        PYTHONPATH: ${PYTHONPATH}:${MOLECULE_SCENARIO_DIRECTORY}/custom_modules
+    scenario:
+      converge_sequence:
+        - syntax
+        - converge
+        - verify
+        - side_effect
+      test_sequence:
+        - syntax
+        - create
+        - converge
+        - idempotence
+        - verify
+        - side_effect
+      cleanup_sequence:
+        - destroy
+    playbooks:
+      converge: arista.avd.molecule_howto_converge
+      verify: arista.avd.molecule_howto_verify

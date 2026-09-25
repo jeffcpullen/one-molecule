@@ -1,0 +1,36 @@
+---
+name: lint
+
+# The blocking YAML gate. yamllint runs with the repo .yamllint (errors only, no
+# warnings) and --strict, so ANY finding fails the build. A violation committed
+# past the local pre-commit hook still fails here.
+
+on:
+  push:
+    paths: &yaml-paths
+      - '**.yml'
+      - '**.yaml'
+      - '.yamllint'
+      - '.github/workflows/lint.yml'
+  pull_request:
+    paths: *yaml-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Lint YAML (repo .yamllint, errors only, strict)
+        run: yamllint --strict -c .yamllint .

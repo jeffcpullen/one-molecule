@@ -1,0 +1,118 @@
+# yaml-language-server: $schema=../structure/open-questions.schema.yml
+---
+# Open-questions source: undecided items, the TODO backlog, and resolved items.
+#
+# Each open item keeps bounded framing lines only. Deep argumentation, motivation quotes,
+# and inline file.py:line citations stay out of the corpus. No semicolons and no em or
+# en dashes.
+
+title: "Open questions"
+intro: "Highest-churn file. Move items out to the topic files as they are decided."
+
+open:
+  - title: "Design run args, the caller input to config text"
+    status: "shape settled, detail not started"
+    raised: "2026-09-24"
+    framing:
+      - "An arg is declared once in the file with a default and is overridable per invocation."
+      - "The orchestrator fills in every arg once, when it reads the file, before any node's config is handed to molecule."
+      - "An arg never reaches molecule or Ansible. An author routes one onward by assigning it to a config value, such as an `ansible.env` entry."
+      - "The arg reference syntax must differ from molecule's `${VAR}`, so a reader can see which read fills a value in."
+      - "Undecided is whether an arg may restructure the run (the tree, the scenario set, the wiring) or only parameterize values."
+      - "Undecided is how a caller sets an arg, a CLI flag, an environment mapping, or both."
+      - "Undecided is whether the orchestrator's read also fills in `${VAR}` or leaves it to molecule's own read, where it runs over the whole file, unnamed and unbounded."
+      - "Molecule fills in `${MOLECULE_SCENARIO_NAME}` in each scenario's own read, so a per-node name needs no arg if the orchestrator passes `MOLECULE_` references through untouched."
+      - "Undecided is which wins when a caller's environment and `ansible.env` set the same variable. Molecule lets `ansible.env` win today."
+
+  - title: "Emit the single file as per-node configs for an outside executor"
+    status: "raised, not started"
+    raised: "2026-09-24"
+    framing:
+      - "The orchestrator could resolve the file into one single-scenario config per node and stop, leaving execution to any system that runs molecule, such as one pipeline job or one pod per node."
+      - "The coupling is loose because each emitted config is plain molecule input."
+      - "A child is not complete until its parent finishes, because its snapshot comes from the parent's run."
+      - "So either the orchestrator stays alive to route each parent's output to its children, or nodes write to a shared location that a child reads at start."
+      - "A file with no `children:` needs neither, because no node waits on another."
+      - "The shared-location answer overlaps the pluggable allocation scheduler question below, since both decide where a snapshot lives."
+
+  - title: "How the run-level lint phase relates to molecule #3983"
+    status: "not started"
+    raised: "2026-09-21"
+    framing:
+      - "`design/data/lint.yml` proposes a run-level lint phase, while molecule #3983 (\"Molecule 4.0.4 Missing Lint\") has been open since 2023-08-01."
+      - "Molecule's scenario schema now marks `lint` deprecated."
+      - "Treating #3983 as a schema-deprecation bug and adding a run-level phase do not conflict."
+      - "Undecided is whether the run-level phase resolves #3983 or is a separate change after it."
+
+  - title: "A reused resource pool of instances assigned to children"
+    status: "deferred under a working assumption"
+    raised: "2026-09-23"
+    framing:
+      - "linux-system-roles/storage allocates a fixed count of ephemeral nodes on demand (Artemis on Testing Farm, local virtual for `tmt try`) and packs 123 test playbooks onto them, reusing each node as it frees rather than booting one per test."
+      - "The proposed model boots a fresh node per scenario capped by `--workers`, which matches the concurrency width but not the reuse."
+      - "The question is whether a driver should be able to maintain a standing pool of instances, hand a freed instance to the next runnable child, and reuse it, so a run does far fewer boots than one per scenario."
+      - "This is the one capability molecule-as-is lacks, and it trades fresh-node isolation for lower provisioning cost."
+      - "A golden-image parent with copy-on-write clones may make fresh-per-scenario cheap enough that a pool is unnecessary, so the pool's value depends on how expensive the cold start really is."
+      - "The motivation for the fixed node count upstream is unknown, whether a resource threshold, a max instance cap, cold-start time, or something else, which the question below covers."
+      - "Working assumption for now, the fixed count is only a max concurrency cap and that count is all they can support at once, so `--workers` set to that cap is the near-term answer and no pool is built unless the count turns out to serve another purpose."
+
+  - title: "Generalize the snapshot into a pluggable allocation scheduler"
+    status: "raised, not started"
+    raised: "2026-09-23"
+    framing:
+      - "Allocation is implicit today, each scenario's driver creates and owns its own instance and `--workers` only caps how many run at once."
+      - "The question is whether the snapshot and copy-at-start mechanism should generalize into a pluggable scheduler that owns how inventory is allocated across children."
+      - "Fresh-per-child, a reused pool, and copy-on-write clones of a snapshot would then be allocation strategies behind one seam rather than a single baked-in behavior."
+      - "This is the general form of the resource-pool question above, which becomes one strategy under the seam."
+
+  - title: "What the fixed managed-node count in linux-system-roles/storage is for"
+    status: "raised, not started"
+    raised: "2026-09-23"
+    framing:
+      - "linux-system-roles/storage test plans provision a fixed pool of managed nodes and pack all test playbooks onto them, but the reason for the specific count is not stated in the plan."
+      - "Knowing the real driver, a resource threshold, a max instance cap, cold-start time, or something else, decides whether the pool and pluggable-scheduler questions above need answering or are moot."
+      - "The design answers the requirement behind the count, not the count itself."
+
+todo:
+  residual_ephemeral:
+    intro: "Marked Proposed in `design/data/ephemeral.yml` rather than open-ended, but not settled."
+    items:
+      - "splitting `MOLECULE_EPHEMERAL_DIRECTORY` into a location input and a per-node output, now with the cost of ignoring it entirely written out in `design/data/ephemeral.yml`"
+      - "giving a run its own identity, which is what the documented tox-parallel recipe is really a workaround for"
+      - "the scratch directory variable and how long `prune`'s denylist survives as a fallback"
+  documentation_backlog:
+    intro: "Not design questions, but decided by design decisions and missing from the docs unless written down here."
+    items:
+      - gist: "One parent, varied by parameter"
+        detail: "The worked example for two developers on different container engines is one parent scenario whose driver is parameterized, not two alternative parents. Rejecting multi-parent with an OR (`design/data/tree-spec.yml`) leaves an obligation to show the right one."
+      - gist: "Declaring a dependency beats filling it in"
+        detail: "The sibling selector (`design/data/lifecycle.yml`) is a way to get work done, not the repair, and the docs should say so where it is introduced."
+
+resolved:
+  - title: "Where environment and caller input reach"
+    date: "2026-09-24"
+    resolution: "Env is for play and args are for config text. Play environment is `ansible.env`, cascading through `defaults:` from the run or any node, and there is no run-only top-level `env:`."
+    owning_doc: "`design/data/environment.yml`"
+  - title: "Lift `platforms` into `defaults:` for shared instance definitions"
+    date: "2026-09-21"
+    resolution: "Resolved by the platform catalog. A run-level `platforms:` catalog defines each platform once and scenarios select it by name, so shared definitions need no `defaults:` cascade. Instance-name uniqueness is derived from the catalog name plus scenario and run identity. The derived-name spelling (auto-prefix versus a templated `name:`) is the remaining detail."
+    owning_doc: "`spec/molecule-config.schema.yml`"
+  - title: "`execution_environments` as a matrix axis"
+    date: "2026-09-21"
+    resolution: "Resolved by the runtime reframe. Execution environments are the `ee` method's axis under `runtime:`, one run cell per EE, not a matrix axis. The venv python and ansible-core grid is dropped and lives with the outer caller, and the executor is a first-class pluggable `runtime.executor` seam with ansible-runner the default."
+    owning_doc: "`design/data/execution-environments.yml`"
+  - title: "Trusting a standing ancestor's state"
+    date: "2026-09-20"
+    resolution: "Trust the state file. A targeted run runs nothing for a standing ancestor and does not re-check it, since an out-of-band deletion is not molecule's to defend and surfaces as a loud `unreachable`, never a silent wrong success. Re-running each ancestor's `verify` is rejected."
+  - title: "Ancestor handling on a targeted run"
+    date: "2026-09-13"
+    resolution: "A parent is a dependency, so a run resolves the full ancestor chain whether or not it was selected. A standing ancestor runs nothing, a missing one runs its full sequence minus `destroy`, and what this run built is left standing. Multi-parent is rejected and `missing_parent: create | fail` is the opt-out."
+    owning_doc: "`design/data/tree-spec.yml` / `design/data/lifecycle.yml`"
+  - title: "Where a tree is declared"
+    date: "2026-09-24"
+    resolution: "In the single file only, by `children:` nesting. A directory-mode project keeps molecule's behavior, `shared_state` included, and there is no `parent:` key and no implicit parent."
+    owning_doc: "`design/data/tree-spec.yml`"
+  - title: "How the tree is declared"
+    date: "2026-09-12"
+    resolution: "Covers what activates a tree, the removed `owns_instances` name (ownership is now derived), the snapshot and copy-at-start rule, the depth bound, the `--destroy` policy and destroy ownership, and the ephemeral directory's purpose, categories and layout."
+    owning_doc: "`design/data/tree-spec.yml`, `design/data/lifecycle.yml`, `design/data/ephemeral.yml`"

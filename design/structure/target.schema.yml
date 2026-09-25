@@ -1,0 +1,141 @@
+---
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Target (the aim) source
+description: 'Bespoke shape for design/data/target.yml: the aim, the properties to aim at, the day-one surface, how milestones are chosen, a rework-check table, the items to shape now, and what is deliberately out of scope. The prose fields are bounded (a headline, one-to-three-sentence explanations, framing lines), never free essays. Every text string forbids the semicolon and the em or en dash (house writing style).'
+type: object
+additionalProperties: false
+required:
+  - title
+  - intro
+  - what_should_be
+  - day_one_surface
+  - milestone_selection
+  - rework_check
+  - shape_now
+  - not_in_aim
+properties:
+  title:
+    $ref: '#/$defs/line'
+  intro:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/line'
+  what_should_be:
+    type: object
+    additionalProperties: false
+    required:
+      - headline
+      - lead
+      - properties
+    properties:
+      headline:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The one-line statement of what molecule should be, rendered bold.
+      lead:
+        $ref: '#/$defs/line'
+      properties:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - title
+            - explanation
+          properties:
+            title:
+              $ref: '#/$defs/line'
+            explanation:
+              allOf:
+                - $ref: '#/$defs/line'
+              description: One to three sentences of bounded explanation.
+  day_one_surface:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/line'
+    description: Bounded prose of the day-one surface, one sentence per line.
+  milestone_selection:
+    type: object
+    additionalProperties: false
+    required:
+      - intro
+      - questions
+      - note
+    properties:
+      intro:
+        $ref: '#/$defs/line'
+      questions:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/line'
+      note:
+        $ref: '#/$defs/line'
+  rework_check:
+    type: object
+    additionalProperties: false
+    required:
+      - header
+      - rows
+    properties:
+      header:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/line'
+      rows:
+        type: array
+        minItems: 1
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/$defs/cell'
+  shape_now:
+    type: object
+    additionalProperties: false
+    required:
+      - items
+    properties:
+      items:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - title
+            - detail
+          properties:
+            title:
+              $ref: '#/$defs/line'
+            detail:
+              allOf:
+                - $ref: '#/$defs/line'
+              description: Bounded explanation of what to shape and why it is cheap now.
+      note:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/line'
+        description: Optional closing note, one paragraph per line.
+  not_in_aim:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/line'
+$defs:
+  line:
+    type: string
+    minLength: 1
+    not:
+      pattern: '[;—–]'
+    description: A non-empty text string with no semicolon and no em or en dash.
+  cell:
+    type: string
+    not:
+      pattern: '[;—–]'
+    description: A table cell, no semicolon and no em or en dash, may be empty.

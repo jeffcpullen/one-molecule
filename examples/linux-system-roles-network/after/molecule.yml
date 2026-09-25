@@ -1,0 +1,213 @@
+---
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2017-2018 Red Hat, Inc. All rights reserved.
+# Converted by the one-molecule project from the upstream per-playbook test layout to the single top-level layout.
+defaults:
+  driver:
+    name: delegated
+  provisioner:
+    config_options:
+      defaults:
+        task_timeout: 480
+  scenario:
+    converge_sequence:
+      - converge
+    test_sequence:
+      - converge
+
+scenarios:
+  - name: 802_1x_nm
+    playbooks:
+      converge: tests/tests_802_1x_nm.yml
+  - name: 802_1x_updated_nm
+    playbooks:
+      converge: tests/tests_802_1x_updated_nm.yml
+  - name: auto_gateway_initscripts
+    playbooks:
+      converge: tests/tests_auto_gateway_initscripts.yml
+  - name: auto_gateway_nm
+    playbooks:
+      converge: tests/tests_auto_gateway_nm.yml
+  - name: bond_cloned_mac_initscripts
+    playbooks:
+      converge: tests/tests_bond_cloned_mac_initscripts.yml
+  - name: bond_cloned_mac_nm
+    playbooks:
+      converge: tests/tests_bond_cloned_mac_nm.yml
+  - name: bond_deprecated_initscripts
+    playbooks:
+      converge: tests/tests_bond_deprecated_initscripts.yml
+  - name: bond_deprecated_nm
+    playbooks:
+      converge: tests/tests_bond_deprecated_nm.yml
+  - name: bond_initscripts
+    playbooks:
+      converge: tests/tests_bond_initscripts.yml
+  - name: bond_nm
+    playbooks:
+      converge: tests/tests_bond_nm.yml
+  - name: bond_options_nm
+    playbooks:
+      converge: tests/tests_bond_options_nm.yml
+  - name: bond_port_match_by_mac_nm
+    playbooks:
+      converge: tests/tests_bond_port_match_by_mac_nm.yml
+  - name: bond_removal_initscripts
+    playbooks:
+      converge: tests/tests_bond_removal_initscripts.yml
+  - name: bond_removal_nm
+    playbooks:
+      converge: tests/tests_bond_removal_nm.yml
+  - name: bridge_cloned_mac_initscripts
+    playbooks:
+      converge: tests/tests_bridge_cloned_mac_initscripts.yml
+  - name: bridge_cloned_mac_nm
+    playbooks:
+      converge: tests/tests_bridge_cloned_mac_nm.yml
+  - name: bridge_initscripts
+    playbooks:
+      converge: tests/tests_bridge_initscripts.yml
+  - name: bridge_nm
+    playbooks:
+      converge: tests/tests_bridge_nm.yml
+  - name: change_indication_on_repeat_run
+    playbooks:
+      converge: tests/tests_change_indication_on_repeat_run.yml
+  - name: default
+    playbooks:
+      converge: tests/tests_default.yml
+  - name: default_initscripts
+    playbooks:
+      converge: tests/tests_default_initscripts.yml
+  - name: default_nm
+    playbooks:
+      converge: tests/tests_default_nm.yml
+  - name: dummy_nm
+    playbooks:
+      converge: tests/tests_dummy_nm.yml
+  - name: eth_dns_support_nm
+    playbooks:
+      converge: tests/tests_eth_dns_support_nm.yml
+  - name: eth_pci_address_match_nm
+    playbooks:
+      converge: tests/tests_eth_pci_address_match_nm.yml
+  - name: ethernet_initscripts
+    playbooks:
+      converge: tests/tests_ethernet_initscripts.yml
+  - name: ethernet_nm
+    playbooks:
+      converge: tests/tests_ethernet_nm.yml
+  - name: ethtool_coalesce_initscripts
+    playbooks:
+      converge: tests/tests_ethtool_coalesce_initscripts.yml
+  - name: ethtool_coalesce_nm
+    playbooks:
+      converge: tests/tests_ethtool_coalesce_nm.yml
+  - name: ethtool_features_initscripts
+    playbooks:
+      converge: tests/tests_ethtool_features_initscripts.yml
+  - name: ethtool_features_nm
+    playbooks:
+      converge: tests/tests_ethtool_features_nm.yml
+  - name: ethtool_ring_initscripts
+    playbooks:
+      converge: tests/tests_ethtool_ring_initscripts.yml
+  - name: ethtool_ring_nm
+    playbooks:
+      converge: tests/tests_ethtool_ring_nm.yml
+  - name: helpers_and_asserts
+    playbooks:
+      converge: tests/tests_helpers_and_asserts.yml
+  - name: ignore_auto_dns_nm
+    playbooks:
+      converge: tests/tests_ignore_auto_dns_nm.yml
+  - name: infiniband_nm
+    playbooks:
+      converge: tests/tests_infiniband_nm.yml
+  - name: integration_pytest
+    playbooks:
+      converge: tests/tests_integration_pytest.yml
+  - name: ipv6_disabled_nm
+    playbooks:
+      converge: tests/tests_ipv6_disabled_nm.yml
+  - name: ipv6_dns_search_nm
+    playbooks:
+      converge: tests/tests_ipv6_dns_search_nm.yml
+  - name: ipv6_initscripts
+    playbooks:
+      converge: tests/tests_ipv6_initscripts.yml
+  - name: ipv6_nm
+    playbooks:
+      converge: tests/tests_ipv6_nm.yml
+  - name: mac_address_match_nm
+    playbooks:
+      converge: tests/tests_mac_address_match_nm.yml
+  - name: network_state_global_dns_nm
+    playbooks:
+      converge: tests/tests_network_state_global_dns_nm.yml
+  - name: network_state_nm
+    playbooks:
+      converge: tests/tests_network_state_nm.yml
+  - name: provider_nm
+    playbooks:
+      converge: tests/tests_provider_nm.yml
+  - name: reapply_nm
+    playbooks:
+      converge: tests/tests_reapply_nm.yml
+  - name: regression_nm
+    playbooks:
+      converge: tests/tests_regression_nm.yml
+  - name: route_device_initscripts
+    playbooks:
+      converge: tests/tests_route_device_initscripts.yml
+  - name: route_device_nm
+    playbooks:
+      converge: tests/tests_route_device_nm.yml
+  - name: route_table_nm
+    playbooks:
+      converge: tests/tests_route_table_nm.yml
+  - name: route_type_nm
+    playbooks:
+      converge: tests/tests_route_type_nm.yml
+  - name: routing_rules_nm
+    playbooks:
+      converge: tests/tests_routing_rules_nm.yml
+  - name: states_initscripts
+    playbooks:
+      converge: tests/tests_states_initscripts.yml
+  - name: states_nm
+    playbooks:
+      converge: tests/tests_states_nm.yml
+  - name: switch_provider
+    playbooks:
+      converge: tests/tests_switch_provider.yml
+  - name: team_nm
+    playbooks:
+      converge: tests/tests_team_nm.yml
+  - name: team_plugin_installation_nm
+    playbooks:
+      converge: tests/tests_team_plugin_installation_nm.yml
+  - name: unit
+    playbooks:
+      converge: tests/tests_unit.yml
+  - name: vlan_mtu_initscripts
+    playbooks:
+      converge: tests/tests_vlan_mtu_initscripts.yml
+  - name: vlan_mtu_nm
+    playbooks:
+      converge: tests/tests_vlan_mtu_nm.yml
+  - name: wireless_and_network_restart_nm
+    playbooks:
+      converge: tests/tests_wireless_and_network_restart_nm.yml
+  - name: wireless_nm
+    playbooks:
+      converge: tests/tests_wireless_nm.yml
+  - name: wireless_plugin_installation_nm
+    playbooks:
+      converge: tests/tests_wireless_plugin_installation_nm.yml
+  - name: wireless_wpa3_owe_nm
+    playbooks:
+      converge: tests/tests_wireless_wpa3_owe_nm.yml
+  - name: wireless_wpa3_sae_nm
+    playbooks:
+      converge: tests/tests_wireless_wpa3_sae_nm.yml

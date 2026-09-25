@@ -1,0 +1,20 @@
+---
+- hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    - name: "Read target loop device path"
+      ansible.builtin.slurp:
+        src: /tmp/target_loop
+      register: _target_b64
+
+    - name: "Set target loop fact"
+      ansible.builtin.set_fact:
+        _target_loop: "{{ (_target_b64.content | b64decode).strip() }}"
+
+    - name: "Converge: invoke full role on a clean (unmounted) target"
+      ansible.builtin.include_role:
+        name: david_igou.armbian.disk_image
+      vars:
+        disk_image_source: "/tmp/test.img.xz"
+        disk_image_target_device: "{{ _target_loop }}"

@@ -1,0 +1,33 @@
+# Paths that must never be pushed.
+#
+# One path per line, relative to the repo root. A trailing slash means a whole
+# folder. Blank lines and # comments are ignored. Checked by
+# tools/check-private-paths.sh, which the pre-push hook runs.
+#
+# This is the safety net, not the mechanism: .gitignore is what keeps these
+# untracked in the first place. The guard catches the case where something got
+# tracked anyway, by a git add -A, a force-add, or an earlier commit.
+#
+# A line starting with ! carves one path back out of a protected folder. The
+# blunt folder rule above it stays, because that is what covers whatever private
+# thing lands in the folder later. Prove both directions with:
+#
+#   ./tools/check-private-paths.sh --selftest
+
+internal/
+.claude/
+.harness/
+
+# Published on purpose out of .claude/: the three agent definitions and the
+# update-the-docs skill. Everything else under .claude/ stays private.
+!.claude/agents/om-content-converter.md
+!.claude/agents/om-design-author.md
+!.claude/agents/om-docs-maintainer.md
+!.claude/skills/update-the-docs/SKILL.md
+
+# Single files go here the same way, one per line, no trailing slash. CLAUDE.md
+# is local agent config for the working copy, and AGENTS.md carries the
+# published agent rules. private-names.txt is the clean-room gate's list of
+# private names.
+CLAUDE.md
+tools/private-names.txt

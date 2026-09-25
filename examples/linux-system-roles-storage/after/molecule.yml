@@ -1,0 +1,164 @@
+---
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2018 Red Hat, Inc.
+# Converted by the one-molecule project from the upstream per-playbook test layout to the single top-level layout.
+defaults:
+  driver:
+    name: delegated
+  verifier:
+    name: ansible
+  dependency:
+    name: galaxy
+    enabled: false
+
+scenarios:
+  - name: change_disk_fs
+    playbooks:
+      converge: tests/tests_change_disk_fs.yml
+  - name: change_disk_mount
+    playbooks:
+      converge: tests/tests_change_disk_mount.yml
+  - name: change_fs_use_partitions
+    playbooks:
+      converge: tests/tests_change_fs_use_partitions.yml
+  - name: change_fs
+    playbooks:
+      converge: tests/tests_change_fs.yml
+  - name: change_mount
+    playbooks:
+      converge: tests/tests_change_mount.yml
+  - name: create_disk_then_remove
+    playbooks:
+      converge: tests/tests_create_disk_then_remove.yml
+  - name: create_lvm_cache_then_remove
+    playbooks:
+      converge: tests/tests_create_lvm_cache_then_remove.yml
+  - name: create_lvm_pool_then_remove
+    playbooks:
+      converge: tests/tests_create_lvm_pool_then_remove.yml
+  - name: create_lvmvdo_then_remove
+    playbooks:
+      converge: tests/tests_create_lvmvdo_then_remove.yml
+  - name: create_lv_size_equal_to_vg
+    playbooks:
+      converge: tests/tests_create_lv_size_equal_to_vg.yml
+  - name: create_multiple_partitions_dos
+    playbooks:
+      converge: tests/tests_create_multiple_partitions_dos.yml
+  - name: create_multiple_partitions_gpt
+    playbooks:
+      converge: tests/tests_create_multiple_partitions_gpt.yml
+  - name: create_partition_volume_then_remove
+    playbooks:
+      converge: tests/tests_create_partition_volume_then_remove.yml
+  - name: create_raid_pool_then_remove
+    playbooks:
+      converge: tests/tests_create_raid_pool_then_remove.yml
+  - name: create_raid_volume_then_remove
+    playbooks:
+      converge: tests/tests_create_raid_volume_then_remove.yml
+  - name: create_thinp_then_remove
+    playbooks:
+      converge: tests/tests_create_thinp_then_remove.yml
+  - name: default
+    playbooks:
+      converge: tests/tests_default.yml
+  - name: deps
+    playbooks:
+      converge: tests/tests_deps.yml
+  - name: disk_errors
+    playbooks:
+      converge: tests/tests_disk_errors.yml
+  - name: existing_lvm_pool
+    playbooks:
+      converge: tests/tests_existing_lvm_pool.yml
+  - name: fatals_cache_volume
+    playbooks:
+      converge: tests/tests_fatals_cache_volume.yml
+  - name: fatals_raid_pool
+    playbooks:
+      converge: tests/tests_fatals_raid_pool.yml
+  - name: fatals_raid_volume
+    playbooks:
+      converge: tests/tests_fatals_raid_volume.yml
+  - name: filesystem_one_disk
+    playbooks:
+      converge: tests/tests_filesystem_one_disk.yml
+  - name: include_vars_from_parent
+    playbooks:
+      converge: tests/tests_include_vars_from_parent.yml
+  - name: luks2
+    playbooks:
+      converge: tests/tests_luks2.yml
+  - name: luks_pool
+    playbooks:
+      converge: tests/tests_luks_pool.yml
+  - name: luks
+    playbooks:
+      converge: tests/tests_luks.yml
+  - name: lvm_auto_size_cap
+    playbooks:
+      converge: tests/tests_lvm_auto_size_cap.yml
+  - name: lvm_errors
+    playbooks:
+      converge: tests/tests_lvm_errors.yml
+  - name: lvm_multiple_disks_multiple_volumes
+    playbooks:
+      converge: tests/tests_lvm_multiple_disks_multiple_volumes.yml
+  - name: lvm_one_disk_multiple_volumes
+    playbooks:
+      converge: tests/tests_lvm_one_disk_multiple_volumes.yml
+  - name: lvm_one_disk_one_volume
+    playbooks:
+      converge: tests/tests_lvm_one_disk_one_volume.yml
+  - name: lvm_percent_size
+    playbooks:
+      converge: tests/tests_lvm_percent_size.yml
+  - name: lvm_pool_members
+    playbooks:
+      converge: tests/tests_lvm_pool_members.yml
+  - name: lvm_pool_pv_grow
+    playbooks:
+      converge: tests/tests_lvm_pool_pv_grow.yml
+  - name: lvm_pool_shared
+    playbooks:
+      converge: tests/tests_lvm_pool_shared.yml
+  - name: misc
+    playbooks:
+      converge: tests/tests_misc.yml
+  - name: missing_volume_type_in_pool
+    playbooks:
+      converge: tests/tests_missing_volume_type_in_pool.yml
+  - name: null_raid_pool
+    playbooks:
+      converge: tests/tests_null_raid_pool.yml
+  - name: raid_pool_options
+    playbooks:
+      converge: tests/tests_raid_pool_options.yml
+  - name: raid_volume_cleanup
+    playbooks:
+      converge: tests/tests_raid_volume_cleanup.yml
+  - name: raid_volume_options
+    playbooks:
+      converge: tests/tests_raid_volume_options.yml
+  - name: remove_mount
+    playbooks:
+      converge: tests/tests_remove_mount.yml
+  - name: remove_nonexistent_pool
+    playbooks:
+      converge: tests/tests_remove_nonexistent_pool.yml
+  - name: resize
+    playbooks:
+      converge: tests/tests_resize.yml
+  - name: safe_mode_check
+    playbooks:
+      converge: tests/tests_safe_mode_check.yml
+  - name: stratis
+    playbooks:
+      converge: tests/tests_stratis.yml
+  - name: swap
+    playbooks:
+      converge: tests/tests_swap.yml
+  - name: volume_relabel
+    playbooks:
+      converge: tests/tests_volume_relabel.yml

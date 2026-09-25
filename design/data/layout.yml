@@ -1,0 +1,94 @@
+# yaml-language-server: $schema=../structure/layout.schema.yml
+---
+# layout source, the authoring surface: one root molecule.yml carrying all
+# config, a shared playbooks folder, what the per-scenario directory dissolves,
+# and root-file discovery as a second mode. State the rule, never the
+# reasoning: the rejected config homes live in
+# design/data/rejected-ideas.yml, and the runtime envelope in
+# design/data/execution-environments.yml. One idea
+# per rule, no semicolons, no em or en dashes. design/data/tree-spec.yml and spec/molecule-config.schema.yml
+# own what the declarations mean, this file owns where the author declares them.
+
+title: "The authoring surface: one root config and a shared playbooks folder"
+intro: >-
+  Where the author declares everything, and why the current per-scenario directory is the
+  source of the duplication people work around. `design/data/tree-spec.yml` and `spec/molecule-config.schema.yml` own what
+  the declarations mean once read, this file owns the authoring surface.
+status: proposed, the root file and shared playbooks folder are the proposed surface, root-file discovery as a second mode is decided
+
+sections:
+  - title: One root molecule.yml carries all config
+    intro: A single molecule.yml at the project or collection root holds every configuration the run needs.
+    rules:
+      - The root file holds run-level defaults (what config.yml holds today), the scenario declarations, the parent tree edges, and the runtime envelope.
+      - A scenario becomes a named entry in that file, not a directory.
+      - The file carries config, never content.
+      - converge, verify, create and destroy are Ansible playbooks, so the file references them by path rather than inlining task files.
+      - Molecule already has the seam for this, because provisioner.playbooks maps converge and verify to paths today.
+      - The new part is declaring several scenarios in one file with no directory per scenario.
+      - "spec/molecule-config.schema.yml is the full structure: the scenarios list of roots run top to bottom, the two-placement scope model, how nesting expresses the edge, how inventory is shared down to children by default, and how a key resolves by the bare then own-defaults then ancestor-defaults precedence rule."
+      - "The `defaults:` block means this node and everything below it, which a bare key cannot express because bare is self-only (`spec/molecule-config.schema.yml`)."
+    code:
+      - lang: yaml
+        caption: A root molecule.yml, run-only keys bare and cascading config under a top-level defaults block.
+        body: |
+          ---
+          defaults:
+            dependency:
+              name: galaxy
+              requirements-file: requirements.yml
+
+          scenarios:
+            - name: base             # a root node
+              playbooks:
+                create: playbooks/molecule/create.yml
+                converge: playbooks/molecule/base.yml
+                verify: playbooks/molecule/verify-base.yml
+              children:
+                # nesting under `children:` is the parent edge, app inherits base's inventory by default
+                - name: app
+                  playbooks:
+                    converge: playbooks/molecule/app.yml
+                    verify: playbooks/molecule/verify-app.yml
+
+  - title: The shared playbooks folder
+    rules:
+      - Molecule playbooks live under the collection's own playbooks tree, for example playbooks/molecule/, and every scenario references the ones it needs.
+      - Written once and referenced by many, with no copy.
+      - playbooks/molecule/ is a recommended convention rather than a mandate, because the path is referenced so an author may stash them anywhere.
+
+  - title: What the per-scenario directory dissolves
+    rules:
+      - The per-scenario extensions/molecule/<name>/ directory forces duplication, because each scenario directory is expected to carry its own converge and verify, so shared content has nowhere to live except duplicated, symlinked, or imported through a base.yml shim.
+      - A top-level config with a shared playbooks folder gives shared content a first-class place, so those workarounds have nothing left to do.
+      - This is the same missing scope design/data/naming.yml names, that molecule's only scope above a scenario is the whole run, so anything shared across scenarios is expressed through shared_state or default.
+      - Together the two dissolutions below retire default entirely.
+    tables:
+      - header: ["default's job", Dissolved by]
+        rows:
+          - ["Shared playbook home", "Top-level config plus playbooks/molecule/ (this file)"]
+          - ["Provisioning owner (whose create and destroy stand the instances up)", "The tree, where a root creates and shares its instances down to children by default (`spec/molecule-config.schema.yml`, `design/data/tree-spec.yml`)"]
+
+  - title: Test playbooks become ordinary collection content
+    rules:
+      - Under the collection's sanctioned playbooks directory the converge, verify, create and destroy playbooks are ordinary collection playbooks, FQCN-addressable and linted as normal content, not scaffolding hidden under extensions/.
+      - This hands repo-wide lint the home whose absence drove its 2023 removal (`design/data/lint.yml`).
+
+  - title: The runtime envelope lives in the same file
+    rules:
+      - "`runtime:` is a top-level key in the root molecule.yml, not a second file (`design/data/execution-environments.yml`)."
+      - An outer tool such as tox or CI calls the molecule CLI as a plain caller and reads no config of molecule's.
+      - The native `ee` method is molecule's own faithful toolchain carrier, so there is no config seam for an outer engine to read.
+
+  - title: Root-file discovery is a second mode, not a replacement
+    rules:
+      - The root file changes how a scenario is declared, from a directory <name>/molecule.yml to a named entry in the root file.
+      - The root-file entry is a new discovery mode alongside directory globbing, not a replacement.
+      - Existing projects keep their directories and still run unchanged, and new projects may declare flat.
+      - A tree is declared only in the root file, and a directory-mode project keeps molecule's behavior (`design/data/tree-spec.yml`).
+      - A declaration or discovery mode is orthogonal to what a scenario is, so a root-file entry does not make a scenario structural, and this file owns both the authoring surface and the decision for the root file itself.
+
+  - title: The root config lives at the project root
+    rules:
+      - The root config lives at the project root, the one location that exists identically for a collection root, a role root, and a playbook-project root.
+      - A root-level molecule.yml in a collection would be packaged into the built artifact unless build_ignore excludes it, a small and standard exclusion.

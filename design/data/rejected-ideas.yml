@@ -1,0 +1,282 @@
+# yaml-language-server: $schema=../structure/rejected-ideas.schema.yml
+---
+# Rejected-ideas source: the register of paths already closed, grouped by owning doc.
+#
+# Each item is a one-line gist plus a bounded one-line reason and up to two backing tags.
+# No semicolons and no em or en dashes: split the clauses or use a comma or a period.
+# The full reasoning lives in the owning doc named by the group title, not here.
+
+title: "Rejected ideas: paths already closed"
+intro: "A navigation index of every idea considered and rejected in this design, so a settled path is not reopened."
+status: "As-of 2026-09-21."
+
+usage:
+  - "Each entry is a one-line gist plus the reason, and the full reasoning lives in the owning doc named by the group heading."
+  - "If a one-liner and its owning doc ever differ, the owning doc wins."
+  - "Do not reopen a rejection without new evidence the recorded reason did not already consider."
+  - "This is a reference index, not a fact owner. It restates nothing in full and adds no new decisions."
+
+tags:
+  - {tag: src, means: "read from molecule source"}
+  - {tag: issue, means: "tracker item"}
+  - {tag: measured, means: "observed by running"}
+  - {tag: reasoned, means: "argued from the design's own invariants"}
+
+groups:
+  - title: "design/data/tree-spec.yml (the tree model)"
+    items:
+      - gist: "Multi-parent / DAG (more than one parent per child)"
+        why: "Conjunction is expressible by nesting, disjunction is a parameterized driver on one parent, and a DAG would need a snapshot-composition rule and break the single ancestor chain every traversal and teardown rule assumes."
+        tags: [reasoned]
+      - gist: "A `parent:` key in a scenario's own directory as a directory-mode edge"
+        why: "Molecule rejects unknown top-level keys, and a legacy scenario file stays exactly as molecule reads it today. A tree is declared in the single file only."
+        tags: [src, reasoned]
+      - gist: "Re-pointing `shared_state` as an alias for `parent: default`, with `default` as an implicit parent"
+        why: "It changes the meaning of molecule's own key for every existing `shared_state` project. Directory mode keeps molecule's `shared_state`, and the single file declares structure by nesting."
+        tags: [src]
+      - gist: "A parent-side `children` list as the edge (directory mode)"
+        why: "Makes adding a leaf a two-file edit and hides a mistyped child name until the full glob. Nesting is the edge in single-file mode."
+        tags: [src]
+      - gist: "Inferring the tree from directory nesting"
+        why: "Nested scenario names already ship as independent scenarios, so existing projects would silently acquire gating."
+        tags: [src]
+      - gist: "An `owns_instances` boolean"
+        why: "Ownership is derived from whether a node references its own `create` playbook, and the boolean only guarded a default-create that cannot happen (molecule ships no default create)."
+        tags: [reasoned]
+      - gist: "On-demand inventory reads from ancestor directories"
+        why: "Copy-at-start chosen instead, because live cross-node reads make every descendant action depend on another node's files."
+        tags: [src]
+      - gist: "Node-scoped group naming as a destroy guard"
+        why: "Cannot be load-bearing, because every instance also lands in `all`, so no scheme stops `hosts: all`."
+        tags: [src]
+      - gist: "A depth limit on the tree"
+        why: "Nothing a cap catches is a depth problem (cycles caught structurally, cost is self-evidently serial)."
+        tags: [reasoned]
+      - gist: "Universal implicit parenting (every scenario a child of `default`)"
+        why: "Regresses the common `default`/`ubuntu`/`rhel` layout. Structure is declared by nesting, never implied."
+        tags: [src]
+
+  - title: "spec/molecule-config.schema.yml (the config file + scoping)"
+    items:
+      - gist: "Cross-tree sharing / a `shared_global` flag"
+        why: "Nesting already expresses \"share these instances,\" and a cross-tree path is the rejected multi-parent shape and couples teardown across independent trees."
+        tags: [reasoned]
+      - gist: "Bare run config with no wrapper"
+        why: "Bare keys cannot express \"this node and below,\" so run-level cascading config lives under a top-level `defaults:`."
+        tags: [reasoned]
+      - gist: "`shared` placed on the child (\"decline my parent's inventory\")"
+        why: "Nesting already declares dependence on the parent's environment, so a node that does not want it is not nested. A child-side decline is a duplicate way to say what structure says, and `shared` sits on the parent, subtree-wide."
+        tags: [reasoned]
+      - gist: "A lint warning for `platforms` declared bare on a non-creating node"
+        why: "New behavior molecule does not have. Molecule accepts every platforms-vs-driver combination silently and treats empty or absent `platforms` as first-class valid. Deferred to current behavior, permissive, no diagnostic."
+        tags: [src]
+
+  - title: "design/data/layout.yml (the authoring surface)"
+    items:
+      - gist: "`meta/` as the root-config home"
+        why: "Collection-shaped, does not generalize (playbook projects have no `meta/`), and it is the wrong bucket (tooling config, not metadata)."
+      - gist: "`extensions/` as a generalizable root-config home"
+        why: "Collection-only in the sanctioned layout, so roles and playbook projects have none."
+      - gist: "A separate `molecule-matrix.yml` file for the matrix"
+        why: "Reintroduces a second config file, the sprawl the single file removes."
+        tags: [reasoned]
+      - gist: "Dropping the `defaults:` wrapper as redundant"
+        why: "The `defaults:` block means \"this node and below,\" a job a bare key cannot do."
+        tags: [reasoned]
+
+  - title: "design/data/naming.yml (the vocabulary)"
+    items:
+      - gist: "\"group\" for the second scope"
+        why: "Collides with Ansible inventory groups and `group_vars`, so use \"tree.\""
+        tags: [reasoned]
+      - gist: "\"role\" as the collective noun for root or child"
+        why: "Collides with Ansible roles, and \"node\" covers it."
+        tags: [reasoned]
+      - gist: "\"inherit\" for the runtime handoff"
+        why: "Reserved for configuration defaults, so the runtime handoff is a \"snapshot.\""
+        tags: [reasoned]
+      - gist: "\"layered scenarios\" or \"layer\" as a term"
+        why: "Competes with \"level,\" which the scheduler owns, so use \"scenario trees.\""
+        tags: [reasoned]
+      - gist: "\"handover\" as a fallback name for \"snapshot\""
+        why: "Not adopted, \"snapshot\" names the runtime handoff."
+
+  - title: "design/data/environment.yml (env + path anchors)"
+    items:
+      - gist: "Per-scenario environment variables set by the caller"
+        why: "Targeting a node means encoding its name, and names can contain `/`, so the encoding breaks on the nested projects most likely to need it."
+        tags: [src]
+      - gist: "A run-only top-level `env:`"
+        why: "The run's `defaults:` is already the global scope, and `ansible.env` there reaches every node, so a second key would be a second home for one fact."
+        tags: [reasoned]
+      - gist: "Handing play environment to molecule's read of the config text"
+        why: "Config text takes caller input from args, so env stays play-only and each input has one read that fills it in."
+        tags: [reasoned]
+      - gist: "A path DSL or `@collection/...` prefix syntax"
+        why: "A variable naming an anchor plus a relative remainder suffices once anchors are complete, and a resolver is molecule inventing a language for missing data."
+        tags: [reasoned]
+      - gist: "cwd as the anchor for a user-written path"
+        why: "cwd differs between serial and worker paths (a worker chdirs), so the same relative path resolves two ways under `--workers`."
+        tags: [src]
+      - gist: "Naming the always-exists anchor after the collection"
+        why: "Excludes supported layouts and bakes layout into every path, so the content root is the anchor."
+        tags: [reasoned]
+      - gist: "Resolving the content root by `galaxy.yml` alone"
+        why: "Skips a role that owns its own scenarios inside a collection, and `galaxy.yml` is only a non-outranking marker."
+        tags: [src]
+      - gist: "Bounding the discovery walk at the working directory"
+        why: "Regresses a project not under version control, so bound at the VCS root and leave it unbounded where there is no checkout."
+        tags: [measured]
+      - gist: "A caller-supplied `glob_str` as the escape hatch"
+        why: "Broke `-s` (which reuses that parameter), so `MOLECULE_GLOB` is the user escape hatch and the parameter is internal plumbing."
+        tags: [measured]
+      - gist: "A separate `MOLECULE_CONTENT_ROOT` export"
+        why: "Byte-identical to `MOLECULE_PROJECT_DIRECTORY` in every run, re-add only when the two can differ."
+        tags: [measured]
+      - gist: "Exporting the tree facts (`MOLECULE_PARENT_NAME` / `MOLECULE_RUN_ID`) to playbooks"
+        why: "Parent name has no consumer (a child receives its parent's work, and name-based branching is the coupling the model removes), and `run_uuid` today is a per-process isolation token (fresh per process and worker, `--parallel`-only, read by nothing), so an exported run key would promise durability it cannot honor, and there is no demonstrated demand (upstream #2420 was closed unimplemented, with stronger requirements). Reopen only as a first-class durable run key, not aliased onto the isolation token."
+        tags: [src, issue]
+
+  - title: "design/data/ephemeral.yml (the ephemeral directory)"
+    items:
+      - gist: "Keeping `MOLECULE_EPHEMERAL_DIRECTORY`'s per-node input meaning (escape hatch as-is)"
+        why: "With a tree it collapses every node into one directory, so the input meaning is deprecated and split from the per-node output. Ignoring the input entirely was also rejected (three real uses need a root)."
+        tags: [src]
+      - gist: "Carrying over five current behaviors (shared-directory variant, flat checksum naming, `prune()` denylist, the env-var short-circuit, `reset --all`'s shared-directory case)"
+        why: "Each exists only because the three ephemeral categories share one directory."
+        tags: [src]
+      - gist: "Checksumming the project directory *name*"
+        why: "Two unrelated checkouts sharing a name would share state, so checksum the resolved absolute path."
+        tags: [measured]
+      - gist: "`Path(ephemeral).parent` in state-directory removal"
+        why: "Under nesting \"the parent\" is the project root, and a node removes its own subtree."
+        tags: [src]
+      - gist: "repr-test resolution: put the ephemeral dir in `__repr__`, or delete the assertion"
+        why: "The assertion moves to a dedicated `test_scenario_repr` (ansible/molecule#4701), which keeps the change test-only."
+        tags: [measured]
+
+  - title: "design/data/lifecycle.yml (actions, traversal, teardown)"
+    items:
+      - gist: "Making a child that declares `create`/`destroy` a schema error"
+        why: "A child owning its own instances is legitimate, expressed by the create reference it needs."
+        tags: [reasoned]
+      - gist: "Destroying only what this run implicitly built"
+        why: "Tidier in CI but makes every targeted dev run pay a full rebuild, so implicitly built ancestors are left standing."
+        tags: [reasoned]
+      - gist: "Keying the `--destroy` default off the `CI` env var"
+        why: "molecule reads `CI` only cosmetically, and inferring teardown from the environment makes one command behave two ways for something that costs money."
+        tags: [src]
+      - gist: "A per-node destroy policy"
+        why: "A pipeline must force teardown regardless of node config, so the run-wide flag is the only authority."
+        tags: [reasoned]
+      - gist: "Skipping `destroy` on failure per owning node"
+        why: "Leaked real cloud spend on every red run, so one policy, one place."
+        tags: [src]
+
+  - title: "design/data/state.yml (why this resolves #4666)"
+    items:
+      - gist: "Locking or splitting the shared `state.yml` (defending the shared file)"
+        why: "Removing sharing entirely (per-node state) is the fix, and #4667 and #4694 are only defences around a shared file."
+        tags: [issue]
+
+  - title: "design/data/scheduling.yml (`--workers`, ordering, fail-fast)"
+    items:
+      - gist: "`executor.shutdown(cancel_futures=True)` for fail-fast"
+        why: "Kills the whole pool, and per-tree fail-fast drops only that tree's pending descendants."
+        tags: [src]
+      - gist: "Inter-tree dependency"
+        why: "Reintroduces the rejected dependency graph. If B needs A's result they are one tree."
+        tags: [reasoned]
+      - gist: "Depth as the only way to order siblings or trees"
+        why: "Invents a dependency between nodes that have none, so one failure skips every node after it. Order without dependency is a wave."
+        tags: [reasoned]
+      - gist: "A separate serial code path for `--workers 1`"
+        why: "One scheduler, and `--workers` is only the cap."
+        tags: [src]
+      - gist: "A level-wise scheduler"
+        why: "It waits for a whole depth level before starting the next, so submit-when-ready replaces it."
+        tags: [measured]
+
+  - title: "design/data/defaults.yml / design/data/provisioning.yml (shared config vs dependency, and provisioning)"
+    items:
+      - gist: "Parenting scenarios that only repeat the same config under a shared node"
+        why: "The scenarios do not share instances, so parenting them invents a dependency and serializes independent work. It is a defaults problem."
+        tags: [measured]
+      - gist: "Molecule shipping image recipes (the old in-core `Dockerfile.j2`)"
+        why: "That is molecule knowing what is inside an environment, which `design/data/target.yml` property 4 rules out."
+        tags: [src]
+      - gist: "An explicit platform-to-provider link on `platforms[]` (`provided_by:`, or `pre_build_image` plus Containerfile)"
+        why: "Both make molecule understand what an image is, and the parent's `verify` is the check."
+        tags: [reasoned]
+      - gist: "Distro-aware image recipes, a registry/tag/cache scheme, a build key on `platforms[]`"
+        why: "Each makes molecule know what is inside an image, which `design/data/target.yml` property 4 rules out."
+        tags: [reasoned]
+
+  - title: "design/data/execution-environments.yml (the runtime envelope)"
+    items:
+      - gist: "An outer engine reading molecule's config to drive a toolchain matrix (the `matrix:` key and its guardrail)"
+        why: "The native `runtime` methods carry the toolchain faithfully, so molecule publishes no matrix config for an outside tool to read. An outer tool such as tox or CI calls the molecule CLI as a plain caller, and the config-sharing seam is dropped entirely."
+        tags: [reasoned]
+      - gist: "`method: venv` as a runtime method or a fan-out axis"
+        why: "Molecule never builds venvs (`design/data/target.yml` property 4), and once the outer-engine config seam is gone a venv grid has no owner. The single-venv case is just the ambient session, which is `method: host`, and a python or core grid is the outer caller's own matrix."
+        tags: [reasoned]
+
+  - title: "design/data/execution-environments.yml (the outer engine)"
+    intro: "Superseded 2026-09-21. The native `runtime` methods replace an outer engine reading molecule's config, so which engine hosts the matrix is moot. These stay recorded as closed paths."
+    items:
+      - gist: "Reshaping tox-ansible to host the `matrix:` key"
+        why: "The tox-ansible v2 rewrite scopes molecule as one coarse test type, so making `molecule.yml` the matrix source inverts its model."
+        tags: [issue]
+      - gist: "nox as the outer engine"
+        why: "Its config is a Python file, not an Ansible-native YAML surface."
+        tags: [reasoned]
+      - gist: "A purpose-built matrix runner"
+        why: "Reimplements venv creation, caching, parallelism, and reporting that tox already does."
+        tags: [reasoned]
+      - gist: "ansible-test as the outer engine"
+        why: "Solves a different problem, not a general venv-matrix engine."
+        tags: [reasoned]
+      - gist: "tox natively reading a YAML `matrix:` source"
+        why: "tox's config-source layer is a fixed, non-pluggable tuple, so a plugin must translate it."
+        tags: [src]
+
+  - title: "design/data/tree-spec.yml / design/data/lifecycle.yml (targeted runs and ancestors)"
+    items:
+      - gist: "The old rule: an absent or unselected parent makes the node a root for this run"
+        why: "Produced a green run that tested nothing, replaced by ancestor resolution (a parent is a dependency)."
+        tags: [measured]
+      - gist: "Failing by default when a parent is not standing"
+        why: "A dependency system satisfies dependencies, so it survives only as opt-in `missing_parent: fail`."
+        tags: [reasoned]
+      - gist: "Fanning out to siblings or descendants on a targeted run"
+        why: "Target plus ancestors only, and the undeclared-dependency case gets an opt-in sibling selector."
+        tags: [reasoned]
+
+  - title: "Platform list duplication"
+    items:
+      - gist: "YAML anchors for platform-skeleton dedup"
+        why: "De-duplicating platforms is a merge-semantics design decision (merge by key, or a `list_merge` setting), not anchors."
+        tags: [reasoned]
+
+  - title: "Superseded implementation choices"
+    intro: "Recorded for provenance. These are closed build decisions, not open design options."
+    items:
+      - gist: "Reverting `get_collection_metadata()` to cwd"
+        why: "The walk is load-bearing for collections, so fix the three consumers."
+        tags: [measured]
+      - gist: "An `os.chdir()` in `_run_scenarios`"
+        why: "Pass `cwd=` to the `ansible-galaxy` subprocess instead."
+        tags: [measured]
+      - gist: "The anchors `@cache` mechanism as the seam for run identity"
+        why: "Anchors are derived (recompute-safe), and run identity is generated, so a per-process cache differs per worker."
+        tags: [reasoned]
+
+  - title: "Corpus tooling (how the design corpus is authored, not architectural)"
+    intro: "Closed paths in the tooling that builds and checks this corpus."
+    items:
+      - gist: "CUE as the rule `logic` language, and as the source of the config schema"
+        why: "No assertion or error-message primitive, no recursion for graph rules, a rule that fails to evaluate exits 0, no Python evaluator for the in-molecule enforcers, and cross-file refs break the config round trip."
+        tags: [measured]
+      - gist: "A custom predicate language for rule `logic`"
+        why: "No rule requires one yet, so `logic` is removed from the rule object rather than left deferred and free-form."
+        tags: [reasoned]

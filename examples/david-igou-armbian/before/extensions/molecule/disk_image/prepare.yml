@@ -1,0 +1,38 @@
+---
+- name: Prepare molecule instances
+  import_playbook: david_igou.molecule_provisioners.prepare
+
+- name: Build the loop-device fixture inside the VM
+  hosts: all
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Ensure xz-utils, util-linux, parted are installed
+      ansible.builtin.apt:
+        name: [xz-utils, util-linux, parted]
+        state: present
+        update_cache: true
+
+    - name: Write a 64 MiB random fixture image
+      ansible.builtin.command: "dd if=/dev/urandom of=/tmp/test.img bs=1M count=64"
+      changed_when: true
+
+    - name: Compress the fixture to test.img.xz (removes test.img)
+      ansible.builtin.command: "xz -9 -f /tmp/test.img"
+      changed_when: true
+
+    - name: Create the 1 GiB sparse target
+      ansible.builtin.command: "truncate -s 1G /tmp/target.img"
+      changed_when: true
+
+    - name: Attach the sparse file as a loop device
+      ansible.builtin.command: "losetup -f --show /tmp/target.img"
+      register: _loop
+      changed_when: true
+
+    - name: Persist the loop device path
+      ansible.builtin.copy:
+        dest: /tmp/target_loop
+        content: "{{ _loop.stdout }}\n"
+        mode: "0644"

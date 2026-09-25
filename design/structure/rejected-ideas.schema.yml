@@ -1,0 +1,4 @@
+---
+$schema: https://json-schema.org/draft/2020-12/schema
+$comment: rejected-ideas.yml uses the shared tracker shape. This sibling keeps the CI convention (a source X.yml is validated by X.schema.yml) pure while the shape itself lives once in tracker.schema.yml.
+$ref: tracker.schema.yml

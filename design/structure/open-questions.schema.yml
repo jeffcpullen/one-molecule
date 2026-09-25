@@ -1,0 +1,128 @@
+---
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Open-questions source
+description: 'Bespoke shape for design/data/open-questions.yml: the register of undecided items, a TODO backlog, and a resolved list. Each open item keeps bounded framing lines only, and states what is unknown or undecided about the design rather than an action for anyone to take. Every text string forbids the semicolon and the em or en dash (house writing style).'
+type: object
+additionalProperties: false
+required:
+  - title
+  - intro
+  - open
+  - todo
+  - resolved
+properties:
+  title:
+    $ref: '#/$defs/line'
+  intro:
+    $ref: '#/$defs/line'
+  open:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/question'
+  todo:
+    type: object
+    additionalProperties: false
+    required:
+      - residual_ephemeral
+      - documentation_backlog
+    properties:
+      residual_ephemeral:
+        $ref: '#/$defs/linelist'
+      documentation_backlog:
+        $ref: '#/$defs/gistlist'
+  resolved:
+    type: array
+    minItems: 1
+    items:
+      $ref: '#/$defs/resolveditem'
+$defs:
+  line:
+    type: string
+    minLength: 1
+    not:
+      pattern: '[;—–]'
+    description: A non-empty text string with no semicolon and no em or en dash.
+  question:
+    type: object
+    additionalProperties: false
+    required:
+      - title
+      - status
+      - framing
+    properties:
+      title:
+        $ref: '#/$defs/line'
+      status:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: The disposition, rendered in the heading parenthetical (e.g. "not started").
+      raised:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional date the item was raised, rendered before the status.
+      framing:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/line'
+        description: Bounded framing points, one idea each.
+      owning_doc:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional owning doc when the question is decided.
+  linelist:
+    type: object
+    additionalProperties: false
+    required:
+      - items
+    properties:
+      intro:
+        $ref: '#/$defs/line'
+      items:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/$defs/line'
+  gistlist:
+    type: object
+    additionalProperties: false
+    required:
+      - items
+    properties:
+      intro:
+        $ref: '#/$defs/line'
+      items:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - gist
+            - detail
+          properties:
+            gist:
+              $ref: '#/$defs/line'
+            detail:
+              $ref: '#/$defs/line'
+  resolveditem:
+    type: object
+    additionalProperties: false
+    required:
+      - title
+      - date
+      - resolution
+    properties:
+      title:
+        $ref: '#/$defs/line'
+      date:
+        $ref: '#/$defs/line'
+      resolution:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: One bounded line stating the outcome.
+      owning_doc:
+        allOf:
+          - $ref: '#/$defs/line'
+        description: Optional owning doc that now carries the decision.

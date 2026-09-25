@@ -1,0 +1,44 @@
+---
+- name: Cleanup
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Cleanup NGINX Agent instances
+      block:
+        - name: Wait for containers to be up
+          ansible.builtin.wait_for_connection:
+            delay: 1
+            timeout: 2
+          ignore_errors: true
+          register: container
+
+        - name: Containers are not up, quit from here
+          ansible.builtin.fail:
+          when: container['failed'] | bool
+
+        - name: Gather facts
+          ansible.builtin.setup:
+            gather_subset:
+              - "!all"
+              - "!any"
+              - distribution
+
+        - name: Get list of NGINX One dangling instance IDs
+          ansible.builtin.uri:
+            url: https://{{ lookup('env', 'ONE_TENANT') }}.console.ves.volterra.io/api/nginx/one/namespaces/gh-ansible/instances?paginated=false&filter_fields=instance_status&filter_ops=IN&filter_values=unavailable
+            method: GET
+            headers:
+              Authorization: APIToken {{ lookup('env', 'ONE_API_TOKEN') }}
+          register: get_ids
+
+        - name: Remove dangling instances from NGINX One
+          ansible.builtin.uri:
+            url: https://{{ lookup('env', 'ONE_TENANT') }}.console.ves.volterra.io/api/nginx/one/namespaces/gh-ansible/instances/{{ item }}
+            method: DELETE
+            status_code: 204
+            headers:
+              Authorization: APIToken {{ lookup('env', 'ONE_API_TOKEN') }}
+          loop: "{{ get_ids['json']['items'] | map(attribute='object_id') | list }}"
+      rescue:
+        - name: It's ok we're at startup
+          ansible.builtin.meta: noop

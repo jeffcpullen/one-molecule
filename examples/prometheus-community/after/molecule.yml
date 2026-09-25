@@ -1,0 +1,274 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# Converted by the one-molecule project from the upstream per-scenario Molecule layout to the single top-level layout.
+defaults:
+  dependency:
+    name: galaxy
+  prerun: false
+  driver:
+    name: docker
+  platforms:
+    - name: almalinux-9
+      image: ghcr.io/test-kitchen/dokken/almalinux-9:sha-5a9ecd6
+      pre_build_image: true
+      privileged: true
+      command: /lib/systemd/systemd
+    - name: almalinux-10
+      image: ghcr.io/test-kitchen/dokken/almalinux-10:sha-5a9ecd6
+      pre_build_image: true
+      privileged: true
+      command: /lib/systemd/systemd
+    - name: debian-11
+      image: ghcr.io/test-kitchen/dokken/debian-11:sha-5a9ecd6
+      pre_build_image: true
+      privileged: true
+      command: /lib/systemd/systemd
+    - name: debian-12
+      image: ghcr.io/test-kitchen/dokken/debian-12:sha-5a9ecd6
+      pre_build_image: true
+      privileged: true
+      command: /lib/systemd/systemd
+    - name: debian-13
+      image: ghcr.io/test-kitchen/dokken/debian-13:sha-5a9ecd6
+      pre_build_image: true
+      privileged: true
+      command: /lib/systemd/systemd
+    - name: ubuntu-22.04
+      image: ghcr.io/test-kitchen/dokken/ubuntu-22.04:sha-5a9ecd6
+      pre_build_image: true
+      privileged: true
+      command: /lib/systemd/systemd
+    - name: ubuntu-24.04
+      image: ghcr.io/test-kitchen/dokken/ubuntu-24.04:sha-5a9ecd6
+      pre_build_image: true
+      privileged: true
+      command: /lib/systemd/systemd
+    - name: ubuntu-26.04
+      image: ghcr.io/test-kitchen/dokken/ubuntu-26.04:sha-5a9ecd6
+      pre_build_image: true
+      privileged: true
+      command: /lib/systemd/systemd
+  verifier:
+    name: testinfra
+    additional_files_or_dirs:
+      - ".testinfra/testinfra_helpers.py"
+    env:
+      PYTHONPATH: ".testinfra:${PYTHONPATH}"
+  provisioner:
+    env:
+      ANSIBLE_INJECT_FACT_VARS: false
+    inventory:
+      hosts:
+        target_hosts:
+          hosts: {}
+      host_vars:
+        almalinux-9:
+          ansible_become_method: su
+          exclude_ansible_vers:
+            - "2.16"
+            - "2.17"
+            - "2.18"
+            - "2.19"
+            - "2.20"
+            - "2.21"
+        almalinux-10:
+          ansible_become_method: su
+          exclude_ansible_vers:
+            - "2.14"
+            - "2.15"
+        debian-11:
+          exclude_ansible_vers:
+            - "2.16"
+            - "2.17"
+            - "2.18"
+            - "2.19"
+            - "2.20"
+            - "2.21"
+        debian-12:
+          exclude_ansible_vers:
+            - "2.20"
+            - "2.21"
+        debian-13:
+          exclude_ansible_vers:
+            - "2.14"
+            - "2.15"
+            - "2.16"
+            - "2.17"
+        ubuntu-22.04:
+          exclude_ansible_vers:
+            - "2.18"
+            - "2.19"
+            - "2.20"
+            - "2.21"
+        ubuntu-24.04:
+          exclude_ansible_vers:
+            - "2.14"
+            - "2.15"
+        ubuntu-26.04:
+          exclude_ansible_vers:
+            - "2.14"
+            - "2.15"
+            - "2.16"
+            - "2.17"
+            - "2.18"
+            - "2.19"
+  playbooks:
+    converge: prometheus.prometheus.molecule_converge
+
+scenarios:
+  - name: node_exporter-default
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            node_exporter_web_listen_address: "127.0.0.1:9100"
+  - name: node_exporter-alternative
+    playbooks:
+      prepare: prometheus.prometheus.molecule_alternative_prepare
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            node_exporter_local_cache_path: "/tmp/node_exporter-linux-amd64"
+            node_exporter_web_listen_address:
+              - '127.0.0.1:8080'
+              - '127.0.1.1:8080'
+            node_exporter_textfile_dir: ""
+            node_exporter_enabled_collectors:
+              - entropy
+            node_exporter_disabled_collectors:
+              - diskstats
+            node_exporter_tls_server_config:
+              cert_file: /etc/node_exporter/tls.cert
+              key_file: /etc/node_exporter/tls.key
+            node_exporter_http_server_config:
+              http2: true
+            node_exporter_basic_auth_users:
+              randomuser: examplepassword
+            node_exporter_version: 1.5.0
+            node_exporter_binary_url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+  - name: node_exporter-latest
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            node_exporter_version: latest
+            node_exporter_textfile_dir: /home/node_exporter
+  - name: alertmanager-default
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            alertmanager_slack_api_url: "http://example.com"
+            alertmanager_receivers:
+              - name: slack
+                slack_configs:
+                  - send_resolved: true
+                    channel: '#alerts'
+            alertmanager_route:
+              group_by:
+                - 'alertname'
+                - 'cluster'
+                - 'service'
+              group_wait: 30s
+              group_interval: 5m
+              repeat_interval: 3h
+              receiver: slack
+            alertmanager_time_intervals:
+              - name: offhours
+                time_intervals:
+                  - times:
+                      - start_time: "21:00"
+                        end_time: "24:00"
+                    location: "Africa/Johannesburg"
+  - name: alertmanager-alternative
+    playbooks:
+      prepare: prometheus.prometheus.molecule_alternative_prepare
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            alertmanager_version: 0.25.0
+            alertmanager_local_cache_path: "/tmp/alertmanager-linux-amd64/{{ alertmanager_version }}"
+            alertmanager_config_dir: /opt/am/etc
+            alertmanager_db_dir: /opt/am/lib
+            alertmanager_web_listen_address:
+              - '127.0.0.1:9093'
+              - '127.0.1.1:9093'
+            alertmanager_web_external_url: 'http://localhost:9093/alertmanager'
+            alertmanager_resolve_timeout: 10m
+            alertmanager_slack_api_url: "http://example.com"
+            alertmanager_receivers:
+              - name: slack
+                slack_configs:
+                  - send_resolved: true
+                    # Upstream's placeholder Slack api_url removed.
+                    channel: '#alerts'
+            alertmanager_route:
+              group_by:
+                - 'alertname'
+                - 'cluster'
+                - 'service'
+              group_wait: 30s
+              group_interval: 5m
+              repeat_interval: 3h
+              receiver: slack
+              routes:
+                - match_re:
+                    service: ^(foo1|foo2|baz)$$
+                  receiver: slack
+            alertmanager_mesh:
+              listen-address: "127.0.0.1:6783"
+              peers:
+                - "127.0.0.1:6783"
+                - "alertmanager.demo.do.prometheus.io:6783"
+            alertmanager_binary_url: "https://github.com/prometheus/alertmanager/releases/download/v{{ alertmanager_version }}/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
+  - name: alertmanager-latest
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            alertmanager_version: latest
+            alertmanager_slack_api_url: "http://example.com"
+            alertmanager_receivers:
+              - name: slack
+                slack_configs:
+                  - send_resolved: true
+                    channel: '#alerts'
+            alertmanager_route:
+              group_by:
+                - 'alertname'
+                - 'cluster'
+                - 'service'
+              group_wait: 30s
+              group_interval: 5m
+              repeat_interval: 3h
+              receiver: slack
+  - name: apache_exporter-default
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            apache_exporter_web_listen_address: "127.0.0.1:9117"
+  - name: apache_exporter-alternative
+    playbooks:
+      prepare: prometheus.prometheus.molecule_alternative_prepare
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            apache_exporter_web_listen_address: "127.0.0.1:9118"
+            apache_exporter_tls_server_config:
+              cert_file: /etc/apache_exporter/tls.cert
+              key_file: /etc/apache_exporter/tls.key
+            apache_exporter_http_server_config:
+              http2: true
+            apache_exporter_basic_auth_users:
+              randomuser: examplepassword
+            apache_exporter_version: 1.0.8
+  - name: apache_exporter-latest
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            apache_exporter_version: latest

@@ -1,0 +1,11 @@
+#cloud-config
+users:
+  - name: cloud-user
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - {{ keypair.public_key }}
+# Storage tests drive their own disks, so keep cloud-init off the data devices.
+growpart:
+  mode: "off"
+resize_rootfs: false

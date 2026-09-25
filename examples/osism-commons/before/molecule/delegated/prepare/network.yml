@@ -1,0 +1,13 @@
+---
+- name: Ensure EPEL repository
+  ansible.builtin.include_role:
+    name: repository
+  when: ansible_os_family == "RedHat"
+
+- name: Write test script
+  become: true
+  ansible.builtin.lineinfile:
+    path: /tmp/test_network.sh
+    line: "#!/bin/bash"
+    create: true
+    mode: 0644

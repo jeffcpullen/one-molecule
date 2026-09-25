@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=../structure/ephemeral.schema.yml
+---
+# ephemeral source, the ephemeral directory: the three content categories, the
+# tree-mirrored layout under a run, the project-segment identity rule, and the
+# teardown and reset targets. State the rule, never the implementation reasoning.
+# The rejected carry-overs live in design/data/rejected-ideas.yml, and the env-var
+# split, run identity and scratch/prune fate in design/data/open-questions.yml. One idea per rule, no semicolons, no em or en
+# dashes. design/data/tree-spec.yml owns the tree edge and design/data/state.yml owns per-node state, this
+# file owns the ephemeral directory.
+
+title: The ephemeral directory
+intro: >-
+  In scope for the proposal, not deferred. The tree only needs a layout, but the layout
+  cannot be specified without saying which of today's behavior is load-bearing and
+  which is accident. `design/data/tree-spec.yml` owns the tree edge and `design/data/state.yml` owns per-node state,
+  this file owns the ephemeral directory.
+status: decided for the three categories, the tree-mirrored layout, the project segment and the teardown targets, with the env-var split, run identity and the scratch and prune fate tracked in design/data/open-questions.yml
+
+sections:
+  - title: Three categories, not one directory
+    intro: The ephemeral directory holds three kinds of content that differ in lifetime, and they are kept distinct on disk rather than pooled in one flat directory.
+    rules:
+      - A per-node directory of durable facts must exist while every molecule action runs as a separate process.
+      - The durable facts are the only real state, not a workaround for the absence of state tracking.
+      - The three categories are already distinct in behavior and are kept distinct on disk.
+      - Materialized inputs are rewritten before every action, so nothing may read them as truth.
+    tables:
+      - header: [Category, Contents, Lifetime]
+        rows:
+          - ["Durable node facts", "`state.yml`, `instance_config.yml`, the merged inventory", "Survive between actions and between runs. The only real state"]
+          - ["Materialized inputs", "the resolved `molecule.yml`, `ansible.cfg`", "Rewritten before every action, so not state at all and never read as truth"]
+          - ["Playbook scratch", "whatever the author's playbooks write", "Disposable at the end of the node's run"]
+
+  - title: The project segment identifies the project
+    intro: The project segment of the path disambiguates projects that share a cache.
+    rules:
+      - The project segment is checksummed over the resolved absolute path of the project, not over the directory name.
+      - The project segment stays in the path under nesting, because it disambiguates projects that share a cache.
+
+  - title: Layout mirrors the tree, under a run
+    intro: The path is composed from explicit dimensions rather than assembled at two call sites.
+    rules:
+      - The path is composed from explicit dimensions in order, first the location root, then run identity, then tree position.
+      - A single-run invocation collapses the run segment to a stable value, so ordinary usage looks unchanged.
+      - Adding run identity or a runtime fan-out later is a new dimension rather than a new layout (`design/data/target.yml`).
+      - Within a run, a node's directory sits under its parent's directory.
+      - Each path segment is the node's own scenario name with `/` flattened to `--`.
+      - Scenario names are unique project-wide, so segments cannot collide.
+      - A node's directory contains its whole subtree.
+      - Removing a node removes its descendants, which is exactly post-order teardown.
+      - A parent's inventory outlives its children's copies with no extra bookkeeping.
+      - Because ephemeral layout mirrors the tree while source layout stays free-form, both `molecule matrix` and the run output print the tree.
+    code:
+      - lang: text
+        caption: A node's directory sits under its parent's, under a run, under the project segment.
+        body: |
+          <location root>/molecule.<checksum(project,4)>/
+            <run id>/                  collapses to a stable value for an ordinary single run
+              vm/                      root node
+                state.yml
+                instance_config.yml
+                inventory/
+                scratch/
+                install-satellite/     child node, same shape
+                  org-and-auth/
+
+  - title: Teardown and reset name their own target
+    intro: Teardown and reset name their own target, and nothing removes a parent by reaching upward.
+    rules:
+      - A node removes its own directory, its subtree included.
+      - Nothing reaches for `.parent` when removing state directories.
+      - "`molecule reset -s <node>` clears that node's directory and its subtree."
+      - "`molecule reset` alone clears the project segment, every run included."

@@ -1,0 +1,416 @@
+{
+  "x-generated": "GENERATED from spec/molecule-config.schema.yml by tools/build.py. Do not edit by hand.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "molecule.yml (single-file)",
+  "description": "The proposed single-file molecule.yml: run config, a platform catalog, a tree of scenarios, and the tree edges. Node config is molecule's own scenario schema (molecule.json), referenced rather than restated.",
+  "x-spec": {
+    "status": "single-file surface proposed, scope model settled, platform catalog and labels added, runtime envelope added",
+    "grammar": "runtime:                                # run-only: the sealed execution the sequence runs inside\n  method: ee | host | <custom>          # how the runtime is provided\n  executor: <name>                      # default ansible-runner, the pluggable executor\n  build_method: <name>                  # default none, the pluggable ahead-of-time build\n  execution_environments:               # the ee method's axis, one cell per entry\n    - <repository>/<image>:<tag>        # compact single cell, or the discrete form below\n    - repository: <repository>\n      image: <image>\n      tags: [<tag>, ...]                # one cell per tag\n      digests: [<digest>, ...]          # one cell per digest, pinned\n      pull_policy: always | missing | never\n      labels: [<string>, ...]           # selection labels\n  additional_parameters: {<key>: <value>, ...}   # opaque to molecule\nplatforms:                              # run-only: the CATALOG, define each platform once\n  - name: <string>                      # catalog identity, selected by name\n    vars: {<key>: <value>, ...}         # opaque, passed to the create step\n    labels: [<string>, ...]             # selection labels\ndefaults: {<config-key>: ...}           # cascades to every node\nscenarios:                              # list of ROOT nodes, wave order then list order\n  - name: <string>                      # required, unique across the run\n    <config-key>: ...                   # BARE: this node only\n    platforms: [<catalog-name>, ...]    # SELECTION of catalog names (or inline objects)\n    labels: [<string>, ...]             # scenario selection labels\n    defaults: {<config-key>: ...}       #        this node + its subtree\n    playbooks: {create|destroy|converge|verify|prepare|cleanup|side_effect: <path>}\n    shared: <bool>                      # default true; parent-only meaning\n    missing_parent: create | fail       # default create\n    wave: <int>                         # default 0, order among siblings and roots\n    children: [ <node>, ... ]           # recursive; nesting IS the edge (single-file)",
+    "precedence": "N.bare[K] ▸ N.defaults[K] ▸ nearest-ancestor.defaults[K] (parent first, walk up) ▸ run.defaults[K] ▸ molecule built-in",
+    "chain": "CLI ▸ env ▸ ( bare ▸ own defaults ▸ ancestor defaults ▸ run defaults ) ▸ built-in",
+    "rules": [
+      "Root = node with no parent. Every `scenarios` entry is a root.",
+      "Edge: nesting under `children:`. One parent per child.",
+      "`defaults[K]` on a node applies to that node and every descendant. A bare key applies to that node only and never cascades.",
+      "K in the precedence is a key path, not a top-level key.",
+      "Mappings deep-merge across the precedence layers.",
+      "An empty value is null or the empty string.",
+      "An empty value overrides every lower precedence layer.",
+      "A key whose resolved value is empty is absent.",
+      "The run is the virtual root: run-only keys bare, all cascading config under the top-level `defaults:`.",
+      "A `defaults:` block is a sparse overlay: any subset of config keys, none required. It is not a complete scenario.",
+      "`playbooks:` is a top-level convenience alias for `provisioner.playbooks`, valid wherever config is (bare, or under `defaults:`).",
+      "`platforms` is permissive: absent/empty is valid. Consumed only by a creating node, ignored otherwise.",
+      "The top-level `platforms:` is the catalog, and each entry defines one platform once by `name` with opaque `vars` and selection `labels`.",
+      "A scenario's `platforms:` is a selection of catalog names, or inline platform objects for backward compatibility.",
+      "A root scenario with no `platforms:` selects the whole catalog. A child selects none of its own and inherits the parent's shared inventory.",
+      "Creation stays on the node, whose `playbooks.create` stands up the selected platforms and consumes their `vars`. The catalog dedups definition, not creation.",
+      "`labels:` on a platform or a scenario are selection membership, and a label filters only the dimension it appears on.",
+      "`runtime:` is run-only and names the sealed execution the sequence runs inside, with `method: ee | host | <custom>` (`design/data/execution-environments.yml`).",
+      "Under the `ee` method, `execution_environments` fans the run out to one cell per EE, and each EE image is a run precondition molecule checks but never builds.",
+      "A bare run executes every scenario, platform, and EE, because labels only narrow when named.",
+      "A `--label` selection narrows only the dimension its label appears on, and multiple labels union.",
+      "A `--skip-label` subtracts the items carrying that label from the run.",
+      "A label named for selection that matches nothing in the config fails, the way an unknown field fails.",
+      "Sharing is within a tree only. There is no cross-tree share.",
+      "Reserved/intrinsic names are clear of molecule's top-level keys. Near-misses (not collisions): `scenario` vs `scenarios`, and molecule's `shared_state` (not a key in this file) vs `shared`."
+    ],
+    "open": [
+      "Run args, the caller input to config text, are not yet designed (`design/data/open-questions.yml`).",
+      "Label selection flag spelling must layer against ansible-playbook's own task `--tags` (`design/data/naming.yml`)."
+    ]
+  },
+  "type": "object",
+  "required": [
+    "scenarios"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "runtime": {
+      "x-class": "run-only",
+      "type": "object",
+      "description": "The sealed, selectable execution the sequence runs inside. Molecule orders and references it, never builds or inspects its contents (`design/data/execution-environments.yml`).",
+      "additionalProperties": false,
+      "required": [
+        "method"
+      ],
+      "properties": {
+        "method": {
+          "x-class": "run-only",
+          "type": "string",
+          "minLength": 1,
+          "description": "How the runtime is provided: `ee` (a container carries the controller toolchain), `host` (the ambient session, no isolation or fan-out), or a registered custom name. python and ansible-core are provenance of a host run, never a declared axis."
+        },
+        "executor": {
+          "x-class": "run-only",
+          "type": "string",
+          "minLength": 1,
+          "default": "ansible-runner",
+          "description": "The pluggable executor. Molecule defines what to run, the executor decides how (local, remote podman, kubernetes, AAP). ansible-runner is one implementation, never a binding."
+        },
+        "build_method": {
+          "x-class": "run-only",
+          "type": "string",
+          "minLength": 1,
+          "default": "none",
+          "description": "The pluggable build plugin for the ahead-of-time build phase. `none` builds nothing and images must already exist. ansible-builder is one plugin, never a binding."
+        },
+        "execution_environments": {
+          "x-class": "run-only",
+          "type": "array",
+          "description": "The `ee` method's axis. A list of EE references, one run cell per entry (and per tag or digest in the discrete form). Molecule checks availability, never builds.",
+          "items": {
+            "$ref": "#/definitions/executionEnvironment"
+          }
+        },
+        "additional_parameters": {
+          "x-class": "run-only",
+          "type": "object",
+          "description": "External config for a custom runtime, opaque to molecule. Molecule never descends into it, the custom runtime or executor reads it.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "platforms": {
+      "x-class": "run-only",
+      "type": "array",
+      "description": "The platform catalog. Each entry defines one platform once by name, with opaque creation vars and selection labels. A scenario selects catalog entries by name (`spec/molecule-config.schema.yml`).",
+      "items": {
+        "$ref": "#/definitions/catalogPlatform"
+      }
+    },
+    "defaults": {
+      "x-class": "reserved-structural",
+      "description": "Config for the run and everything below it. A sparse overlay of molecule scenario keys.",
+      "$ref": "#/definitions/config"
+    },
+    "scenarios": {
+      "x-class": "reserved-structural",
+      "type": "array",
+      "minItems": 1,
+      "description": "Root nodes. Run in wave order, and top-to-bottom in list order within a wave (serial order, scheduler submit order).",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    }
+  },
+  "definitions": {
+    "labels": {
+      "description": "Selection labels. A label filters only the dimension it appears on, so a bare run executes everything and a named label narrows only that dimension. A label that matches nothing in the config is rejected.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "executionEnvironment": {
+      "description": "One execution-environment reference under `runtime.execution_environments`. A compact string is a full ref parsed into its parts. The discrete object writes repository, image, name and labels once and fans out over tags and digests. Molecule references it, never builds it.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Compact single cell: a full ref `repository/image:tag` or `repository/image@digest`."
+        },
+        {
+          "type": "object",
+          "required": [
+            "repository",
+            "image"
+          ],
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "tags"
+              ]
+            },
+            {
+              "required": [
+                "digests"
+              ]
+            }
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Registry and namespace, written once."
+            },
+            "image": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Image name. repository plus image plus each tag or digest forms one cell's ref."
+            },
+            "tags": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "One cell per tag, each resolved to its digest at run time."
+            },
+            "digests": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "One cell per digest, pinned."
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Cell label. Inferred `{image}_{tag}` or `{image}_{last-6-of-digest}` if unset, else replaces the `{image}` prefix."
+            },
+            "pull_policy": {
+              "enum": [
+                "always",
+                "missing",
+                "never"
+              ],
+              "default": "missing",
+              "description": "Run-time availability. A Kubernetes concept in ansible-idiom values: `always`, `missing` (default), `never`."
+            },
+            "build_opts": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Per-EE options for the `build_method` plugin, opaque to molecule."
+            },
+            "method_opts": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Per-EE options for the runtime method or executor (mounts, env, resources), opaque to molecule."
+            },
+            "labels": {
+              "$ref": "#/definitions/labels"
+            }
+          }
+        }
+      ]
+    },
+    "catalogPlatform": {
+      "description": "A catalog platform definition. Names a platform once so scenarios select it by name, with opaque creation vars and selection labels. Creation stays on the node in this surface, so no create playbook lives here.",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "x-class": "node-intrinsic",
+          "type": "string",
+          "description": "Catalog identity, referenced by a scenario's `platforms` list. Unique across the catalog."
+        },
+        "vars": {
+          "x-class": "config",
+          "type": "object",
+          "description": "Opaque creation vars passed through to the create step. Molecule holds no knowledge of them.",
+          "additionalProperties": true
+        },
+        "labels": {
+          "x-class": "config",
+          "$ref": "#/definitions/labels"
+        }
+      }
+    },
+    "platformSelection": {
+      "description": "A scenario's platform set: catalog names as strings, or inline platform objects (backward compatible). Absent on a root selects the whole catalog.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "description": "A catalog platform name."
+          },
+          {
+            "$ref": "../vendor/molecule.json#/properties/platforms/items"
+          }
+        ]
+      }
+    },
+    "config": {
+      "description": "A sparse molecule scenario-config overlay: any subset of these keys, none required. Each value is validated by molecule's own per-key subschema (molecule.json).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "playbooks": {
+          "x-class": "config",
+          "description": "The `provisioner.playbooks` mapping, by path (top-level alias). `create`/`destroy` bare by convention so a parent that creates does not hand creation to children.",
+          "$ref": "../vendor/molecule.json#/$defs/ProvisionerModel/properties/playbooks"
+        },
+        "driver": {
+          "x-class": "config",
+          "description": "Typically bare on a creating node, so it is not handed to children.",
+          "$ref": "../vendor/molecule.json#/properties/driver"
+        },
+        "platforms": {
+          "x-class": "config",
+          "description": "Selection of catalog platform names, or inline platform objects. Consumed only by a node that creates its own instances (`spec/molecule-config.schema.yml`).",
+          "$ref": "#/definitions/platformSelection"
+        },
+        "provisioner": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/provisioner"
+        },
+        "verifier": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/verifier"
+        },
+        "dependency": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/dependency"
+        },
+        "ansible": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/ansible"
+        },
+        "scenario": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/scenario"
+        },
+        "lint": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/lint"
+        },
+        "log": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/log"
+        },
+        "prerun": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/prerun"
+        },
+        "role_name_check": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/role_name_check"
+        }
+      }
+    },
+    "node": {
+      "description": "A scenario as a member of a tree. Node-intrinsic keys, a defaults block, children, and any config key bare (this node only).",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "x-class": "node-intrinsic",
+          "type": "string",
+          "description": "Node identity, selected by `-s`. Unique across the run."
+        },
+        "shared": {
+          "x-class": "node-intrinsic",
+          "type": "boolean",
+          "default": true,
+          "description": "On a node with children: `false` stops sharing its inventory down to its children. Never gates creation. No per-child form."
+        },
+        "missing_parent": {
+          "x-class": "node-intrinsic",
+          "enum": [
+            "create",
+            "fail"
+          ],
+          "default": "create",
+          "description": "Behavior when a depended-on ancestor is not standing. Overridden by `--missing-parent`."
+        },
+        "wave": {
+          "x-class": "node-intrinsic",
+          "type": "integer",
+          "default": 0,
+          "description": "Ordering tier among nodes that share a parent (`design/data/scheduling.yml`)."
+        },
+        "labels": {
+          "x-class": "node-intrinsic",
+          "description": "Selection labels for this scenario. Filter only the scenario dimension (`spec/molecule-config.schema.yml`).",
+          "$ref": "#/definitions/labels"
+        },
+        "defaults": {
+          "x-class": "reserved-structural",
+          "description": "Config for this node and its subtree. A sparse overlay of molecule scenario keys.",
+          "$ref": "#/definitions/config"
+        },
+        "children": {
+          "x-class": "reserved-structural",
+          "type": "array",
+          "description": "Child nodes. The nesting is the parent edge (single-file mode).",
+          "items": {
+            "$ref": "#/definitions/node"
+          }
+        },
+        "playbooks": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/$defs/ProvisionerModel/properties/playbooks"
+        },
+        "driver": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/driver"
+        },
+        "platforms": {
+          "x-class": "config",
+          "description": "Selection of catalog platform names, or inline platform objects (`spec/molecule-config.schema.yml`).",
+          "$ref": "#/definitions/platformSelection"
+        },
+        "provisioner": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/provisioner"
+        },
+        "verifier": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/verifier"
+        },
+        "dependency": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/dependency"
+        },
+        "ansible": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/ansible"
+        },
+        "scenario": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/scenario"
+        },
+        "lint": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/lint"
+        },
+        "log": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/log"
+        },
+        "prerun": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/prerun"
+        },
+        "role_name_check": {
+          "x-class": "config",
+          "$ref": "../vendor/molecule.json#/properties/role_name_check"
+        }
+      }
+    }
+  }
+}

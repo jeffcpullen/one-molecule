@@ -1,0 +1,115 @@
+# yaml-language-server: $schema=../structure/upstream-baseline.schema.yml
+---
+# upstream-baseline source, what molecule does today, stated normatively so that every
+# other design source has something concrete to be a delta against. A rule is here only
+# because a design source leans on it without stating it. A fact a design source already
+# states for itself has its home there, and a fact with no dependent design decision is
+# not part of the corpus. The delta itself, and what the design should do about a
+# baseline fact, belongs in the source that owns the decision, for example
+# design/data/defaults.yml. State the behavior, never a reading of how the code is
+# written. One idea per rule, no semicolons, no em or en dashes.
+
+title: "Upstream molecule, the baseline this design is a delta against"
+intro: >-
+  What molecule does today, for the facts the rest of this set measures a delta against. Every rule
+  is falsifiable against the revision pinned in `status`. The owning design source carries the delta,
+  this file carries only the starting point.
+status: current as of molecule v26.8.0, commit e4abab38ca2882c58b9c3675d7616874b7c818ac, read on 2026-09-20, re-read against a newer revision before relying on a statement here
+
+sections:
+  - title: How a run executes
+    description: >-
+      The shape of a run today, which the runtime envelope, the executor seam and the per-node
+      ephemeral directory are all deltas against (`design/data/execution-environments.yml`,
+      `design/data/interfaces.yml`, `design/data/ephemeral.yml`).
+    rules:
+      - name: ansible-playbook-does-the-work
+        description: Molecule generates the inputs ansible-playbook consumes and reads back the play outcome, and the work itself runs in the ansible-playbook subprocess.
+        check: none
+      - name: each-action-is-its-own-process
+        description: Each action shells out to its own ansible-playbook process, so nothing in memory carries from one action to the next.
+        check: none
+      - name: run-is-the-ambient-session
+        description: A run executes in the ambient session, with no isolation boundary and no fan-out.
+        check: none
+      - name: run-owns-the-process
+        description: "A run changes the process working directory to the project directory and writes its `MOLECULE_` variables into the shared process environment."
+        check: none
+
+  - title: How scenarios are found
+    description: >-
+      Where molecule looks for scenarios today, and the two inputs that move that answer, which the
+      upward discovery walk and the anchor model are deltas against (`design/data/environment.yml`,
+      `design/data/layout.yml`).
+    rules:
+      - name: scenarios-are-a-glob-from-the-working-directory
+        description: "Scenarios are found by globbing `molecule/*/molecule.yml` relative to the working directory."
+        check: none
+      - name: collection-scenarios-glob-recursively
+        description: "In a collection the glob is `extensions/molecule/**/molecule.yml` and is recursive, so a scenario nested deeper than its siblings is an ordinary supported name and its name carries a `/`."
+        check: none
+      - name: molecule-glob-replaces-the-pattern
+        description: "`MOLECULE_GLOB` replaces that pattern outright, still relative to the working directory."
+        check: none
+      - name: project-directory-is-a-plain-path
+        description: "`MOLECULE_PROJECT_DIRECTORY` names the directory a run changes into, and it has no bearing on where scenarios are looked for."
+        check: none
+
+  - title: Shared configuration
+    description: >-
+      The base-config mechanism molecule already has, which is why this design adds no second way to
+      share configuration between scenarios (`design/data/defaults.yml`).
+    rules:
+      - name: base-config-is-deep-merged
+        description: "Molecule loads a base config and deep-merges each scenario `molecule.yml` on top of it, with no flag required."
+        check: none
+      - name: base-config-search-order
+        description: "The search order is `.config/molecule/config.yml` in the current VCS repository, then `extensions/molecule/config.yml` in a collection, then the user home directory."
+        check: none
+      - name: base-config-override
+        description: "`--base-config` names base config files explicitly and accepts several, which are loaded and deep-merged in the order given before any scenario file."
+        check: none
+
+  - title: How a configured path resolves
+    description: >-
+      What a relative path written in config is measured from today, which is the one thing that
+      stops the base config from carrying a shared path (`design/data/defaults.yml`,
+      `design/data/environment.yml`).
+    rules:
+      - name: provisioner-paths-anchor-on-the-scenario
+        description: Path-valued provisioner keys resolve against the scenario directory, so one relative path written in a shared config resolves to a different file for each scenario that inherits it.
+        check: none
+
+  - title: What a missing playbook reports
+    description: >-
+      The reporting behavior a proposed playbook search path has to improve on rather than inherit
+      (`design/data/defaults.yml`).
+    rules:
+      - name: missing-playbook-warns
+        description: "An action whose playbook does not resolve completes at warning level rather than failing, reported as `Missing playbook (remove from <subcommand>_sequence to suppress)`."
+        check: none
+      - name: missing-playbook-exits-zero
+        description: A run whose actions all reported a missing playbook exits zero having done nothing, so the recap carries that information and the exit code discards it.
+        check: none
+
+  - title: Per-scenario state and the ephemeral directory
+    description: >-
+      The one directory and the one state record a scenario has today, which the three content
+      categories, the tree-mirrored layout and strictly per-node state are deltas against
+      (`design/data/ephemeral.yml`, `design/data/state.yml`).
+    rules:
+      - name: one-ephemeral-directory-per-scenario
+        description: "Each scenario has one flat ephemeral directory under the runtime cache directory, named from a checksum of the project directory name and the scenario name with `/` flattened to `--`."
+        check: none
+      - name: ephemeral-directory-holds-all-three-content-kinds
+        description: That directory holds the durable node facts, the materialized inputs and whatever the playbooks write, in one flat directory.
+        check: none
+      - name: inventory-is-regenerated-before-every-action
+        description: The provisioner rewrites the inventory directory and the rendered config before every action.
+        check: none
+      - name: ephemeral-directory-is-the-contract-with-ansible
+        description: That directory is the on-disk contract between molecule and the ansible subprocesses it starts.
+        check: none
+      - name: state-is-one-record-per-scenario
+        description: "One state record per scenario holds `created`, `converged`, `driver`, `prepared`, `run_uuid`, `is_parallel` and `molecule_yml_date_modified`, and it is rewritten after each mutation."
+        check: none

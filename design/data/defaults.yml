@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=../structure/defaults.schema.yml
+---
+# defaults source, the dependency-vs-default distinction: what shared config is a
+# genuine dependency and what is mere repetition, the one-question test, molecule's
+# existing base-config discovery, the anchored-shared-path rule, what stays a parent
+# node, and a proposed default location for shared playbooks. State the rule, never the
+# reasoning: what molecule does today, including the base-config discovery order and the
+# per-scenario path anchoring, lives in design/data/upstream-baseline.yml, and the
+# repeated-config-as-tree rejection in design/data/rejected-ideas.yml. One idea per rule, no semicolons, no em or en dashes.
+# design/data/tree-spec.yml and design/data/provisioning.yml own when a shared thing is a dependency, this
+# file owns defaults.
+
+title: "Defaults, saying it once without inventing a dependency"
+intro: >-
+  Independent scenarios that share configuration need defaults, not a parent. This file is
+  about the difference between shared configuration and a shared dependency, and about the
+  one thing that stops molecule's existing defaults mechanism from covering the case.
+  `design/data/tree-spec.yml` and `design/data/provisioning.yml` own when a shared thing is a dependency, this file
+  owns defaults.
+status: proposed, the distinction and the base-config mechanism are settled, the shared-playbook default location is proposed
+
+sections:
+  - title: The distinction between a dependency and a default
+    intro: What every scenario shares is either a dependency or mere repetition, and only the first is a parent.
+    tables:
+      - header: [What is shared, Is it a dependency, Mechanism]
+        rows:
+          - ["An artifact every scenario needs before it can run (an image, a VM template)", "Yes. No scenario runs until it exists", "A parent node (`design/data/provisioning.yml`)"]
+          - ["Instances one node creates and others test against", "Yes", "A parent node (`design/data/tree-spec.yml`)"]
+          - ["Playbook paths, driver block, sequence, dependency block", "No. Only repetition", "Defaults, this file"]
+    rules:
+      - A tree is the wrong tool for repetition.
+      - The test is one question, if the shared thing were absent would the scenario be unable to run or merely unconfigured.
+      - Unable to run is a dependency.
+      - Unconfigured is a default.
+
+  - title: Molecule's existing base-config mechanism
+    intro: Molecule already shares configuration across scenarios without a flag, so this design adds no second mechanism.
+    rules:
+      - Molecule loads a base config and deep-merges each scenario's `molecule.yml` on top of it.
+      - "The discovery order, the `--base-config` override and the merge behavior are recorded in `design/data/upstream-baseline.yml`."
+      - Sharing configuration across scenarios needs no new mechanism, because the base config already provides it.
+
+  - title: The anchored shared path
+    intro: A shared default must resolve to the same file for every scenario that inherits it.
+    rules:
+      - A value written once in a shared file must not depend on where each consumer sits.
+      - "Write the shared path against an anchor that does not move, so the same string means the same file from every depth (`design/data/environment.yml`)."
+
+  - title: A default location for shared playbooks
+    intro: Proposed. If the shared playbooks are the default for every scenario, each scenario should not need to name them.
+    rules:
+      - Molecule resolves a playbook by looking in the scenario directory first, then in a shared location under the scenarios root, before reporting it missing.
+      - A project that puts `converge.yml` in the shared location gets it everywhere and names it nowhere.
+      - A scenario that wants its own playbook still wins by having one locally.
+      - This is marked Proposed rather than Decided.
+      - Check one, does it infer structure from layout, given that `design/data/tree-spec.yml` rejects inferring the tree from layout.
+      - A fallback search path is not structural inference, because it changes where a file is found and nothing about ordering, gating or lifetime.
+      - The docs state that distinction explicitly rather than assume it.
+      - Check two, does a shared default beat an explicit shared file.
+      - A base `config.yml` naming the playbooks once already gets most of this, at the cost of one file and one anchored path.
+      - A search path removes that file too, and the increment may not be worth a schema change.
+      - Check three, what does a missing playbook report.
+      - "Today a missing playbook reports a clean `Missing playbook, remove from the sequence to suppress`."
+      - With a search path the error has to name every location tried, or a typo becomes a hunt.
+
+  - title: What this does not change
+    rules:
+      - An image build that every scenario depends on stays a parent node (`design/data/provisioning.yml`).
+      - It is a real dependency, because no scenario can run until the images exist.
+      - The parent's verify is the gate that says the images exist.
+      - The parent is there for the build and not for the shared playbook paths, which go to a base config.
+      - A scenario that creates and destroys its own containers still owns its own instances, which it declares by referencing its own `create` and `destroy` playbooks.
+      - That is `design/data/lifecycle.yml`'s derived ownership rather than a special case.
+      - A worked example that hides those references teaches the wrong shape.

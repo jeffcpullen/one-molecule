@@ -1,0 +1,188 @@
+# yaml-language-server: $schema=../structure/environment.schema.yml
+---
+# environment source, how a node addresses things outside itself: values that
+# come from the environment and locations on disk. The anchor model, run-scoped
+# caller environment, the cascading play environment, the enumerated input set,
+# the four path anchors and how each resolves, worked examples, and the upward
+# discovery walk. State the rule, never
+# the reasoning. Rejected alternatives live in design/data/rejected-ideas.yml. One idea per rule, no semicolons, no em or en dashes.
+# design/data/tree-spec.yml owns the snapshot handoff and instance ownership, design/data/ephemeral.yml
+# owns the ephemeral directory, this file owns environment and path anchors.
+
+title: Environment and paths
+intro: >-
+  How a node addresses things outside itself: the values it takes from the environment and the
+  locations it reads on disk. Both answer one question, where is the thing I need and who told me.
+  `design/data/tree-spec.yml` owns the snapshot handoff and instance ownership, `design/data/ephemeral.yml` owns the ephemeral
+  directory, this file owns the environment model and the path anchors.
+status: Decided, with the collectable-output variable name and the anchor variable spellings still Proposed
+
+sections:
+  - title: Environment flows down and outward only
+    intro: A node's environment moves in two directions only, and never between nodes.
+    rules:
+      - Down means molecule computes a node's environment fresh for every action and hands it to the process.
+      - Outward means a caller sets variables before invoking molecule and molecule maps them onto config.
+      - A node's environment is never propagated up and never propagated sideways.
+      - A node's environment is a materialized input, rewritten before every action, and nothing may read it back as truth.
+      - The environment is not a channel between nodes.
+      - "A node that reports something back writes `instance_config.yml`, and that stays."
+      - Facts that flow to a child travel by the snapshotted inventory, which ansible consumes natively (`design/data/tree-spec.yml`).
+
+  - title: Caller environment is run-scoped
+    rules:
+      - A variable a caller sets applies uniformly to every node in the run.
+      - A caller's environment is not how a parent differs from a child.
+      - "The way to vary one node is a targeted run plus run-level environment, with per-node values in that node's `molecule.yml`."
+
+  - title: Play environment rides the cascade
+    rules:
+      - "A node's play environment is `ansible.env`, which molecule hands to Ansible."
+      - "`ansible.env` is a config key, so it cascades like any other (`spec/molecule-config.schema.yml`)."
+      - "`ansible.env` under the run's `defaults:` applies to every node."
+      - "`ansible.env` under a node's `defaults:` applies to that node and its subtree."
+      - Play environment reaches Ansible only, never molecule's read of the config text.
+      - Caller input to config text is a run arg, not an environment variable (`design/data/open-questions.yml`).
+
+  - title: The input set is enumerated and ordered
+    rules:
+      - Environment input stays a closed, documented set rather than free-form interpolation.
+      - The precedence is defaults, then config file, then environment, then CLI.
+      - "`ENV_VAR_CONFIG_MAPPING` is the home for the mapping, and it gains entries rather than a replacement."
+      - "`MOLECULE_DESTROY` for `--destroy` is the first new entry (`design/data/lifecycle.yml`)."
+
+  - title: Collectable output, the pipeline case
+    intro: The concept is Decided and the variable name is Proposed.
+    rules:
+      - A pipeline stores the output of a run and takes the collection path from a variable molecule applies.
+      - The same code has to work on a dev box.
+      - "With a tree, a path input can only mean a root, beneath which molecule lays the tree out."
+      - Read as a root, a pipeline archives one directory to get the whole run, per node, in tree shape.
+      - Collectable output gets its own variable name rather than reusing the ephemeral-directory override (`design/data/ephemeral.yml`).
+      - A pipeline that only wants where do I collect from should not have to know about ephemeral directories.
+      - The variable name for collectable output is Proposed and is proposed together with the concept.
+
+  - title: Relative paths resolve against a named anchor
+    intro: The same repository runs from a developer's checkout and from a pipeline workspace.
+    rules:
+      - No absolute path is ever written into a durable artifact.
+      - Every path a user writes is relative, and molecule resolves it against a named anchor.
+      - Identity is per checkout location by design, so a dev box and a pipeline workspace do not share state (`design/data/ephemeral.yml`).
+      - Pinning the location input is how a caller controls that sharing, and it is the one place a path legitimately comes from outside.
+      - cwd is never the anchor for a user-written path, because it is an implementation detail.
+      - Every path-valued config key documents its anchor, defaulting to the scenario directory.
+      - Molecule exports every anchor it knows.
+      - The author writes the relationship between anchors and molecule supplies the prefix it discovered, so the same paths work on two machines.
+
+  - title: The anchors
+    intro: Content root is the anchor to reach for, because the same expression resolves in every supported layout.
+    rules:
+      - The always-exists anchor is the content root, the thing under test that owns the scenarios directory.
+      - Content root is the one to reach for, because the same expression resolves in a collection, a standalone role, and a playbook project.
+      - "The collection root stays and stays useful for collection-only things (`galaxy.yml`, the namespace and name, the install path)."
+      - The collection root is exported conditionally and documented as such, so nobody writes a path that silently only works inside a collection.
+      - Molecule does not invent a single role anchor, because the role under test is not layout-neutral.
+      - The portable form for the role under test is the content root plus a remainder the author writes, and the remainder legitimately differs.
+      - "The collection anchor is exported as `MOLECULE_COLLECTION_DIRECTORY`."
+      - Outside a collection the collection variable is not defined at all rather than defined and empty, so a playbook can tell an anchor that does not apply here from one that applies and is blank.
+    tables:
+      - header: [Anchor, Meaning, Collection, Standalone role, Playbook project]
+        rows:
+          - [Scenario directory, this node's own source, always, always, always]
+          - [Content root, "the thing under test, the directory that owns the scenarios directory", the collection, the role, the project]
+          - [Collection root, only where a collection exists, the collection, absent, absent]
+          - [Project root, "the workspace, which may hold several content roots", maybe, maybe, maybe]
+
+  - title: How each anchor resolves
+    rules:
+      - "Content root resolves to the nearest ancestor of the scenario that owns a scenarios directory (`extensions/molecule/` or `molecule/`)."
+      - "Collection root resolves to the nearest ancestor holding `galaxy.yml`, which may be above the content root and is often absent."
+      - "Project root is the workspace, which `MOLECULE_PROJECT_DIRECTORY` names when a caller sets it."
+      - "Scenario directory is unchanged, the directory holding this node's `molecule.yml`."
+      - The two roots are found separately because they answer separate questions.
+
+  - title: Worked examples
+    intro: Variable names are illustrative, the concept is Decided and the spelling is Proposed.
+    code:
+      - lang: text
+        caption: A collection nested for ansible-test, node install-satellite.
+        body: |
+          ~/work/acme-automation/                                  <- project root
+            ansible_collections/acme/network/                      <- content root, and collection root
+              galaxy.yml
+              roles/switch_config/
+              extensions/molecule/install-satellite/molecule.yml   <- scenario directory
+
+          Scenario directory: ~/work/acme-automation/ansible_collections/acme/network/extensions/molecule/install-satellite
+          Content root:       ~/work/acme-automation/ansible_collections/acme/network
+          Collection root:    ~/work/acme-automation/ansible_collections/acme/network
+          Project root:       ~/work/acme-automation
+
+          Reaching the role it tests:
+            ../../../roles/switch_config  ->  {{ molecule_content_root }}/roles/switch_config
+      - lang: text
+        caption: A standalone role, node default.
+        body: |
+          ~/work/ansible-role-nginx/               <- content root, and project root
+            meta/main.yml
+            tasks/main.yml
+            molecule/default/molecule.yml          <- scenario directory
+
+          Scenario directory: ~/work/ansible-role-nginx/molecule/default
+          Content root:       ~/work/ansible-role-nginx
+          Collection root:    (unset)
+          Project root:       ~/work/ansible-role-nginx
+
+          Reaching the role it tests:
+            ../..  ->  {{ molecule_content_root }}
+      - lang: text
+        caption: A playbook project, node deploy.
+        body: |
+          ~/work/site-automation/                  <- content root, and project root
+            ansible.cfg
+            playbooks/deploy.yml
+            inventory/hosts.yml
+            molecule/deploy/molecule.yml           <- scenario directory
+
+          Scenario directory: ~/work/site-automation/molecule/deploy
+          Content root:       ~/work/site-automation
+          Collection root:    (unset)
+          Project root:       ~/work/site-automation
+
+          Reaching the playbook under test:
+            ../../playbooks/deploy.yml  ->  {{ molecule_content_root }}/playbooks/deploy.yml
+      - lang: text
+        caption: A role inside a collection that owns its own molecule directory, where content root and collection root differ.
+        body: |
+          ~/work/acme-automation/ansible_collections/acme/network/   <- collection root
+            galaxy.yml
+            roles/switch_config/                                     <- content root
+              molecule/default/molecule.yml                          <- scenario directory
+
+          Here content root and collection root differ, and each answers a different question:
+          the role is what the scenario tests, the collection is where galaxy.yml and the namespace live.
+
+  - title: Discovery walks up, in every layout
+    intro: Where you stand stops being part of the interface.
+    rules:
+      - Discovery walks up to find the content root and resolves the scenario glob from the root it found.
+      - "`molecule test` behaves the same from the content root and from inside a scenario directory."
+      - "A directory named `extensions` that holds `molecule` is not a content root, it is the middle of the collection scenarios path."
+      - "The collection marker is tested first, and the plain `molecule` marker is skipped when the candidate is that `extensions` directory."
+      - "`galaxy.yml` is a content marker too, so a collection that has not written its first scenario still anchors itself."
+      - "The `galaxy.yml` marker does not outrank the scenarios marker, so a role holding its own `molecule/` inside a collection is the nearer marker and wins."
+      - The collection walk starts where the content walk stopped, so nothing can sit between the two roots unseen.
+      - The discovery walk stops at the enclosing VCS root.
+      - Where there is no checkout the walk stays unbounded, deliberately.
+      - "`MOLECULE_GLOB` skips the walk and pins the content root to the working directory."
+      - "Setting `MOLECULE_GLOB` is a strict non-regression, because a caller who sets it gets today's behavior."
+      - "`MOLECULE_GLOB` is the escape hatch for a layout the walk does not recognize, and it belongs in the enumerated input set."
+      - Discovery happens once per run, and the anchors are cached for the process.
+      - A run that changes directory mid-flight keeps the answer it started with.
+      - "`MOLECULE_PROJECT_DIRECTORY` decides where discovery starts, which makes it a stronger lever than the plain path it used to set."
+      - A caller that wants a different answer wants a different run.
+
+  - title: What the tree already removes
+    rules:
+      - Copy-at-start makes a child's cross-node inventory reference local, because the file is copied into the child's own ephemeral directory at node start (`design/data/tree-spec.yml`).
+      - The orchestration change pays a usability debt as well as a correctness one.

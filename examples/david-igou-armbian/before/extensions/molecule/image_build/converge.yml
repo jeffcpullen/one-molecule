@@ -1,0 +1,25 @@
+---
+# Drive the image_build role through its skip-build short-circuit:
+# prepare.yml pre-seeds manifest.json with a patch_hash matching the
+# scenario_userpatches list below, so check_manifest decides to skip
+# invoke_build entirely. The scenario therefore tests preflight +
+# manage_checkout + apply_userpatches + compute_inputs + check_manifest
+# (skip path) without running compile.sh.
+
+- name: Converge — exercise image_build role through skip-build short-circuit
+  hosts: all
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Apply image_build role
+      ansible.builtin.include_role:
+        name: david_igou.armbian.image_build
+      vars:
+        armbian_build_board: orangepi5pro
+        armbian_build_host: "build-orangepi5pro"
+        armbian_build_branch: current
+        armbian_build_release: bookworm
+        armbian_build_cache_dir: /var/lib/armbian_build
+        armbian_build_output_dir: /var/lib/armbian_build/output
+        armbian_build_userpatches: "{{ scenario_userpatches }}"

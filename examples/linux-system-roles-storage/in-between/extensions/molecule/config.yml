@@ -1,0 +1,44 @@
+---
+# Auto-loaded base config. Molecule searches for extensions/molecule/config.yml
+# in a collection and deep-merges each scenario's molecule.yml on top, with no
+# --base-config flag needed. "In a collection" is load-bearing: the galaxy.yml at
+# the root of this tree is what makes molecule find this file at all, and without
+# it the search finds nothing and every setting below is silently skipped. The
+# shared blocks live here once, so a scenario file is just its converge
+# playbook. Playbook paths
+# resolve relative to each scenario dir (extensions/molecule/<name>/), so
+# ../utils/playbooks/... reaches the shared playbooks from any scenario.
+driver:
+  name: default            # create.yml / destroy.yml own the object lifecycle
+
+platforms:
+  - name: storage-instance
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: ../utils/playbooks/create.yml
+    destroy: ../utils/playbooks/destroy.yml
+    cleanup: ../utils/playbooks/cleanup.yml
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+  env:
+    # The tests' real parameterization surface (roles/storage/tests/tests_*.yml
+    # and tests/tasks/setup.yml read these on the node).
+    SYSTEM_ROLES_LUKS_CIPHER: ""
+    SYSTEM_ROLES_TEST_FIPS: "false"
+    SYSTEM_ROLES_REMOVE_CLOUD_INIT: "false"
+  inventory:
+    group_vars:
+      all:
+        # tests/vars/rh_distros_vars.yml is auto-generated and loaded by the
+        # harness wrapper today, never by the test playbook. Load it here.
+        __storage_rh_distros:
+          - AlmaLinux
+          - CentOS
+          - RedHat
+          - Rocky
+
+verifier:
+  name: ansible
