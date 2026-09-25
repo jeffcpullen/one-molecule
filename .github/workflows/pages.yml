@@ -1,0 +1,58 @@
+---
+name: pages
+
+# Publishes the design/docs/ pages as the GitHub Pages site. Only the markdown
+# in design/docs/ is published. The pages are copied into a build directory
+# with the Jekyll config from .github/pages/, and Jekyll builds from there.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'design/docs/**'
+      - '.github/pages/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. A running deploy finishes before the next one starts.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - name: Stage the docs and the site config
+        run: |
+          test -f design/docs/index.md
+          mkdir -p pages-build
+          cp design/docs/*.md pages-build/
+          cp .github/pages/_config.yml pages-build/
+
+      - uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./pages-build
+          destination: ./_site
+
+      - uses: actions/upload-pages-artifact@v4
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

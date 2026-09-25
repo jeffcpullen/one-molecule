@@ -1,0 +1,10 @@
+---
+# Jekyll config for the GitHub Pages site. The pages workflow copies this file
+# next to the design/docs/ pages in a build directory and builds from there.
+# Plugins come from the GitHub Pages defaults, so none are listed here.
+
+title: one-molecule
+description: >-
+  Documentation for one-molecule, one layout for scenario testing.
+theme: minima
+markdown: kramdown
