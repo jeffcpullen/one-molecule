@@ -1,9 +1,10 @@
 # Migrating an existing layout to one root molecule.yml
 
 Task recipes for converting a project from the per-scenario directory layout to the
-single top-level `molecule.yml` proposed in `the-pattern.md`. Each recipe is a short
-procedure. For the authoring surface these recipes target, read `the-pattern.md`. For
-why the tree is less work than the directory layout, read `explanation.md`.
+single top-level `molecule.yml` proposed in [the pattern](the-pattern.md). Each recipe is a
+short procedure. For the authoring surface these recipes target, read
+[the pattern](the-pattern.md). For why the tree is less work than the directory layout, read
+the [explanation](explanation.md).
 
 This is a proposed design, not shipped molecule behavior. Every recipe describes how a
 migration would work under the proposal. Steps that rely on a part still marked Proposed
@@ -28,8 +29,10 @@ Two questions decide the shape of every migration.
    environment? That is not a dependency. It becomes shared `defaults:`, and the
    scenarios stay independent roots.
 
-The test is one question, from `explanation.md`: if the shared thing were absent, would
-the scenario be unable to run, or merely unconfigured. Unable to run is a parent.
+The test is one question, from the
+[explanation](explanation.md#when-you-need-a-parent-and-when-you-only-need-shared-config):
+if the shared thing were absent, would the scenario be unable to run, or merely
+unconfigured. Unable to run is a parent.
 Unconfigured is `defaults:`. Reaching for a parent where `defaults:` is what you need
 invents a dependency, orders scenarios that could run alone, and skips all of them when
 the shared node fails.
@@ -80,7 +83,8 @@ for the missing shared home. The converted root file is
 `examples/prometheus-community/after/molecule.yml`.
 
 1. Choose the root file location. It is the collection root, the one place that exists
-   for a collection, a role, and a playbook project alike (`the-pattern.md`).
+   for a collection, a role, and a playbook project alike
+   ([the pattern](the-pattern.md#why-the-project-root)).
 2. Declare each role's scenario as an entry in the root `scenarios:` list. A scenario
    becomes a named entry, not a directory under a role.
 3. Decide whether the roles share a real dependency or only config. Per-role test
@@ -139,8 +143,8 @@ root file is `examples/dev-sec-hardening/after/molecule.yml`.
    has nothing left to do once the playbooks live under `playbooks/molecule/`.
 3. Fix any path that counted `../` to climb out of the scenario directory. A path written
    once in a shared location must mean the same file from every scenario, so it must not
-   depend on how deep the referring scenario sits (`explanation.md`, and the anchors work
-   behind it).
+   depend on how deep the referring scenario sits
+   ([the four path anchors](reference.md#the-four-path-anchors)).
 4. Declare the scenarios in the root `scenarios:` list, sharing their common config
    through `defaults:`.
 
@@ -161,7 +165,7 @@ environment.
    a `create` the child is not a creator, owns nothing, and tests against the parent's
    environment. If it does need its own instances, give it its own `create`/`destroy`
    references and it owns what its `create` produces while still starting from the
-   parent's snapshot (`reference.md`).
+   parent's snapshot ([derived ownership](reference.md#derived-ownership)).
 
 ## Recipe 6: Share one converge or verify playbook across scenarios
 
@@ -201,7 +205,8 @@ For running one scenario in a tree and getting only what it depends on.
 
 If the target turns out to need a scenario that is not on its ancestor chain, the repair
 is to declare that dependency. An opt-in selector to also run the scenarios that share the
-target's parent covers the case where you cannot declare it yet (`reference.md`). It is
+target's parent covers the case where you cannot declare it yet
+([a partial run](reference.md#a-partial-run)). It is
 opt-in because a targeted run must not fan out sideways on its own.
 
 ## Recipe 8: Run a tree in parallel with --workers
@@ -247,6 +252,7 @@ does not have to be remembered on the command line.
 ## Where to go next
 
 For the structure of the root file, how playbooks are referenced, and why the config
-lives at the project root, read `the-pattern.md`. For the full key and behavior spec, read
-`reference.md`. For the reasoning behind declaring scenarios as a tree, read
-`explanation.md`.
+lives at the project root, read [the pattern](the-pattern.md). For the full key and behavior
+spec, read the [reference](reference.md). For the reasoning behind declaring scenarios as a
+tree, read the [explanation](explanation.md). To learn the tree from nothing, read
+[getting started](getting-started.md).

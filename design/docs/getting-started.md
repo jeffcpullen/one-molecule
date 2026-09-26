@@ -11,9 +11,9 @@ tree edges, and the gating behavior shown here are not how Molecule runs at the 
 this as how the proposed layout would be authored and run. Where a command or a behavior
 depends on something proposed, the text says so.
 
-For the full authoring surface and every option, see `the-pattern.md`. For why one layout is
-easier than a directory per scenario, see `explanation.md`. This page is the guided path
-through both.
+For the authoring surface, see [the pattern](the-pattern.md), and for every option, see the
+[reference](reference.md). For why one layout is easier than a directory per scenario, see the
+[explanation](explanation.md). This page is the guided path through them.
 
 ## Stage 1: a single scenario
 
@@ -257,7 +257,8 @@ scenarios:
 
 `vm` is the root, so it carries the `create`, `destroy`, and `platforms` that stand the machine
 up, the same way `base` did in Stage 3. Those are left off the deeper nodes here to keep the
-tree readable. See Stage 3 or `the-pattern.md` for the root's create details.
+tree readable. See Stage 3, or [derived ownership](reference.md#derived-ownership) in the
+reference, for the root's create details.
 
 ### Branches run independently, depth runs in order
 
@@ -300,7 +301,8 @@ expressed by nesting, and a tree that branches where work is independent and dee
 not. Each node's verify gates its children, each child starts from its parent's snapshot, and
 selecting a node pulls in its ancestor chain.
 
-For the full key and behavior spec, the config scopes, and how a key resolves, read
-`reference.md`. For how the root file is laid out and why the config lives at the project
-root, read `the-pattern.md`. For why the tree is less work than a directory per scenario,
-read `explanation.md`.
+For the full key and behavior spec, the config scopes, and how a key resolves, read the
+[reference](reference.md). For how the root file is laid out and why the config lives at the
+project root, read [the pattern](the-pattern.md). For why the tree is less work than a
+directory per scenario, read the [explanation](explanation.md). To convert an existing project,
+read [migrating](migrating.md).

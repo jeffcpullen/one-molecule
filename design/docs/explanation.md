@@ -3,9 +3,10 @@
 This page is about the author writing Molecule tests, and why declaring scenarios as a tree
 in one root config is less work than the per-scenario directory layout in use today. It is
 the reasoning behind the pattern, which is proposed design for Molecule and not current
-behavior. For the authoring surface see `the-pattern.md`, for the full specification see
-`reference.md`, to build a tree from nothing see `getting-started.md`, and to convert an
-existing project see `migrating.md`.
+behavior. For the authoring surface see [the pattern](the-pattern.md), for the full
+specification see the [reference](reference.md), to build a tree from nothing see
+[getting started](getting-started.md), and to convert an existing project see
+[migrating](migrating.md).
 
 ## The problem: shared setup has nowhere to live
 
@@ -118,7 +119,7 @@ The deeper change is that state becomes per-node for a tree. Each node reads and
 its own state, and there is no shared state file. Nothing is shared between sibling nodes, so
 running them in parallel does not race over one directory. The safety is by construction,
 because there is nothing shared left to make safe. For converting a `shared_state` project to
-a tree, see `migrating.md`.
+a tree, see recipe 1 in [migrating](migrating.md).
 
 ## What it looks like on a real project
 
@@ -155,4 +156,6 @@ a home, the author does the deduplication.
 ## Where to go next
 
 For how the root `molecule.yml` is structured, how playbooks are referenced, and why the
-project root is the home for the config, read `the-pattern.md`.
+project root is the home for the config, read [the pattern](the-pattern.md). For every key and
+behavior, read the [reference](reference.md). To build a tree step by step, read
+[getting started](getting-started.md).

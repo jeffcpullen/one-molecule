@@ -33,5 +33,5 @@ The project root is the one location that exists identically for a collection, a
 playbook project. `meta/` and `extensions/` exist only for collections, so anchoring there
 would leave roles and playbook projects without a home and force a second location for them.
 
-The full specification for this layout is in `reference.md`, and the reasoning behind it
-is in `explanation.md`.
+The full specification for this layout is in [reference.md](reference.md), and the reasoning
+behind it is in [explanation.md](explanation.md).

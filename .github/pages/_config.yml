@@ -8,3 +8,11 @@ description: >-
   Documentation for one-molecule, one layout for scenario testing.
 theme: minima
 markdown: kramdown
+
+# The header nav, in Diataxis order. The landing page is the site title link.
+header_pages:
+  - the-pattern.md
+  - getting-started.md
+  - migrating.md
+  - reference.md
+  - explanation.md

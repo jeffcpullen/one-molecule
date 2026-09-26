@@ -1,8 +1,10 @@
 # Reference: the single top-level molecule.yml
 
 The lookup spec for the proposed single-config layout. It states what each key is and what the
-run does with it. For the authoring surface and the worked examples, read `the-pattern.md`. For
-the reasoning behind the tree, read `explanation.md`.
+run does with it. For the authoring surface, read [the pattern](the-pattern.md). For a guided
+build of a tree, read [getting started](getting-started.md), and for converting an existing
+project, read [migrating](migrating.md). For the reasoning behind the tree, read the
+[explanation](explanation.md).
 
 This describes a proposed design, not shipped Molecule behavior. The single-file surface as a
 whole is proposed. Referencing playbooks by path through `provisioner.playbooks` is behavior
@@ -14,7 +16,7 @@ they appear.
 One `molecule.yml` at the project root holds the run configuration, the scenario declarations,
 and the tree edges between scenarios. A scenario is a named entry in that file, not a
 directory. The file carries config, never playbook content. Playbooks are referenced by path
-and live once under `playbooks/molecule/` (see `the-pattern.md`).
+and live once under `playbooks/molecule/` (see [the pattern](the-pattern.md)).
 
 Root-file discovery is a second mode alongside directory globbing, not a replacement. Existing
 directory layouts keep running unchanged. A tree is declared in the root file only.
