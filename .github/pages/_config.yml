@@ -9,6 +9,13 @@ description: >-
 theme: minima
 markdown: kramdown
 
+# Each page opens with its own heading, so the layout prints no title above it.
+defaults:
+  - scope:
+      path: ''
+    values:
+      layout: doc
+
 # The header nav, in Diataxis order. The landing page is the site title link.
 header_pages:
   - the-pattern.md

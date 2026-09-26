@@ -3,7 +3,8 @@ name: pages
 
 # Publishes the design/docs/ pages as the GitHub Pages site. Only the markdown
 # in design/docs/ is published. The pages are copied into a build directory
-# with the Jekyll config from .github/pages/, and Jekyll builds from there.
+# with the Jekyll config and layouts from .github/pages/, and Jekyll builds from
+# there.
 
 on:
   push:
@@ -38,7 +39,7 @@ jobs:
           test -f design/docs/index.md
           mkdir -p pages-build
           cp design/docs/*.md pages-build/
-          cp .github/pages/_config.yml pages-build/
+          cp -r .github/pages/. pages-build/
 
       - uses: actions/jekyll-build-pages@v1
         with:
