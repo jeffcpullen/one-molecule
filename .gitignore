@@ -33,6 +33,3 @@ __pycache__/
 # The private names the clean-room gate rejects, kept out so the gate does not
 # publish them.
 /tools/private-names.txt
-
-# Local test scaffolding and caches.
-.harness/
