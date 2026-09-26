@@ -34,5 +34,5 @@ __pycache__/
 # publish them.
 /tools/private-names.txt
 
-# Local test-harness scaffolding and caches.
+# Local test scaffolding and caches.
 .harness/

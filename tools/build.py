@@ -16,7 +16,9 @@ Both modes also run two linters over the published tree: house writing style
 (lint_prose on the design data, lint_prose_text on published markdown) and
 lint_clean_room (no private working context in published text). The published
 tree is design/ and spec/, the repo-root markdown in PUBLISHED_ROOT_MD, and the
-few agent-config files that are published on purpose, in PUBLISHED_EXTRA.
+few agent-config files that are published on purpose, in PUBLISHED_EXTRA. The
+clean-room rules for personal and private tool names also run on every other
+tracked file.
 
 Lint the examples against the generated schema (no code here):
       check-jsonschema --schemafile generated/molecule-config.schema.json \\
@@ -25,6 +27,7 @@ Lint the examples against the generated schema (no code here):
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -155,16 +158,19 @@ ILLUSTRATIVE_HOME = "work"
 # attribution rule, and only on the line that carries the notice.
 COPYRIGHT_LINE = re.compile(r"copyright|\(c\)|SPDX-FileCopyrightText", re.IGNORECASE)
 
-# Each entry is (pattern, name, exempt). `exempt` is a pattern that, when it
-# matches the same line, means the line is deliberate rather than a leak.
+# Each entry is (pattern, name, exempt, everywhere). `exempt` is a pattern that,
+# when it matches the same line, means the line is deliberate rather than a leak.
+# `everywhere` rules run on every tracked file. The others run on the published
+# text only, since generic home paths and folder names are ordinary in code.
 CLEAN_ROOM = [
-    (re.compile(r"/home/|~/(?!%s/)" % ILLUSTRATIVE_HOME), "personal filesystem path", None),
+    (re.compile(r"/home/|~/(?!%s/)" % ILLUSTRATIVE_HOME), "personal filesystem path", None, False),
     # A trailing name is what makes it a dead link. Naming the folder itself is
     # allowed, since the conventions have to be able to say where things go.
     (re.compile(r"""(?:^|[\s`(/"'])(?:%s)/[\w-]""" % "|".join(UNPUBLISHED)),
-     "pointer to a file in an unpublished directory", None),
-    (re.compile(r"\.claude"), "private tooling reference", None),
-    (re.compile(r"\bJeff\b"), "personal attribution", COPYRIGHT_LINE),
+     "pointer to a file in an unpublished directory", None, False),
+    (re.compile(r"\.claude"), "private tooling reference", None, False),
+    # Case-insensitive, so a home path or an address carrying the name is caught.
+    (re.compile(r"\bJeff\b", re.IGNORECASE), "personal attribution", COPYRIGHT_LINE, True),
 ]
 
 # Names of private tools and repos are kept in an ignored file beside this one,
@@ -188,14 +194,18 @@ def private_names_pattern(entries):
 
 _PRIVATE_NAMES = private_names_pattern(load_private_names())
 if _PRIVATE_NAMES:
-    CLEAN_ROOM.append((_PRIVATE_NAMES, "private tooling reference", None))
+    CLEAN_ROOM.append((_PRIVATE_NAMES, "private tooling reference", None, True))
 
 
-def lint_clean_room(text, label=""):
-    """Return [(lineno, name, line)] for private working context in published text."""
+def lint_clean_room(text, everywhere_only=False):
+    """Return [(lineno, name, line)] for private working context in text.
+
+    With everywhere_only, only the rules that apply to every tracked file run."""
     problems = []
     for i, line in enumerate(text.splitlines(), 1):
-        for pattern, name, exempt in CLEAN_ROOM:
+        for pattern, name, exempt, everywhere in CLEAN_ROOM:
+            if everywhere_only and not everywhere:
+                continue
             if pattern.search(line) and not (exempt and exempt.search(line)):
                 problems.append((i, name, line.strip()))
     return problems
@@ -234,6 +244,20 @@ CLEAN_ROOM_MUST_ALLOW = [
     "Licensed under Apache-2.0, copyright 2026 Jeff Pullen.",
 ]
 
+# The rules that run on every tracked file, which is mostly code and config.
+TRACKED_MUST_CATCH = [
+    "    owner: jeff",
+    "# ask Jeff before changing this",
+]
+
+TRACKED_MUST_ALLOW = [
+    "    ANSIBLE_COLLECTIONS_PATH: /home/zuul/.ansible/collections",
+    "    ANSIBLE_ROLES_PATH: ~/.cache/molecule/roles",
+    "internal/",
+    "!.claude/agents/om-design-author.md",
+    "Copyright 2026 Jeff Pullen",
+]
+
 
 def selftest_clean_room():
     """Return a list of failures for the clean-room fixtures."""
@@ -244,6 +268,12 @@ def selftest_clean_room():
     for line in CLEAN_ROOM_MUST_ALLOW:
         if lint_clean_room(line):
             failures.append(f"clean room: should have been allowed but was flagged: {line!r}")
+    for line in TRACKED_MUST_CATCH:
+        if not lint_clean_room(line, everywhere_only=True):
+            failures.append(f"tracked files: should have been caught but was not: {line!r}")
+    for line in TRACKED_MUST_ALLOW:
+        if lint_clean_room(line, everywhere_only=True):
+            failures.append(f"tracked files: should have been allowed but was flagged: {line!r}")
     pattern = private_names_pattern(PRIVATE_NAMES_FIXTURE)
     for line in PRIVATE_NAMES_MUST_CATCH:
         if not pattern.search(line):
@@ -288,6 +318,25 @@ def published_files():
     for path in PUBLISHED_ROOT_MD + PUBLISHED_EXTRA:
         if path.is_file():
             yield path
+
+
+# This file spells out the patterns in its fixtures, so it cannot scan itself.
+GATE_DEFINITION = Path(__file__).resolve()
+
+
+def tracked_files():
+    """Every text file git tracks, outside the published set and this file."""
+    published = set(published_files())
+    listing = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-z"],
+                             capture_output=True, check=True, text=True).stdout
+    for rel in listing.split("\0"):
+        path = ROOT / rel
+        if not rel or path in published or path == GATE_DEFINITION or not path.is_file():
+            continue
+        try:
+            yield path, path.read_text()
+        except UnicodeDecodeError:
+            continue
 
 
 # -------------------------------------------------------------------- generate
@@ -382,6 +431,16 @@ def main(argv):
             rc = 1
             print(f"PROSE: {rel} has forbidden punctuation (house style: no "
                   f"semicolons or dashes in prose):", file=sys.stderr)
+            for ln, name, ctx in problems:
+                print(f"  {rel}:{ln}: {name}: {ctx}", file=sys.stderr)
+
+    for path, body in tracked_files():
+        rel = path.relative_to(ROOT)
+        problems = lint_clean_room(body, everywhere_only=True)
+        if problems:
+            rc = 1
+            print(f"CLEAN ROOM: {rel} carries a private name "
+                  f"(it is tracked, so it is public on push):", file=sys.stderr)
             for ln, name, ctx in problems:
                 print(f"  {rel}:{ln}: {name}: {ctx}", file=sys.stderr)
     return rc
