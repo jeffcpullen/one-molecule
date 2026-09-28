@@ -4,9 +4,17 @@
 # covers everything this repo needs to catch, including Anthropic API keys
 # (anthropic-api-key, anthropic-admin-api-key), other AI provider keys
 # (openai-api-key, gcp-api-key, cohere-api-token, huggingface-access-token,
-# perplexity-api-key), and any PEM private key block (private-key). No custom
-# rule is added, because adding one that duplicates a default rule is a second
-# place to keep in sync.
+# perplexity-api-key), and any PEM private key block (private-key). A custom
+# rule is added only for a secret the default ruleset cannot see, never to
+# duplicate a default rule.
+#
+# The added rules cover encrypted-at-rest secret blobs: Zuul pkcs1-oaep
+# ciphertext, Ansible Vault payloads, and a secret-named YAML key whose value is
+# a base64 blob on the following lines. Corporate scanners flag these, and each
+# one is someone's key material, so they count as secrets. The value sits on
+# the lines after its key, which the default rules never look at, so these
+# rules match across lines. Each one is proven out of tree, the same way as the
+# fixture below, against freshly generated samples of every shape it covers.
 #
 # ERRORS ONLY. gitleaks exits non-zero on any finding and both the pre-commit
 # hook and the CI job take that exit code as the verdict. Nothing here is
@@ -24,3 +32,26 @@
 
 [extend]
 useDefault = true
+
+[[rules]]
+id = "zuul-encrypted-secret"
+description = "Zuul !encrypted/pkcs1-oaep ciphertext: inline scalar, block scalar, or list of base64 chunks"
+regex = '''!encrypted/pkcs1-oaep[ \t]*(?:[|>][-+]?[0-9]?[ \t]*)?(?:\r?\n[ \t]*(?:-[ \t]+)?)?["']?([A-Za-z0-9+/]{40,}={0,2})'''
+secretGroup = 1
+entropy = 3.5
+keywords = ["pkcs1-oaep"]
+
+[[rules]]
+id = "ansible-vault-payload"
+description = "Ansible Vault payload: $ANSIBLE_VAULT;1.x;AES256[;label] header and hex body, as a vault file or an inline !vault value"
+regex = '''\$ANSIBLE_VAULT;1\.[0-9];AES256(?:;[^\s;]+)?[ \t]*\r?\n[ \t]*([0-9a-fA-F]{32,})'''
+secretGroup = 1
+keywords = ["$ansible_vault"]
+
+[[rules]]
+id = "secret-key-multiline-blob"
+description = "Secret-named YAML key (password, passwd, secret, token, api key, private key) whose value is a high-entropy base64 blob on the following lines"
+regex = '''(?im)^[ \t]*(?:-[ \t]+)?["']?[A-Za-z0-9_.-]*(?:password|passwd|secret|token|api[_-]?key|private[_-]?key)[A-Za-z0-9_.-]*["']?[ \t]*:[ \t]*(?:![A-Za-z0-9_./-]+[ \t]*)?(?:[|>][-+]?[0-9]?[ \t]*)?\r?\n[ \t]*(?:-[ \t]+)?["']?([A-Za-z0-9+/]{40,}={0,2})'''
+secretGroup = 1
+entropy = 4.5
+keywords = ["password", "passwd", "secret", "token", "api_key", "api-key", "apikey", "private_key", "private-key", "privatekey"]
