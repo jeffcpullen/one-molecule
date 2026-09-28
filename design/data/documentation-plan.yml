@@ -58,7 +58,7 @@ sections:
     tables:
       - header: [Recipe, Maps to project]
         rows:
-          - ["Convert a `shared_state` project to a tree", ""]
+          - ["Convert a `shared_state` project to a tree", "david-igou routeros"]
           - ["Convert a per-role `roles/*/molecule/` layout", "prometheus-community"]
           - ["Convert a delegated-driver, many-scenario collection", "arista-avd"]
           - ["Move a `../shared/` directory into the shared playbooks folder", "dev-sec hardening"]
@@ -82,7 +82,7 @@ sections:
   - title: Examples
     intro: Worked examples that support every quadrant.
     rules:
-      - "The `examples/` directory holds 9 real projects, each before and after, licensed and traceable."
+      - "The `examples/` directory holds 10 real projects, each before and after, licensed and traceable."
 
   - title: What changes for an existing project
     intro: An existing project keeps running unchanged, and each fact below is owned by a design doc.
