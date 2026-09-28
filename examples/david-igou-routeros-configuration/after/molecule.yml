@@ -1,0 +1,253 @@
+---
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 David Igou
+# Converted by the one-molecule project from the upstream per-scenario Molecule layout to the single top-level layout.
+platforms:
+  - name: chr-1
+    vars:
+      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
+      mp_defaults:
+        qemu:
+          cpus: 1
+          memory: 512
+          ssh_user: admin
+      mp:
+        qemu:
+          image: "https://download.mikrotik.com/routeros/7.23.7/chr-7.23.7.img.zip"
+          ssh_user: admin
+          cpus: 1
+          memory: 512
+          extra_args:
+            - -netdev
+            - "user,id=apinet,net=10.0.3.0/24,hostfwd=tcp::8728-10.0.3.15:8728,hostfwd=tcp::2223-10.0.3.15:22"
+            - -device
+            - "virtio-net-pci,netdev=apinet,mac=52:54:00:00:01:02"
+            - -netdev
+            - "user,id=net2"
+            - -device
+            - "virtio-net-pci,netdev=net2,mac=52:54:00:00:01:03"
+            - -netdev
+            - "user,id=net3"
+            - -device
+            - "virtio-net-pci,netdev=net3,mac=52:54:00:00:01:04"
+            - -netdev
+            - "user,id=net4"
+            - -device
+            - "virtio-net-pci,netdev=net4,mac=52:54:00:00:01:05"
+            - -netdev
+            - "user,id=net5"
+            - -device
+            - "virtio-net-pci,netdev=net5,mac=52:54:00:00:01:06"
+            - -netdev
+            - "user,id=net6"
+            - -device
+            - "virtio-net-pci,netdev=net6,mac=52:54:00:00:01:07"
+            - -netdev
+            - "user,id=net7"
+            - -device
+            - "virtio-net-pci,netdev=net7,mac=52:54:00:00:01:08"
+            - -netdev
+            - "user,id=net8"
+            - -device
+            - "virtio-net-pci,netdev=net8,mac=52:54:00:00:01:09"
+            - -netdev
+            - "user,id=net9"
+            - -device
+            - "virtio-net-pci,netdev=net9,mac=52:54:00:00:01:0a"
+            - -netdev
+            - "user,id=net10"
+            - -device
+            - "virtio-net-pci,netdev=net10,mac=52:54:00:00:01:0b"
+
+defaults:
+  dependency:
+    name: galaxy
+    enabled: true
+    options:
+      requirements-file: extensions/molecule/requirements-test.yml
+  ansible:
+    executor:
+      args:
+        ansible_playbook:
+          - --inventory=${MOLECULE_EPHEMERAL_DIRECTORY}/inventory/
+  provisioner:
+    inventory:
+      group_vars:
+        molecule:
+          chr_admin_password: molecule
+          routeros_api_hostname: "127.0.0.1"
+          routeros_api_port: 8728
+          routeros_api_username: admin
+          routeros_api_password: "{{ chr_admin_password }}"
+          routeros_api_tls: false
+          routeros_api_validate_certs: false
+  scenario:
+    test_sequence:
+      - dependency
+      - converge
+      - idempotence
+      - verify
+  verifier:
+    name: ansible
+
+scenarios:
+  - name: default
+    playbooks:
+      create: david_igou.molecule_provisioners.create
+      prepare: david_igou.routeros_configuration.molecule_shared_prepare
+      converge: david_igou.routeros_configuration.molecule_default_converge
+      verify: david_igou.routeros_configuration.molecule_default_verify
+      destroy: david_igou.molecule_provisioners.destroy
+    scenario:
+      test_sequence:
+        - dependency
+        - create
+        - prepare
+        - converge
+        - verify
+        - destroy
+    children:
+      - name: ping
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_ping_converge
+          verify: david_igou.routeros_configuration.molecule_ping_verify
+      - name: fetch
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_fetch_converge
+          verify: david_igou.routeros_configuration.molecule_fetch_verify
+        scenario:
+          test_sequence:
+            - dependency
+            - converge
+            - verify
+      - name: configure_lists
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_configure_lists_converge
+          verify: david_igou.routeros_configuration.molecule_configure_lists_verify
+      - name: configure_singletons
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_configure_singletons_converge
+          verify: david_igou.routeros_configuration.molecule_configure_singletons_verify
+      - name: configure_ordered
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_configure_ordered_converge
+          verify: david_igou.routeros_configuration.molecule_configure_ordered_verify
+      - name: configure_modify_only
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_configure_modify_only_converge
+          verify: david_igou.routeros_configuration.molecule_configure_modify_only_verify
+      - name: configure_dependency_chain
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_configure_dependency_chain_converge
+          verify: david_igou.routeros_configuration.molecule_configure_dependency_chain_verify
+      - name: configure_full
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_configure_full_converge
+          verify: david_igou.routeros_configuration.molecule_configure_full_verify
+      - name: configure_check_mode
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_configure_check_mode_converge
+          verify: david_igou.routeros_configuration.molecule_configure_check_mode_verify
+      - name: certificate
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_certificate_converge
+          verify: david_igou.routeros_configuration.molecule_certificate_verify
+        scenario:
+          test_sequence:
+            - dependency
+            - converge
+            - verify
+      - name: upgrade
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_upgrade_converge
+          verify: david_igou.routeros_configuration.molecule_upgrade_verify
+      - name: export_vars
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_export_vars_converge
+          verify: david_igou.routeros_configuration.molecule_export_vars_verify
+      - name: command
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_command_converge
+          verify: david_igou.routeros_configuration.molecule_command_verify
+        scenario:
+          test_sequence:
+            - dependency
+            - converge
+            - verify
+      - name: poe
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_poe_converge
+        scenario:
+          test_sequence:
+            - dependency
+            - converge
+      - name: user_password
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_user_password_converge
+          verify: david_igou.routeros_configuration.molecule_user_password_verify
+      - name: reset
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_reset_converge
+          verify: david_igou.routeros_configuration.molecule_reset_verify
+      - name: backup
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_backup_converge
+          verify: david_igou.routeros_configuration.molecule_backup_verify
+      - name: negative
+        wave: 1
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_negative_converge
+        scenario:
+          test_sequence:
+            - dependency
+            - converge
+      - name: restore
+        wave: 2
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_restore_converge
+          verify: david_igou.routeros_configuration.molecule_restore_verify
+        scenario:
+          test_sequence:
+            - dependency
+            - converge
+            - verify
+      - name: reboot
+        wave: 3
+        playbooks:
+          converge: david_igou.routeros_configuration.molecule_reboot_converge
+          verify: david_igou.routeros_configuration.molecule_reboot_verify
+        scenario:
+          test_sequence:
+            - dependency
+            - converge
+            - verify
+
+  - name: lifecycle
+    wave: 1
+    playbooks:
+      create: david_igou.molecule_provisioners.create
+      prepare: david_igou.routeros_configuration.molecule_shared_prepare
+      converge: david_igou.routeros_configuration.molecule_lifecycle_converge
+      destroy: david_igou.molecule_provisioners.destroy
+    scenario:
+      test_sequence:
+        - dependency
+        - create
+        - prepare
+        - converge
+        - destroy

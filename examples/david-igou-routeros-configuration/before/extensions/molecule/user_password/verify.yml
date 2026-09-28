@@ -1,0 +1,33 @@
+---
+- name: Verify — the test user authenticates with the new password
+  hosts: molecule
+  gather_facts: false
+  module_defaults:
+    # One block covers every community.routeros api* module via the
+    # collection's `api` action group.
+    group/community.routeros.api:
+      hostname: "{{ routeros_api_hostname }}"
+      username: "{{ routeros_api_username }}"
+      password: "{{ routeros_api_password }}"
+      tls: "{{ routeros_api_tls }}"
+      validate_certs: "{{ routeros_api_validate_certs }}"
+      port: "{{ routeros_api_port | default(omit, true) }}"
+  tasks:
+    - name: Authenticate as pwtest with the rotated password
+      community.routeros.api:
+        # Deliberate per-task override of the play-level defaults: this task
+        # must log in as the rotated user, not the admin account.
+        username: pwtest
+        # Changed by the one-molecule project: upstream's literal test password is computed at run time instead.
+        password: "{{ 'pwtest-rotated-placeholder' | hash('sha256') }}"
+        path: system identity
+      delegate_to: localhost
+      connection: local
+      register: au
+    - name: Assert authentication succeeded
+      ansible.builtin.assert:
+        that:
+          - au is succeeded
+          - (au.msg | first).name is defined
+        success_msg: "pwtest authenticated with the rotated password"
+        fail_msg: "auth failed"

@@ -1,0 +1,66 @@
+---
+# Share one CHR instance across all scenarios (the `default` scenario owns
+# create/prepare/destroy; every other scenario reuses that single instance).
+shared_state: true
+
+# Shared base config — molecule auto-discovers this at
+# extensions/molecule/config.yml and deep-merges it into every scenario's
+# molecule.yml. Auto-discovery only fires when molecule is invoked from the
+# collection root with MOLECULE_GLOB=extensions/molecule/*/molecule.yml
+# (see the Makefile `molecule` target and extensions/molecule/README.md).
+#
+# Molecule runs its `dependency` step before each scenario, installing the
+# pinned test-only collections in extensions/molecule/requirements-test.yml via
+# ansible-galaxy. Consumers never need to manually pre-install the provisioner.
+dependency:
+  name: galaxy
+  enabled: true
+  options:
+    requirements-file: extensions/molecule/requirements-test.yml
+
+# Shared provisioner wiring for the subsystem-role scenarios. Centralised here
+# (together with the test_sequence + verifier below) so each per-scenario
+# molecule.yml is reduced to just its name. Playbook paths are resolved relative
+# to each scenario's OWN directory — molecule's provisioner.abs_path() joins
+# them onto scenario.directory, not onto this file's location — so
+# `converge.yml`/`verify.yml` pick up each scenario's local copy while
+# create/destroy/prepare share the utils playbooks.
+#
+# This base is merged into EVERY scenario under the glob. merge_dicts() applies
+# a scenario's molecule.yml on top, replacing list values wholesale and
+# overriding dict values per key, so lifecycle can opt out of shared state.
+ansible:
+  executor:
+    args:
+      ansible_playbook:
+        - --inventory=../utils/inventory/
+        - --inventory=${MOLECULE_EPHEMERAL_DIRECTORY}/inventory/
+  playbooks:
+    create: ../utils/playbooks/create.yml
+    destroy: ../utils/playbooks/destroy.yml
+    prepare: ../utils/playbooks/prepare.yml
+    converge: converge.yml
+    verify: verify.yml
+
+# Default test flow + verifier, shared by the subsystem-role scenarios so each
+# scenario's molecule.yml is reduced to just its name.
+#
+# Under shared_state the `default` scenario owns create/prepare/destroy of the
+# single CHR (run once for the whole suite via molecule's shared-state
+# orchestration). Role scenarios therefore OMIT those steps: create/destroy are
+# skipped by the orchestration anyway, and prepare must NOT run per-scenario
+# (it SSHes to the device using the runtime inventory only the default scenario
+# holds, and the API-bootstrap is a one-time action). Role scenarios reach the
+# shared instance over the fixed 127.0.0.1:8728 API hostfwd — their api tasks
+# delegate_to localhost, so no SSH to the device is needed — leaving just
+# converge/idempotence/verify. test_sequence is a list, so a scenario needing a
+# different flow replaces it wholesale on merge.
+scenario:
+  test_sequence:
+    - dependency
+    - converge
+    - idempotence
+    - verify
+
+verifier:
+  name: ansible

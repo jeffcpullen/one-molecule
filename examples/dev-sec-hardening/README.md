@@ -14,3 +14,9 @@ not among the counted ones.
 | Config and orchestration files | 11 | 1 |
 | Scenario folders | 7 | 0 |
 | Total lines | 451 | 260 |
+
+Six sequences in the single file still run `verify molecule/shared/prerequisites.yml`, upstream's
+path. That playbook is named as the argument to a `verify` step inside a sequence rather than under
+`playbooks:`, and this example does not assume the collection FQCN reference form reaches step
+arguments. Moved into `playbooks/molecule/` as the shared-folder recipe describes, those six
+references would name the new path instead.

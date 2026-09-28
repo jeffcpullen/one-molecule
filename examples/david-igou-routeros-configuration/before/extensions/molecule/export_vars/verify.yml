@@ -1,0 +1,171 @@
+---
+- name: Verify — the captured vars file is a valid routeros_config
+  hosts: molecule
+  gather_facts: false
+  module_defaults:
+    # One block covers every community.routeros api* module via the
+    # collection's `api` action group.
+    group/community.routeros.api:
+      hostname: "{{ routeros_api_hostname }}"
+      username: "{{ routeros_api_username }}"
+      password: "{{ routeros_api_password }}"
+      tls: "{{ routeros_api_tls }}"
+      validate_certs: "{{ routeros_api_validate_certs }}"
+      port: "{{ routeros_api_port | default(omit, true) }}"
+  vars:
+    routeros_export_vars_dir: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/captured"
+  tasks:
+    - name: Load the captured vars file from the controller
+      ansible.builtin.include_vars:
+        file: "{{ routeros_export_vars_dir }}/{{ inventory_hostname }}.yml"
+        name: captured
+
+    - name: Assert routeros_config captured /ip/address with the known entry and no .id
+      ansible.builtin.assert:
+        that:
+          - "'routeros_config' in captured"
+          - "'/ip/address' in captured.routeros_config"
+          - >-
+            captured.routeros_config['/ip/address'].data
+            | selectattr('address', 'equalto', '192.168.99.1/24') | list | length == 1
+          - >-
+            captured.routeros_config['/ip/address'].data
+            | map('list') | flatten | select('equalto', '.id') | list | length == 0
+          - "'/system/identity' in captured.routeros_config"
+          - >-
+            captured.routeros_config['/system/identity'].data
+            | selectattr('name', 'equalto', 'export-vars-id') | list | length == 1
+          # The unimplemented /interface/wireless path was tolerated (the export
+          # completed) and omitted from the captured config rather than aborting.
+          - "'/interface/wireless' not in captured.routeros_config"
+          # /ip/service is captured (gives the no-"!"-keys check below teeth).
+          - "'/ip/service' in captured.routeros_config"
+          # handle_disabled=omit (default): no entry carries a "!"-prefixed
+          # unset-field marker anywhere in the capture.
+          - >-
+            captured.routeros_config | dict2items
+            | map(attribute='value.data') | flatten
+            | map('list') | flatten | select('match', '^!') | list | length == 0
+          # No empty entries survived: all-default singletons and .id-only
+          # entries are dropped, and paths left empty are omitted.
+          - >-
+            captured.routeros_config | dict2items
+            | map(attribute='value.data') | flatten
+            | map('length') | select('eq', 0) | list | length == 0
+          # /routing/bfd/interface is not configure-modifiable, so it is dropped
+          # before querying and never appears in the capture.
+          - "'/routing/bfd/interface' not in captured.routeros_config"
+          # /file is configure-modifiable but excluded as runtime state
+          # (routeros_export_vars_exclude_paths) — never queried or emitted.
+          - "'/file' not in captured.routeros_config"
+          # /ip/tftp and /system/script are excluded via the merged EXTRA list
+          # (routeros_export_vars_exclude_paths_extra) — both must be absent.
+          - "'/ip/tftp' not in captured.routeros_config"
+          - "'/system/script' not in captured.routeros_config"
+          # Order-sensitive /ip/firewall/filter is captured WITH order + purge +
+          # content. content is mandatory: api_modify rejects purge (remove) with
+          # the default content=ignore on these paths — without it the path is
+          # DOA against configure (the round-trip task below proves it applies).
+          - "'/ip/firewall/filter' in captured.routeros_config"
+          - "captured.routeros_config['/ip/firewall/filter'].order is true"
+          - "captured.routeros_config['/ip/firewall/filter'].purge is true"
+          - "captured.routeros_config['/ip/firewall/filter'].content == 'remove_as_much_as_possible'"
+          # ORDER PRESERVATION (the real-world property): converge established a
+          # deliberate 6-rule sequence on the input chain. The captured data list
+          # must preserve that EXACT relative order — not merely carry order:true.
+          # Pull the comment off each captured entry, keep only our ev-fw-* rules
+          # (the converge owns this path via purge, so all six are ours), and
+          # assert the sequence is byte-for-byte the authored order.
+          - >-
+            captured.routeros_config['/ip/firewall/filter'].data
+            | selectattr('comment', 'defined')
+            | map(attribute='comment')
+            | select('match', '^ev-fw-') | list
+            == ['ev-fw-estrel', 'ev-fw-invalid', 'ev-fw-mgmt',
+                'ev-fw-icmp', 'ev-fw-lan', 'ev-fw-drop']
+          # Order-sensitive /ip/firewall/nat is captured the same way: order +
+          # purge + content, AND its two rules in the authored relative order
+          # (masquerade before the dst-nat port-forward). Other rules MAY precede
+          # ours (nat is appended idempotently, not purged), so filter to ev-nat-*
+          # and assert their relative sequence rather than exact list identity.
+          - "'/ip/firewall/nat' in captured.routeros_config"
+          - "captured.routeros_config['/ip/firewall/nat'].order is true"
+          - "captured.routeros_config['/ip/firewall/nat'].purge is true"
+          - "captured.routeros_config['/ip/firewall/nat'].content == 'remove_as_much_as_possible'"
+          - >-
+            captured.routeros_config['/ip/firewall/nat'].data
+            | selectattr('comment', 'defined')
+            | map(attribute='comment')
+            | select('match', '^ev-nat-') | list
+            == ['ev-nat-masq', 'ev-nat-http']
+          # Volatile date/time stripped from /system/clock; time-zone-name kept.
+          - "'/system/clock' in captured.routeros_config"
+          - >-
+            captured.routeros_config['/system/clock'].data
+            | map('list') | flatten | select('in', ['date', 'time']) | list | length == 0
+          - >-
+            captured.routeros_config['/system/clock'].data
+            | selectattr('time-zone-name', 'defined') | list | length == 1
+          # /ip/ipsec/policy captured with "group" stripped (volatile_fields):
+          # group.remove_value is "default", so a captured "group: default" is
+          # misread by api_modify as "disable group" and plans a duplicate add.
+          # The strip is what makes the round-trip task below changed=false.
+          - "'/ip/ipsec/policy' in captured.routeros_config"
+          - >-
+            captured.routeros_config['/ip/ipsec/policy'].data
+            | map('list') | flatten | select('eq', 'group') | list | length == 0
+        success_msg: >-
+          captured /ip/address + identity + /ip/service; no "!" markers, no empty
+          entries; /ip/firewall/filter + /ip/firewall/nat ordered+purged with
+          their rule SEQUENCE preserved exactly; /system/clock date/time stripped;
+          /ip/ipsec/policy "group" stripped; /file (default) + /ip/tftp +
+          /system/script (extra) excluded;
+          /interface/wireless + /routing/bfd/interface skipped
+        fail_msg: "unexpected capture: {{ captured.routeros_config | default('<missing>') }}"
+
+    # ROUND-TRIP COVERAGE (the regression guard). The bug that shipped in
+    # 0.0.4-alpha: a captured ordered path carried order+purge but no content, so
+    # the configure role passed handle_absent_entries=remove +
+    # handle_entries_content=ignore to api_modify, which rejects that combination
+    # on firewall/routing/queue paths — every ordered path was DOA against
+    # configure. The capture-only assertions above could not catch it. Replay
+    # EACH captured ordered block (filter AND nat) through api_modify EXACTLY as
+    # the _reconcile role does — including configure's content|default('ignore')
+    # and purge->remove mapping — in check mode (no device mutation). With the
+    # fix this is accepted; without content it reproduces the production failure
+    # ("handle_absent_entries=remove cannot be combined with ...=ignore").
+    - name: "Round-trip — each captured ordered block reconciles via api_modify (check mode)"
+      community.routeros.api_modify:
+        path: "{{ _ordered_path | replace('/', ' ') | trim }}"
+        data: "{{ _fw.data }}"
+        handle_absent_entries: "{{ 'remove' if (_fw.purge | default(false) | bool) else 'ignore' }}"
+        handle_entries_content: "{{ _fw.content | default('ignore') }}"
+        ensure_order: "{{ _fw.order | default(false) | bool }}"
+      vars:
+        _fw: "{{ captured.routeros_config[_ordered_path] }}"
+      loop:
+        - /ip/firewall/filter
+        - /ip/firewall/nat
+      loop_control:
+        loop_var: _ordered_path
+      check_mode: true
+      delegate_to: localhost
+      connection: local
+
+    # ROUND-TRIP REGRESSION GUARD for the /ip/ipsec/policy "group" bug. Replay the
+    # captured policy block through api_modify EXACTLY as the configure role would
+    # (handle_absent_entries=ignore, handle_entries_content=ignore) in check mode.
+    # With "group" stripped from the capture this is changed=false; WITHOUT the
+    # strip api_modify misreads "group: default" as "disable group", fails to match
+    # the device row, and plans a duplicate add (changed=true) — failing here.
+    - name: "Round-trip — captured /ip/ipsec/policy re-applies clean (no duplicate add)"
+      community.routeros.api_modify:
+        path: ip ipsec policy
+        data: "{{ captured.routeros_config['/ip/ipsec/policy'].data }}"
+        handle_absent_entries: ignore
+        handle_entries_content: ignore
+      check_mode: true
+      delegate_to: localhost
+      connection: local
+      register: _ipsec_roundtrip
+      failed_when: _ipsec_roundtrip.changed

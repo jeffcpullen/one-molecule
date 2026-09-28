@@ -1,0 +1,4 @@
+---
+# Wiring is centralised in extensions/molecule/config.yml; this file only names the scenario.
+scenario:
+  name: configure_modify_only

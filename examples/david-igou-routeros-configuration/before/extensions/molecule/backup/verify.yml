@@ -1,0 +1,50 @@
+---
+- name: Verify — backup artifacts exist and capture secrets (but not user passwords)
+  hosts: molecule
+  gather_facts: false
+  vars_files:
+    # Shared network_cli connection vars (host-forwarded SSH on 127.0.0.1:2223).
+    - ../utils/vars/network_cli.yml
+  vars:
+    routeros_backup_dir: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/backups"
+  tasks:
+    - name: Read the exported .rsc from the controller
+      ansible.builtin.slurp:
+        src: "{{ routeros_backup_dir }}/{{ inventory_hostname }}.rsc"
+      delegate_to: localhost
+      connection: local
+      register: rsc
+
+    - name: Decode the export
+      ansible.builtin.set_fact:
+        rsc_text: "{{ rsc.content | b64decode }}"
+
+    - name: Assert the export captured the wireguard interface and its secret
+      ansible.builtin.assert:
+        that:
+          - "'bk-wg' in rsc_text"
+          - "'private-key=' in rsc_text"
+        success_msg: "export with secrets confirmed (wireguard private-key present)"
+        fail_msg: "wireguard interface/secret missing from the export"
+
+    - name: Assert the admin password is NOT in the export (/export omits user passwords)
+      ansible.builtin.assert:
+        that:
+          - chr_admin_password not in rsc_text
+        success_msg: "no /user password in the export, as documented"
+        fail_msg: "the admin password leaked into the .rsc export"
+
+    - name: List the binary backup on the device
+      community.routeros.command:
+        commands:
+          - "/file print where name=ansible.backup"
+      register: filelist
+      changed_when: false
+
+    - name: Assert the binary backup file exists
+      ansible.builtin.assert:
+        that:
+          - filelist.stdout | length > 0
+          - filelist.stdout[0] is search('ansible.backup')
+        success_msg: "binary backup ansible.backup present in /file"
+        fail_msg: "binary backup file not found: {{ filelist.stdout | default('<none>') }}"

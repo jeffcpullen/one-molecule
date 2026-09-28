@@ -1,0 +1,41 @@
+---
+- name: Verify — singletons applied
+  hosts: molecule
+  gather_facts: false
+  module_defaults:
+    # One block covers every community.routeros api* module via the
+    # collection's `api` action group.
+    group/community.routeros.api:
+      hostname: "{{ routeros_api_hostname }}"
+      username: "{{ routeros_api_username }}"
+      password: "{{ routeros_api_password }}"
+      tls: "{{ routeros_api_tls }}"
+      validate_certs: "{{ routeros_api_validate_certs }}"
+      port: "{{ routeros_api_port | default(omit, true) }}"
+  tasks:
+    - name: Read /system/identity
+      community.routeros.api_info:
+        path: system identity
+      delegate_to: localhost
+      connection: local
+      register: ident
+    - name: Read /ip/dns
+      community.routeros.api_info:
+        path: ip dns
+      delegate_to: localhost
+      connection: local
+      register: dns
+    - name: Read /ip/settings
+      community.routeros.api_info:
+        path: ip settings
+      delegate_to: localhost
+      connection: local
+      register: ipsettings
+    - name: Assert identity, dns servers, allow-remote-requests, and tcp-syncookies applied
+      ansible.builtin.assert:
+        that:
+          - ident.result | selectattr('name', 'equalto', 'configure-chr') | list | length == 1
+          - dns.result | selectattr('servers', 'search', '1.1.1.1') | list | length == 1
+          - (dns.result | first)['allow-remote-requests'] | string | lower == 'false'
+          - (ipsettings.result | first)['tcp-syncookies'] | string | lower == 'true'
+        fail_msg: "identity={{ ident.result }} dns={{ dns.result }} ipsettings={{ ipsettings.result }}"

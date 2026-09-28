@@ -26,6 +26,7 @@ wire Molecule today:
 | openstack/ansible-role-systemd_service | OpenStack | Apache-2.0 | Single `molecule/default`, playbooks pulled from `tests/` |
 | osism/ansible-collection-commons | OSISM | Apache-2.0 | Top-level `molecule/`, a large delegated `prepare/` tree |
 | david-igou/ansible-collection-armbian | David Igou | MIT | `extensions/molecule/`, 10 scenarios, a shared `config.yml`, a per-scenario `inventory/` tree |
+| david-igou/ansible-collection-routeros_configuration | David Igou | MIT | `extensions/molecule/`, 22 scenarios, `shared_state: true` in a shared `config.yml`, a `Makefile`-ordered run |
 
 That is at least seven distinct layouts across these projects. The variation is the symptom.
 
@@ -49,6 +50,7 @@ unchanged and still referenced.
 |---|---|---|---|
 | aristanetworks/avd | 32 → 1 | 30 → 0 | 914 → 342 |
 | david-igou/ansible-collection-armbian | 41 → 1 | 10 → 0 | 328 → 164 |
+| david-igou/ansible-collection-routeros_configuration | 25 → 1 | 22 → 0 | 331 → 253 |
 | nginxinc/ansible-role-nginx | 15 → 1 | 14 → 0 | 3042 → 866 |
 | dev-sec/ansible-collection-hardening | 11 → 1 | 7 → 0 | 451 → 260 |
 | prometheus-community/ansible | 11 → 1 | 9 → 0 | 249 → 274 |
@@ -56,7 +58,7 @@ unchanged and still referenced.
 | openstack/ansible-role-systemd_service | 4 → 1 | 1 → 0 | 151 → 44 |
 | linux-system-roles/network | 5 → 1 | 0 | 622 → 213 |
 | linux-system-roles/storage | 8 → 1 | 0 | 1029 → 164 |
-| Total, the Molecule projects | 118 → 7 | 73 → 0 | 5656 → 2004 |
+| Total, the Molecule projects | 143 → 8 | 95 → 0 | 5987 → 2257 |
 
 prometheus-community/ansible is counted over a representative three-role subset, and it is the one
 project here whose single file is not shorter than what it replaces, because its scenarios already

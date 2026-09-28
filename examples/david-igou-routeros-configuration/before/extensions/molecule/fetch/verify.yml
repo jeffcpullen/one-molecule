@@ -1,0 +1,28 @@
+---
+- name: Verify — the fetched file exists on the device
+  hosts: molecule
+  gather_facts: false
+  module_defaults:
+    # One block covers every community.routeros api* module via the
+    # collection's `api` action group.
+    group/community.routeros.api:
+      hostname: "{{ routeros_api_hostname }}"
+      username: "{{ routeros_api_username }}"
+      password: "{{ routeros_api_password }}"
+      tls: "{{ routeros_api_tls }}"
+      validate_certs: "{{ routeros_api_validate_certs }}"
+      port: "{{ routeros_api_port | default(omit, true) }}"
+  tasks:
+    - name: Read files
+      community.routeros.api:
+        path: file
+      delegate_to: localhost
+      connection: local
+      register: files
+    - name: Assert the kept file is present and the removed file is gone
+      ansible.builtin.assert:
+        that:
+          - files.msg | selectattr('name', 'equalto', 'fetch-keep.html') | list | length == 1
+          - files.msg | selectattr('name', 'equalto', 'fetch-remove.html') | list | length == 0
+        success_msg: "fetch created fetch-keep.html; fetch_remove deleted fetch-remove.html"
+        fail_msg: "unexpected files: {{ files.msg | map(attribute='name') | list }}"
