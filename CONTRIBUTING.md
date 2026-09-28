@@ -96,7 +96,7 @@ gitleaks git --redact --verbose --config .gitleaks.toml .
 | `SELFTEST: ...` | A linter's own fixtures stopped firing, so the gate is no longer proving anything. Fix the pattern, not the fixture |
 | `yamllint` findings | Every yamllint rule here is an error, never a warning. There is nothing to defer |
 | `BLOCKED: git is tracking paths ...` | Something listed in `tools/private-paths.txt` got staged. Untrack it and keep the working copy |
-| `Detect hardcoded secrets` fails | gitleaks matched a credential. Rotate it first, before anything else, because it is burned the moment it lands in a file. Then remove it from the content. Amending the commit does not undo a push, and the old commit stays fetchable, so rotation is the fix and deletion is only cleanup. If the value is genuinely synthetic, add it to `.gitleaks.toml` by value, never by path |
+| `Detect hardcoded secrets` fails | gitleaks matched a credential. Rotate it first, before anything else, because it is burned the moment it lands in a file. Then remove it from the content. Amending the commit does not undo a push, and the old commit stays fetchable, so rotation is the fix and deletion is only cleanup. If the value is genuinely synthetic, replace it with an obvious placeholder the scan does not flag. Never add an allowlist, a stopword, a `.gitleaksignore` entry or a `gitleaks:allow` comment. `.gitleaks.toml` is generated, and the only allowlists in it are the ones shipped upstream with the gitleaks default ruleset and leaktk/patterns |
 
 `./tools/check-private-paths.sh --selftest` proves the push guard still fires in both directions,
 against a throwaway repo. Run it if you change the path list.
