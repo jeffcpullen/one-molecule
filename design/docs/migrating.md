@@ -11,12 +11,14 @@ migration would work under the proposal. Steps that rely on a part still marked 
 (the single-file discovery mode, the `runtime:` envelope, playbook references by collection
 FQCN) say so where they occur, so nothing here reads as available in molecule today.
 
-Each of the nine projects under `examples/` carries its converted root file at
+Each of the ten projects under `examples/` carries its converted root file at
 `after/molecule.yml`, beside the original layout in `before/`. The recipes below use
+`david_igou.routeros_configuration` (`examples/david-igou-routeros-configuration/`),
 `arista.avd` (`examples/arista-avd/`) and the upstream
 [`ansible.platform`](https://github.com/ansible/ansible.platform) collection as the concrete
 cases, and point to the matching example where one exists. `ansible.platform` has no
-converted example under `examples/`, so recipe 1 describes what its conversion would do.
+converted example under `examples/`, so recipe 6 describes what folding its playbooks would
+do.
 
 ## Before you start
 
@@ -41,38 +43,59 @@ the shared node fails.
 
 For a project where one scenario stands up an environment with `create`/`destroy` and
 every other scenario tests against it under `shared_state: true`. Worked case:
-`ansible.platform`, 23 scenario directories under `extensions/molecule/`: a shared base
-config, a `default` scenario that stands up a mock server, and 22 mock scenarios that test
-against it.
+`david_igou.routeros_configuration`, 22 scenario directories under `extensions/molecule/`.
+A shared `config.yml` sets `shared_state: true`, a `default` scenario boots one MikroTik
+CHR, twenty scenarios converge against that one device, and `lifecycle` opts out with
+`shared_state: false`. The converted root file is
+`examples/david-igou-routeros-configuration/after/molecule.yml`.
 
 1. Find the setup scenario. It is the one whose `test_sequence` runs `create` and
-   `destroy` and whose playbooks stand the shared environment up. In `ansible.platform`
-   it is `default`, which starts a mock server and tears it down.
+   `destroy` and whose playbooks stand the shared environment up. In
+   `routeros_configuration` it is `default`, which owns create, prepare and destroy of
+   the CHR.
 2. Make that scenario the root of the tree and make every other scenario its child.
    Under the proposed single root file, the root is one entry in `scenarios:` and the
    rest nest under its `children:`. The nesting is the parent edge.
-3. Let ownership follow the playbook references. The root references its own
+3. Make each scenario that sets `shared_state: false` a root of its own. It boots its
+   own environment, so it is not a child of the setup scenario. In the worked file
+   `lifecycle` is a second entry in `scenarios:` with its own `create`/`destroy`.
+4. Let ownership follow the playbook references. The root references its own
    `create`/`destroy`, so it owns the environment. The children reference neither, so
    they own nothing and start from a snapshot of the root. There is no ownership flag to
    set. Ownership is read off the create reference.
-4. Move the settings every child repeated into one top-level `defaults:` block: the
-   driver, the platforms, the verifier, the environment, the provisioner config options.
-   A child keeps only what makes it different.
-5. Move the shared playbooks into `playbooks/molecule/` and reference each by name.
+5. Define the shared machine once in the top-level `platforms:` catalog. A root with no
+   `platforms:` selects the whole catalog, and a child selects none of its own. In the
+   worked file one catalog entry, `chr-1`, replaces the static `utils/inventory/` tree,
+   and both roots boot it.
+6. Move the settings every child repeated into one top-level `defaults:` block: the
+   dependency, the executor arguments, the inventory variables, the test sequence and the
+   verifier. A child keeps only what makes it different, such as a shorter
+   `test_sequence`.
+7. Move the shared playbooks into `playbooks/molecule/` and reference each by name.
    A playbook set the children share can ride on the root's own `defaults:` block, which
    applies to the root and everything below it. Written once, read by many. See recipe 6
    for folding near-identical playbooks together.
-6. Drop the per-scenario inventory copies. The root owns the inventory and the tree
+8. Drop the per-scenario inventory copies. The root owns the inventory and the tree
    snapshots it down to the children, so a child sees the root's hosts without declaring
    anything.
-7. Drop `shared_state: true`. It is not a key in the root file, and the nesting now
-   declares the relationship it stood in for. A project left in its scenario directories
-   keeps `shared_state` with Molecule's own meaning, unchanged.
+9. Carry any run order the project enforced outside Molecule with `wave:`. The
+   `routeros_configuration` `Makefile` runs `ping` and `fetch` before `configure_full`
+   installs a firewall, and `restore` and `reboot` last. The worked file puts those in
+   waves 0, 2 and 3, the rest of the children in wave 1, and `lifecycle` in root wave 1
+   because it forwards the same host ports as `default`.
+10. Drop `shared_state: true`. It is not a key in the root file, and the nesting now
+    declares the relationship it stood in for. A project left in its scenario directories
+    keeps `shared_state` with Molecule's own meaning, unchanged.
 
-For `ansible.platform` the config collapse would replace the shared base config and the 23
-per-scenario `molecule.yml` files with one root `molecule.yml`. Folding the mock scenarios'
-near-identical playbooks onto one shared set is a further step, the content refactor in
-recipe 6, not something the conversion does on its own.
+Children that share one device are not safe to run concurrently just because they sit in
+different waves. In the worked file several wave 1 children set the device's system
+identity to different values, so it is correct only under `--workers 1`, which runs a wave
+in list order. See recipe 8 for how waves and `--workers` interact.
+
+The worked example turns `shared_state` into a tree one level deep. It is not evidence for
+deeper nesting. The config collapse replaces the shared `config.yml`, the 22 per-scenario
+`molecule.yml` files and the two `utils/inventory/` files with one root `molecule.yml`.
+The per-example counts are in `examples/david-igou-routeros-configuration/README.md`.
 
 ## Recipe 2: Convert a per-role roles/*/molecule/ layout to one root config
 
