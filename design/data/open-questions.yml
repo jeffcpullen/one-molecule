@@ -48,7 +48,7 @@ open:
     status: "deferred under a working assumption"
     raised: "2026-09-23"
     framing:
-      - "linux-system-roles/storage allocates a fixed count of ephemeral nodes on demand (Artemis on Testing Farm, local virtual for `tmt try`) and packs 123 test playbooks onto them, reusing each node as it frees rather than booting one per test."
+      - "linux-system-roles/storage allocates a fixed count of ephemeral nodes on demand (Artemis on Testing Farm, local virtual for `tmt try`) and packs 150 test playbooks onto them, reusing each node as it frees rather than booting one per test."
       - "The proposed model boots a fresh node per scenario capped by `--workers`, which matches the concurrency width but not the reuse."
       - "The question is whether a driver should be able to maintain a standing pool of instances, hand a freed instance to the next runnable child, and reuse it, so a run does far fewer boots than one per scenario."
       - "This is the one capability molecule-as-is lacks, and it trades fresh-node isolation for lower provisioning cost."
