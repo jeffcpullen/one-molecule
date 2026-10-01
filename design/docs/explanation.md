@@ -140,10 +140,12 @@ shared playbooks would move once into `playbooks/molecule/`.
 
 The collapse has two parts.
 
-The config collapse is automatic. Turning `shared_state` into a tree, moving the repeated
-driver, platforms, verifier, and environment settings into one root `defaults:` block, and
-letting the tree snapshot the inventory down to the children removes the per-scenario
-`molecule.yml` files directly. That is what declaring the tree does for you.
+The config collapse is automatic. Turning `shared_state` into a tree removes the per-scenario
+`molecule.yml` files directly. The mock server is defined once in the top-level `platforms:`
+catalog, and the root selects the whole catalog by leaving its own `platforms:` out. The
+driver sits bare on the root, the node that creates, so it is not handed to the children. The
+repeated verifier and environment settings move into one root `defaults:` block, and the tree
+snapshots the inventory down to the children. That is what declaring the tree does for you.
 
 The further collapse of the playbooks is an author-side content refactor that the shared
 folder makes possible, not something Molecule does for you. Most of the 22 mocks run the same
