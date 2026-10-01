@@ -10,7 +10,9 @@
 #
 # We never author allowlists, stopwords, suppressions, .gitleaksignore entries
 # or gitleaks:allow comments. Allowlists shipped upstream (the gitleaks default
-# ruleset and leaktk) are accepted as shipped. Fix a finding in the content.
+# ruleset and leaktk) are accepted as shipped. Fix a finding with a placeholder
+# when the value need not be literal, or an inline `# notsecret` (leaktk's
+# shipped line allowlist) on a genuinely throwaway literal test value.
 # gitleaks applies a global [[allowlists]] entry to every rule, so leaktk's
 # global allowlist (below) also covers the default and local rules.
 
