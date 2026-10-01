@@ -9,3 +9,10 @@ collections:
   - name: community.crypto
   - name: ansible.posix
   - name: fedora.linux_system_roles
+
+# The role under test, by the legacy name the vendored tests call. Pinned to
+# the release the vendored tests, modules and scripts come from, so the role
+# and its tests move together.
+roles:
+  - name: linux-system-roles.storage
+    version: 1.22.1

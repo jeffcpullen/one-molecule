@@ -1,8 +1,8 @@
 ---
 # Molecule cleanup: undo a node's side effects. Deliberately minimal here.
-# Each storage test runs on a FRESH transient domain, so the disks and every
-# side effect (dm mappings, VG/LV metadata, LUKS headers, /etc/crypttab, mounts)
-# are discarded when destroy tears the domain down. Their CI has no inter-test
+# Each storage test runs on a FRESH domain that create defines and destroy
+# undefines, so the disks and every side effect (dm mappings, VG/LV metadata,
+# LUKS headers, /etc/crypttab, mounts) are discarded when destroy removes it. Their CI has no inter-test
 # reset step either, so this stays a no-op for a faithful 1-to-1. If you ever
 # reuse a node across scenarios, this is where a blivet wipe would live.
 - name: Cleanup
@@ -11,4 +11,4 @@
   tasks:
     - name: Nothing to unwind on an ephemeral node
       ansible.builtin.debug:
-        msg: "Node is destroyed per scenario; no side-effect reset needed."
+        msg: "Node is destroyed per scenario, no side-effect reset needed."
