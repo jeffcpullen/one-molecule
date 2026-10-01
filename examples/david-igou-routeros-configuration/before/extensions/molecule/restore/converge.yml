@@ -23,7 +23,7 @@
     - name: Save a binary backup of the baseline
       community.routeros.api:
         path: system backup
-        cmd: "save name=rst-test password=rst-pw-123"
+        cmd: "save name=rst-test password=rst-pw-123"  # notsecret
       delegate_to: localhost
       connection: local
     - name: Change the identity (so the restore is observable)
@@ -38,4 +38,4 @@
         name: david_igou.routeros_configuration.restore
       vars:
         routeros_restore_backup_name: rst-test
-        routeros_restore_backup_password: rst-pw-123
+        routeros_restore_backup_password: rst-pw-123  # notsecret

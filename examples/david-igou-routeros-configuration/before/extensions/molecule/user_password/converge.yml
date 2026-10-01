@@ -22,7 +22,7 @@
     - name: Create the throwaway test user if absent
       community.routeros.api:
         path: user
-        add: "name=pwtest group=read password=initpw-000"
+        add: "name=pwtest group=read password=initpw-000"  # notsecret
       delegate_to: localhost
       connection: local
       when: _u.msg | selectattr('name', 'equalto', 'pwtest') | list | length == 0
@@ -32,5 +32,4 @@
       vars:
         routeros_user_passwords:
           - name: pwtest
-            # Changed by the one-molecule project: upstream's literal test password is computed at run time instead.
-            password: "{{ 'pwtest-rotated-placeholder' | hash('sha256') }}"
+            password: "rotated-pw-456"  # notsecret

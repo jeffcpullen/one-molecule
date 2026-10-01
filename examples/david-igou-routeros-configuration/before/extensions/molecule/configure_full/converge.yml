@@ -306,7 +306,7 @@
       /ppp/secret:
         data:
           - name: full-secret
-            password: "x"
+            password: "x"  # notsecret
       /queue/type:
         data:
           - name: full-qtype
@@ -334,7 +334,7 @@
             target: memory
       /snmp/community:
         data:
-          - name: full-snmp
+          - name: full-snmp  # notsecret
             addresses: "0.0.0.0/0"
   roles:
     - role: david_igou.routeros_configuration.configure

@@ -3,9 +3,8 @@
 This is a proof of concept of a testing layout idea. It takes the real molecule scenario set from
 `david-igou/ansible-collection-routeros_configuration` (pinned at commit
 `1dc714593ca8534706655fb54eb6cb5c401bd421` on `main`, copied verbatim into `before/`) and shows it
-collapsed into one root `molecule.yml`. The one exception is `converge.yml` and `verify.yml` under
-`before/extensions/molecule/user_password/`, where upstream's literal test password is replaced by one
-computed at run time, with a comment saying so. Neither file is among the counted ones.
+collapsed into one root `molecule.yml`. The one exception is that each line carrying a throwaway test
+credential has an added inline `# notsecret` comment, which adds no lines.
 
 ## Changed
 

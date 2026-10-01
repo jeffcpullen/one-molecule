@@ -74,7 +74,7 @@ defaults:
     inventory:
       group_vars:
         molecule:
-          chr_admin_password: molecule
+          chr_admin_password: molecule  # notsecret
           routeros_api_hostname: "127.0.0.1"
           routeros_api_port: 8728
           routeros_api_username: admin

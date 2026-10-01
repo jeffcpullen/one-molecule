@@ -36,7 +36,7 @@
           vars:
             routeros_user_passwords:
               - name: this-user-does-not-exist
-                password: irrelevant
+                password: irrelevant  # notsecret
         - name: user_password wrongly accepted the missing user
           ansible.builtin.set_fact:
             _userpw_rejected: false

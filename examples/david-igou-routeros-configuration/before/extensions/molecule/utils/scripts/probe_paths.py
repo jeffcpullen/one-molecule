@@ -37,7 +37,7 @@ def writable(vd):
 def main():
     api = connect(
         username=os.environ.get("ROS_USERNAME", "admin"),
-        password=os.environ.get("ROS_PASSWORD", "molecule"),
+        password=os.environ.get("ROS_PASSWORD", "molecule"),  # notsecret
         host=os.environ.get("ROS_HOST", "127.0.0.1"),
         port=int(os.environ.get("ROS_PORT", "8728")),
     )

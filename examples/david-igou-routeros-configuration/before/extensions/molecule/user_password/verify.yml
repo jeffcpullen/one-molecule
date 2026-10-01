@@ -18,8 +18,7 @@
         # Deliberate per-task override of the play-level defaults: this task
         # must log in as the rotated user, not the admin account.
         username: pwtest
-        # Changed by the one-molecule project: upstream's literal test password is computed at run time instead.
-        password: "{{ 'pwtest-rotated-placeholder' | hash('sha256') }}"
+        password: "rotated-pw-456"  # notsecret
         path: system identity
       delegate_to: localhost
       connection: local

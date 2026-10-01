@@ -11,7 +11,7 @@ mp_defaults:
     ssh_user: admin
 
 # Throwaway admin password bootstrapped onto the fresh CHR by prepare.yml.
-chr_admin_password: molecule
+chr_admin_password: molecule  # notsecret
 
 # The RouterOS binary API is reached from the CONTROLLER (api_modify runs with
 # connection: local), via the SLIRP hostfwd on 127.0.0.1:8728 — NOT the device's

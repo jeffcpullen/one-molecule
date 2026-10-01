@@ -38,7 +38,7 @@
       vars:
         routeros_backup_binary: true
         routeros_backup_name: lc-test
-        routeros_backup_password: lc-pw-123
+        routeros_backup_password: lc-pw-123  # notsecret
         routeros_backup_dir: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/backups"
 
     # --- Phase 2: wrong-password restore must fail without harming the device ---
@@ -49,7 +49,7 @@
             name: david_igou.routeros_configuration.restore
           vars:
             routeros_restore_backup_name: lc-test
-            routeros_restore_backup_password: wrong-pw
+            routeros_restore_backup_password: wrong-pw  # notsecret
         - name: Should not reach here
           ansible.builtin.fail:
             msg: "restore accepted a wrong backup password"
@@ -84,7 +84,7 @@
         name: david_igou.routeros_configuration.restore
       vars:
         routeros_restore_backup_name: lc-test
-        routeros_restore_backup_password: lc-pw-123
+        routeros_restore_backup_password: lc-pw-123  # notsecret
 
     - name: Read identity after restore
       community.routeros.api:
