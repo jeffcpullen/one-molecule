@@ -1,24 +1,36 @@
 ---
-# Molecule destroy: remove the objects create made. The whole domain is
-# transient, so the disks and every side effect go with it.
+# Molecule destroy: remove the objects create made. The domain is stopped and
+# undefined only if libvirt knows it, so a missing domain is not an error and a
+# real libvirt failure still fails the task. Its work dir holds the overlay, the
+# nine data disks, the seed and the SSH keypair, so removing it removes them all.
 - name: Destroy
   hosts: localhost
   gather_facts: false
-  vars:
-    instance: "{{ lookup('env', 'MOLECULE_SCENARIO_NAME') | default('default', true) }}-storage"
-    workdir: "{{ molecule_ephemeral_directory }}/{{ lookup('env', 'MOLECULE_SCENARIO_NAME') |
-      default('default', true) }}-storage"
+  vars_files:
+    - ../vars/hypervisor.yml
   tasks:
-    - name: Destroy and undefine the domain
+    - name: List the domains libvirt knows
       community.libvirt.virt:
-        name: "{{ instance }}"
-        command: "{{ item }}"
-      loop:
-        - destroy
-        - undefine
-      failed_when: false
+        command: list_vms
+        uri: "{{ libvirt_uri }}"
+      register: known_domains
 
-    - name: Remove the backing files and seed
+    - name: Stop and undefine the domain
+      when: domain in known_domains.list_vms
+      block:
+        - name: Stop the domain
+          community.libvirt.virt:
+            name: "{{ domain }}"
+            state: destroyed
+            uri: "{{ libvirt_uri }}"
+
+        - name: Undefine the domain
+          community.libvirt.virt:
+            name: "{{ domain }}"
+            command: undefine
+            uri: "{{ libvirt_uri }}"
+
+    - name: Remove the work dir
       ansible.builtin.file:
         path: "{{ workdir }}"
         state: absent

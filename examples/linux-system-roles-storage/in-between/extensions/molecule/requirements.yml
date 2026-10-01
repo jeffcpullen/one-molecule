@@ -1,0 +1,11 @@
+---
+# What the scenarios need on the controller, installed by molecule's dependency
+# step. create.yml and destroy.yml use community.libvirt and community.crypto.
+# ansible.posix is the storage role's own collection requirement
+# (meta/collection-requirements.yml) and fedora.linux_system_roles is what the
+# upstream tests declare (tests/collection-requirements.yml).
+collections:
+  - name: community.libvirt
+  - name: community.crypto
+  - name: ansible.posix
+  - name: fedora.linux_system_roles

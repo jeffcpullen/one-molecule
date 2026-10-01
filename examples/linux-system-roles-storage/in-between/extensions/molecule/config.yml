@@ -8,6 +8,12 @@
 # playbook. Playbook paths
 # resolve relative to each scenario dir (extensions/molecule/<name>/), so
 # ../utils/playbooks/... reaches the shared playbooks from any scenario.
+dependency:
+  name: galaxy
+  options:
+    role-file: ${MOLECULE_SCENARIO_DIRECTORY}/../requirements.yml
+    requirements-file: ${MOLECULE_SCENARIO_DIRECTORY}/../requirements.yml
+
 driver:
   name: default            # create.yml / destroy.yml own the object lifecycle
 
@@ -20,16 +26,20 @@ provisioner:
     create: ../utils/playbooks/create.yml
     destroy: ../utils/playbooks/destroy.yml
     cleanup: ../utils/playbooks/cleanup.yml
-  config_options:
-    defaults:
-      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+    verify: ../utils/playbooks/verify.yml
   env:
     # The tests' real parameterization surface (roles/storage/tests/tests_*.yml
-    # and tests/tasks/setup.yml read these on the node).
+    # and tests/tasks/setup.yml read these with lookup('env'), which runs on the
+    # controller, so molecule passes them through the provisioner env).
     SYSTEM_ROLES_LUKS_CIPHER: ""
     SYSTEM_ROLES_TEST_FIPS: "false"
     SYSTEM_ROLES_REMOVE_CLOUD_INIT: "false"
   inventory:
+    host_vars:
+      # Upstream's qcow2 provisioner connects as root. create.yml connects as the
+      # image's cloud user, so escalate on the node to keep the tests' privilege.
+      storage-instance:
+        ansible_become: true
     group_vars:
       all:
         # tests/vars/rh_distros_vars.yml is auto-generated and loaded by the
@@ -39,6 +49,22 @@ provisioner:
           - CentOS
           - RedHat
           - Rocky
+
+scenario:
+  # The default sequence without idempotence and side_effect. The LSR test
+  # playbooks create and remove volumes and provoke role failures on purpose,
+  # so a second converge is not expected to report no changes. No scenario
+  # ships a prepare playbook.
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - converge
+    - verify
+    - cleanup
+    - destroy
 
 verifier:
   name: ansible

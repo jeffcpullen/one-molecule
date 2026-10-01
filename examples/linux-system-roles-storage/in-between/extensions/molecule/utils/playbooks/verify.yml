@@ -1,0 +1,63 @@
+---
+# Molecule verify: check the disk objects create made reached the node on the
+# bus utils/vars/disks.yml names. The role's own assertions run inside each
+# converge playbook, as they do upstream, so this checks the fixture they rely
+# on: three virtio, three scsi and three nvme data disks of the declared sizes,
+# with the nvme serials standard-inventory-qcow2 assigns.
+- name: Verify the data disks
+  hosts: all
+  gather_facts: false
+  vars_files:
+    - ../vars/disks.yml
+  vars:
+    bus_prefix:
+      virtio: vd
+      scsi: sd
+      nvme: nvme
+  tasks:
+    - name: List the whole disks on the node
+      ansible.builtin.command:
+        cmd: lsblk --json --bytes --nodeps --output NAME,TYPE,SIZE,SERIAL
+      register: lsblk
+      changed_when: false
+
+    - name: Keep the data disks, every disk but the OS disk
+      ansible.builtin.set_fact:
+        data_disks: "{{ (lsblk.stdout | from_json).blockdevices |
+          selectattr('type', 'eq', 'disk') | rejectattr('name', 'eq', 'vda') | list }}"
+
+    - name: Work out the nvme serials create assigned
+      ansible.builtin.set_fact:
+        expected_serials: "{{ expected_serials | default([]) + ['def' ~ idx] }}"
+      loop: "{{ qemu_drives }}"
+      loop_control:
+        index_var: idx
+      when: item.interface == 'nvme'
+
+    - name: Check each bus carries the declared number of disks
+      ansible.builtin.assert:
+        that:
+          - (data_disks | selectattr('name', 'match', bus_prefix[item]) | list | length) ==
+            (qemu_drives | selectattr('interface', 'eq', item) | list | length)
+        fail_msg: "{{ item }}: found {{ data_disks | selectattr('name', 'match', bus_prefix[item]) |
+          map(attribute='name') | list }}"
+      loop:
+        - virtio
+        - scsi
+        - nvme
+
+    - name: Check the nvme serials
+      ansible.builtin.assert:
+        that:
+          - (data_disks | selectattr('name', 'match', 'nvme') | map(attribute='serial') | sort) ==
+            (expected_serials | sort)
+
+    - name: Check every data disk has its declared size, to the 512-byte sector
+      # qemu rounds a raw image that is not a whole number of sectors up to the
+      # next one, so 1099511627800 bytes shows as 1099511628288.
+      ansible.builtin.assert:
+        that:
+          - ((item.0 | int) - (item.1 | int)) | abs < 512
+        fail_msg: "declared {{ item.0 }} bytes, found {{ item.1 }}"
+      loop: "{{ qemu_drives | map(attribute='size') | map('int') | sort |
+        zip(data_disks | map(attribute='size') | map('int') | sort) | list }}"

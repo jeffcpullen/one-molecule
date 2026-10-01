@@ -1,29 +1,29 @@
 ---
 # Molecule create: make the objects converge acts on. Faithful translation of
-# standard-inventory-qcow2's disk logic (tox-lsr) into a transient libvirt domain.
-# The nine data disks are raw sparse files attached exactly as the qcow2
-# provisioner attaches them: virtio by if=virtio, scsi via a virtio-scsi
-# controller, nvme via a -device nvme passthrough.
+# standard-inventory-qcow2's disk logic (tox-lsr) into a libvirt domain that is
+# defined per scenario and undefined again by destroy.yml. The nine data disks
+# are raw sparse files attached on the bus the qemu provisioner uses: virtio,
+# scsi via a virtio-scsi controller, and nvme via one nvme controller per disk.
 - name: Create
   hosts: localhost
   gather_facts: false
   vars_files:
     - ../vars/disks.yml
-  vars:
-    instance: "{{ lookup('env', 'MOLECULE_SCENARIO_NAME') | default('default', true) }}-storage"
-    workdir: "{{ molecule_ephemeral_directory }}/{{ instance }}"
-    # Base cloud image (clean, never written to). Override for your distro/arch.
-    base_image: "{{ lookup('env', 'MOLECULE_BASE_IMAGE') |
-      default('/var/lib/libvirt/images/fedora-cloud-base.qcow2', true) }}"
-    ssh_key: "{{ molecule_ephemeral_directory }}/ssh_key"
+    - ../vars/hypervisor.yml
   tasks:
-    - name: Make the per-instance work dir
+    - name: Check there is exactly one platform to create
+      ansible.builtin.assert:
+        that:
+          - groups['all'] | length == 1
+        fail_msg: "This create playbook makes one node, the platforms list has {{ groups['all'] | length }}"
+
+    - name: Make the per-domain work dir
       ansible.builtin.file:
         path: "{{ workdir }}"
         state: directory
         mode: "0755"
 
-    - name: Generate an ephemeral SSH keypair
+    - name: Generate an SSH keypair for this domain
       community.crypto.openssh_keypair:
         path: "{{ ssh_key }}"
         type: ed25519
@@ -54,7 +54,7 @@
         - name: user-data
           content: "{{ lookup('template', 'templates/user-data.j2') }}"
         - name: meta-data
-          content: "instance-id: {{ instance }}\nlocal-hostname: {{ instance }}\n"
+          content: "instance-id: {{ domain }}\nlocal-hostname: {{ instance }}\n"
 
     - name: Build the NoCloud seed ISO
       ansible.builtin.command:
@@ -67,17 +67,19 @@
       community.libvirt.virt:
         command: define
         xml: "{{ lookup('template', 'templates/domain.xml.j2') }}"
+        uri: "{{ libvirt_uri }}"
 
     - name: Start the domain
       community.libvirt.virt:
-        name: "{{ instance }}"
+        name: "{{ domain }}"
         state: running
+        uri: "{{ libvirt_uri }}"
 
     - name: Wait for the lease to hand out an address
       ansible.builtin.command:
-        cmd: "virsh -q domifaddr {{ instance }}"
+        cmd: "virsh --connect {{ libvirt_uri }} -q domifaddr {{ domain }}"
       register: domifaddr
-      until: domifaddr.stdout | regex_search('(\\d{1,3}\\.){3}\\d{1,3}')
+      until: domifaddr.stdout is search('(\\d{1,3}\\.){3}\\d{1,3}')
       retries: 60
       delay: 5
       changed_when: false
@@ -101,6 +103,6 @@
         instance_conf:
           instance: "{{ instance }}"
           address: "{{ instance_ip }}"
-          user: "cloud-user"          # match the base image's default user
+          user: "{{ instance_user }}"
           port: 22
           identity_file: "{{ ssh_key }}"

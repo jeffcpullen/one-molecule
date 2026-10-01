@@ -1,0 +1,17 @@
+---
+# The hypervisor side of the node, read by create.yml and destroy.yml so both
+# derive the same names. The instance name is the platform name, which is what
+# the default driver matches the instance config against. It is read from the
+# inventory rather than molecule_yml, because molecule_yml is the scenario file
+# alone and the platform lives in the auto-loaded config.yml. The libvirt domain
+# adds the scenario name so scenarios never share a domain on the hypervisor.
+libvirt_uri: "{{ lookup('env', 'LIBVIRT_DEFAULT_URI') | default('qemu:///system', true) }}"
+libvirt_network: "{{ lookup('env', 'MOLECULE_LIBVIRT_NETWORK') | default('default', true) }}"
+instance: "{{ groups['all'][0] }}"
+domain: "{{ lookup('env', 'MOLECULE_SCENARIO_NAME') }}-{{ instance }}"
+workdir: "{{ molecule_ephemeral_directory }}/{{ domain }}"
+ssh_key: "{{ workdir }}/ssh_key"
+instance_user: cloud-user
+# Base cloud image, used read-only as the backing file of a per-domain overlay.
+base_image: "{{ lookup('env', 'MOLECULE_BASE_IMAGE') |
+  default('/var/lib/libvirt/images/fedora-cloud-base.qcow2', true) }}"

@@ -1,6 +1,6 @@
 #cloud-config
 users:
-  - name: cloud-user
+  - name: {{ instance_user }}
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
     ssh_authorized_keys:
