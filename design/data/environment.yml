@@ -42,7 +42,24 @@ sections:
       - "`ansible.env` under the run's `defaults:` applies to every node."
       - "`ansible.env` under a node's `defaults:` applies to that node and its subtree."
       - Play environment reaches Ansible only, never molecule's read of the config text.
-      - Caller input to config text is a run arg, not an environment variable (`design/data/open-questions.yml`).
+      - "When a caller's environment and `ansible.env` set the same variable, `ansible.env` wins."
+      - Caller input to config text is a run arg, not an environment variable.
+
+  - title: Run args fill in config text
+    intro: "A run arg is declared and overridden the way a Dockerfile `ARG` is. Its spelling is open (`design/data/open-questions.yml`)."
+    rules:
+      - An arg is declared once in the file, with or without a default.
+      - A caller overrides an arg per invocation by a CLI flag.
+      - A CLI flag that names an arg without a value takes the value of the caller's environment variable of the same name.
+      - An arg with no default that the caller does not supply is an error.
+      - A CLI flag that names an arg the file does not declare is an error.
+      - The orchestrator fills in every arg once, when it reads the file, before any node's config is handed to molecule.
+      - An arg parameterizes values only and never changes the tree, the scenario set, or the wiring.
+      - An arg never reaches molecule or Ansible.
+      - "An author routes an arg onward by assigning it to a config value, such as an `ansible.env` entry."
+      - "The arg reference syntax differs from molecule's `${VAR}`, so a reader can see which read fills a value in."
+      - "The orchestrator passes molecule's `${VAR}` through untouched, and each scenario's own read fills it in."
+      - "A per-node name needs no arg, because molecule fills in `${MOLECULE_SCENARIO_NAME}` in each scenario's own read."
 
   - title: The input set is enumerated and ordered
     rules:

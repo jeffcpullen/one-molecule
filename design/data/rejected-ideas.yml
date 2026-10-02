@@ -112,6 +112,24 @@ groups:
       - gist: "Handing play environment to molecule's read of the config text"
         why: "Config text takes caller input from args, so env stays play-only and each input has one read that fills it in."
         tags: [reasoned]
+      - gist: "A run arg that restructures the run"
+        why: "The tree, the scenario set and the wiring stay fixed by the file, so a run's shape validates before any caller input arrives."
+        tags: [reasoned]
+      - gist: "The orchestrator filling in molecule's `${VAR}`"
+        why: "Two reads filling in one syntax leave a reader unable to tell which read set a value."
+        tags: [reasoned]
+      - gist: "A caller's environment winning over `ansible.env`"
+        why: "Molecule lets `ansible.env` win today, and reversing it changes behavior for every existing scenario."
+        tags: [reasoned]
+      - gist: "An unsupplied arg with no default resolving to empty, as a Dockerfile `ARG` does"
+        why: "A required input that is missing fails loudly rather than rendering blank config text."
+        tags: [reasoned]
+      - gist: "A warning for a CLI flag that names no declared arg, as Docker gives"
+        why: "A check blocks or is off, and an unknown arg name is almost always a typo."
+        tags: [reasoned]
+      - gist: "An arg read from the environment without being named on the command line"
+        why: "Every environment value a run takes into config text is named on its command line, so config text has no unnamed input."
+        tags: [reasoned]
       - gist: "A path DSL or `@collection/...` prefix syntax"
         why: "A variable naming an anchor plus a relative remainder suffices once anchors are complete, and a resolver is molecule inventing a language for missing data."
         tags: [reasoned]

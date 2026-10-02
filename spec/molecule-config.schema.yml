@@ -34,7 +34,7 @@ x-spec:
     - Sharing is within a tree only. There is no cross-tree share.
     - 'Reserved/intrinsic names are clear of molecule''s top-level keys. Near-misses (not collisions): `scenario` vs `scenarios`, and molecule''s `shared_state` (not a key in this file) vs `shared`.'
   open:
-    - Run args, the caller input to config text, are not yet designed (`design/data/open-questions.yml`).
+    - Run args, the caller input to config text, are designed in `design/data/environment.yml` but not yet spelled, so no key declares them yet (`design/data/open-questions.yml`).
     - Label selection flag spelling must layer against ansible-playbook's own task `--tags` (`design/data/naming.yml`).
 type: object
 required:
