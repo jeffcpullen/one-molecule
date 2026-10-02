@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2018 Red Hat, Inc.
 # Changed by the one-molecule project from upstream tasks/main-blivet.yml: the include of
-# enable_coprs.yml is removed, as nothing sets _storage_copr_packages so it never ran.
+# enable_coprs.yml is removed, as nothing sets _storage_copr_packages so it never ran, and module names are
+# fully qualified.
 
 - name: Add blivet package repository
   when:
@@ -22,7 +23,7 @@
         state: present
 
 - name: Make sure blivet is available
-  package:
+  ansible.builtin.package:
     name: "{{ blivet_package_list }}"
     state: present
     use: "{{ (__storage_is_ostree | d(false)) |
@@ -31,12 +32,12 @@
         not "blivet_available" in storage_skip_checks
 
 - name: Show storage_pools
-  debug:
+  ansible.builtin.debug:
     var: storage_pools | d([])
     verbosity: 1
 
 - name: Show storage_volumes
-  debug:
+  ansible.builtin.debug:
     var: storage_volumes | d([])
     verbosity: 1
 
@@ -55,7 +56,7 @@
         not "packages_installed" in storage_skip_checks
 
 - name: Make sure required packages are installed
-  package:
+  ansible.builtin.package:
     name: "{{ package_info.packages + extra_pkgs + stratis_packages }}"
     state: present
     use: "{{ (__storage_is_ostree | d(false)) |
@@ -72,7 +73,7 @@
     stratis_packages: "{{ __storage_manage_stratis | ternary(__storage_stratis_packages, []) }}"
 
 - name: Ensure stratisd is running and enabled
-  service:
+  ansible.builtin.service:
     name: stratisd
     state: started
     enabled: true
@@ -95,14 +96,14 @@
       if 'services' in ansible_facts else [] }}"
   block:
     - name: Get service facts
-      service_facts:
+      ansible.builtin.service_facts:
       no_log: "{{ ansible_verbosity < 2 }}"
       when:
         - not "services" in ansible_facts
         - not "cryptsetup_services" in storage_skip_checks | d([])
 
     - name: Mask the systemd cryptsetup services
-      systemd:
+      ansible.builtin.systemd:
         name: "{{ item }}"
         masked: true
       loop: "{{ storage_cryptsetup_services }}"
@@ -123,19 +124,19 @@
       register: blivet_output
 
     - name: Workaround for udev issue on some platforms
-      command: udevadm trigger --subsystem-match=block
+      ansible.builtin.command: udevadm trigger --subsystem-match=block
       changed_when: false
       when:
         - storage_udevadm_trigger | d(false)
         - blivet_output is changed
 
     - name: Check if /etc/fstab is present
-      stat:
+      ansible.builtin.stat:
         path: /etc/fstab
       register: __storage_fstab
 
     - name: Add fingerprint to /etc/fstab if present
-      lineinfile:
+      ansible.builtin.lineinfile:
         insertbefore: "^#"
         firstmatch: true
         line: "{{ __str }}"
@@ -149,17 +150,17 @@
         - blivet_output is changed
   rescue:
     - name: Failed message
-      fail:
+      ansible.builtin.fail:
         msg: "{{ ansible_failed_result }}"
   always:
     - name: Unmask the systemd cryptsetup services
-      systemd:
+      ansible.builtin.systemd:
         name: "{{ item }}"
         masked: false
       loop: "{{ storage_cryptsetup_services }}"
 
 - name: Show blivet_output
-  debug:
+  ansible.builtin.debug:
     var: blivet_output
     verbosity: 1
 
@@ -168,11 +169,11 @@
 #     msg: mod_args {{ blivet_output.mod_arg_str }}
 
 - name: Set the list of pools for test verification
-  set_fact:
+  ansible.builtin.set_fact:
     _storage_pools_list: "{{ blivet_output.pools }}"
 
 - name: Set the list of volumes for test verification
-  set_fact:
+  ansible.builtin.set_fact:
     _storage_volumes_list: "{{ blivet_output.volumes }}"
 
 # Mount Management
@@ -190,7 +191,7 @@
 # include_mount.yml selects the vendored (python 2) or ansible.posix.mount
 # module.
 - name: Remove obsolete mounts
-  include_tasks: include_mount.yml
+  ansible.builtin.include_tasks: include_mount.yml
   vars:
     __storage_mount_args:
       src: "{{ mount_info['src'] | default(omit) }}"
@@ -204,14 +205,14 @@
     loop_var: mount_info
 
 - name: Tell systemd to refresh its view of /etc/fstab
-  systemd:
+  ansible.builtin.systemd:
     daemon_reload: true
   when: blivet_output['mounts'] | length > 0
 
 # include_mount.yml selects the vendored (python 2) or ansible.posix.mount
 # module.
 - name: Set up new/current mounts
-  include_tasks: include_mount.yml
+  ansible.builtin.include_tasks: include_mount.yml
   vars:
     __storage_mount_args:
       src: "{{ mount_info['src'] | default(omit) }}"
@@ -225,7 +226,7 @@
     loop_var: mount_info
 
 - name: Manage mount ownership/permissions
-  file:
+  ansible.builtin.file:
     path: "{{ mount_info['path'] }}"
     owner: "{{ mount_info['owner'] if 'owner' in mount_info else omit }}"
     group: "{{ mount_info['group'] if 'group' in mount_info else omit }}"
@@ -240,7 +241,7 @@
     loop_var: mount_info
 
 - name: Tell systemd to refresh its view of /etc/fstab
-  systemd:
+  ansible.builtin.systemd:
     daemon_reload: true
   when: blivet_output['mounts'] | length > 0
 
@@ -248,12 +249,12 @@
 # Manage /etc/crypttab
 #
 - name: Retrieve facts for the /etc/crypttab file
-  stat:
+  ansible.builtin.stat:
     path: /etc/crypttab
   register: __storage_crypttab
 
 - name: Manage /etc/crypttab to account for changes we just made
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/crypttab
     # The line option is used when `state: present`
     line: "{{ entry.name }} {{ entry.backing_device }} {{ entry.password }}"
@@ -275,5 +276,5 @@
 # Should this be in a handler instead?
 #
 - name: Update facts
-  setup:
+  ansible.builtin.setup:
   when: not ansible_check_mode
