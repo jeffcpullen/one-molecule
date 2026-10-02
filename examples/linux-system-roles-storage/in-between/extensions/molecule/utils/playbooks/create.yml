@@ -2,8 +2,8 @@
 # Molecule create: make the objects converge acts on. Faithful translation of
 # standard-inventory-qcow2's disk logic (tox-lsr) into a libvirt domain that is
 # defined per scenario and undefined again by destroy.yml. The nine data disks
-# are raw sparse files attached on the bus the qemu provisioner uses: virtio,
-# scsi via a virtio-scsi controller, and nvme via one nvme controller per disk.
+# are raw sparse files, and templates/domain.xml.j2 attaches each one on the
+# libvirt bus its guest_class maps to.
 - name: Create
   hosts: localhost
   gather_facts: false
@@ -16,6 +16,15 @@
         that:
           - groups['all'] | length == 1
         fail_msg: "This create playbook makes one node, the platforms list has {{ groups['all'] | length }}"
+
+    - name: Check every data disk names a guest class the domain template maps
+      ansible.builtin.assert:
+        that:
+          - (item.guest_class | default('')) in disk_classes
+        fail_msg: "disk {{ idx }}: guest_class {{ item.guest_class | default('unset') }} is not one of {{ disk_classes | list }}"
+      loop: "{{ test_disks }}"
+      loop_control:
+        index_var: idx
 
     - name: Make the per-domain work dir
       ansible.builtin.file:
@@ -41,7 +50,7 @@
       ansible.builtin.command:
         cmd: "truncate --size={{ item.size }} {{ workdir }}/disk{{ idx }}.raw"
         creates: "{{ workdir }}/disk{{ idx }}.raw"
-      loop: "{{ qemu_drives }}"
+      loop: "{{ test_disks }}"
       loop_control:
         index_var: idx
 

@@ -1,10 +1,15 @@
-{#- Libvirt domain for a storage-role test node. vda is the OS overlay, and the
-    nine data disks map interface -> bus as standard-inventory-qcow2 does. Every
-    disk is a native libvirt disk, so libvirt applies its SELinux labels to all
-    of them. The emulator is left to libvirt's default for the arch. -#}
+{#- Libvirt domain for a storage-role test node. vda is the OS overlay. This
+    template is the only place a disk's guest_class (utils/vars/disks.yml) maps
+    to a libvirt bus:
+      virtio  bus virtio, target vdX
+      scsi    bus scsi on one virtio-scsi controller, target sdX
+      nvme    bus nvme, one nvme controller per disk, target nvmeNn1
+    A port to another hypervisor replaces this mapping and keeps disks.yml.
+    Every disk is a native libvirt disk, so libvirt applies its SELinux labels
+    to all of them. The emulator is left to libvirt's default for the arch. -#}
 <domain type='kvm'>
   <name>{{ domain }}</name>
-  <memory unit='MiB'>{{ qemu_memory_mb }}</memory>
+  <memory unit='MiB'>{{ node_memory_mb }}</memory>
   <vcpu>2</vcpu>
   <os>
     <type arch='x86_64' machine='q35'>hvm</type>
@@ -38,22 +43,22 @@
     {%- set ns = namespace(v=0, s=0, n=0) -%}
     {%- set vletters = 'bcdefghijk' -%}
     {%- set sletters = 'abcdefghij' -%}
-    {%- for d in qemu_drives -%}
-      {%- if d.interface in [none, 'virtio'] %}
+    {%- for d in test_disks -%}
+      {%- if d.guest_class == 'virtio' %}
     <disk type='file' device='disk'>
       <driver name='qemu' type='raw'/>
       <source file='{{ workdir }}/disk{{ loop.index0 }}.raw'/>
       <target dev='vd{{ vletters[ns.v] }}' bus='virtio'/>
     </disk>
         {%- set ns.v = ns.v + 1 -%}
-      {%- elif d.interface == 'scsi' %}
+      {%- elif d.guest_class == 'scsi' %}
     <disk type='file' device='disk'>
       <driver name='qemu' type='raw'/>
       <source file='{{ workdir }}/disk{{ loop.index0 }}.raw'/>
       <target dev='sd{{ sletters[ns.s] }}' bus='scsi'/>
     </disk>
         {%- set ns.s = ns.s + 1 -%}
-      {%- elif d.interface == 'nvme' %}
+      {%- elif d.guest_class == 'nvme' %}
     <controller type='nvme' index='{{ ns.n }}'>
       <serial>def{{ loop.index0 }}</serial>
     </controller>

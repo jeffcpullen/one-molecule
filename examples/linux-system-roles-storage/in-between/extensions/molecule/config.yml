@@ -42,13 +42,21 @@ provisioner:
         ansible_become: true
     group_vars:
       all:
-        # tests/vars/rh_distros_vars.yml is auto-generated and loaded by the
-        # harness wrapper today, never by the test playbook. Load it here.
+        # All eight vars of upstream tests/vars/rh_distros_vars.yml (before/),
+        # values unchanged. No vendored test file reads them, and no file in
+        # before/ loads that file. They are carried for completeness.
         __storage_rh_distros:
           - AlmaLinux
           - CentOS
           - RedHat
           - Rocky
+        __storage_rh_distros_fedora: "{{ __storage_rh_distros + ['Fedora'] }}"
+        __storage_is_rh_distro: "{{ ansible_facts['distribution'] in __storage_rh_distros }}"
+        __storage_is_rh_distro_fedora: "{{ ansible_facts['distribution'] in __storage_rh_distros_fedora }}"
+        __storage_is_rh_distro_7: "{{ __storage_is_rh_distro and ansible_facts['distribution_major_version'] == '7' }}"
+        __storage_is_rh_distro_8: "{{ __storage_is_rh_distro and ansible_facts['distribution_major_version'] == '8' }}"
+        __storage_is_rh_distro_9: "{{ __storage_is_rh_distro and ansible_facts['distribution_major_version'] == '9' }}"
+        __storage_is_rh_distro_10: "{{ __storage_is_rh_distro and ansible_facts['distribution_major_version'] == '10' }}"
 
 scenario:
   # The default sequence without idempotence and side_effect. The LSR test

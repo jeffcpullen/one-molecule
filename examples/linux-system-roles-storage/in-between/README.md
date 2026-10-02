@@ -40,7 +40,11 @@ The disk objects are a faithful translation of `before/tests/provision.fmf` thro
 `standard-inventory-qcow2` (tox-lsr): nine raw sparse files, `format=raw`, virtio on the virtio bus,
 scsi via a `virtio-scsi` controller, and nvme on libvirt's native nvme bus with one controller per disk
 carrying the same `def<n>` serial `standard-inventory-qcow2` gives its `-device nvme`.
-`utils/vars/disks.yml` carries the sizes byte-for-byte.
+`utils/vars/disks.yml` carries the sizes byte-for-byte and names no hypervisor. Each disk's
+`guest_class` (virtio, scsi or nvme) is how the guest sees it, which fixes the device name prefix
+`verify.yml` matches. `provision.fmf` leaves the class off its first three disks, and `disks.yml`
+states virtio for them. `templates/domain.xml.j2` is the only place a class becomes a libvirt bus, so a
+port to another hypervisor replaces that template and keeps `disks.yml`.
 
 ## Folder shape
 
@@ -70,10 +74,10 @@ in-between/
           library/                      find_unused_disk, blockdev_info, resolve_blockdev, bsize
           module_utils/storage_lsr/     __init__.py, size.py
           templates/
-            domain.xml.j2               interface -> bus, nvme on the native nvme bus
+            domain.xml.j2               guest_class -> libvirt bus, the only hypervisor mapping
             user-data.j2                cloud-init NoCloud
         vars/
-          disks.yml                     the nine drives, from provision.fmf
+          disks.yml                     the nine disks and their guest classes, from provision.fmf
           hypervisor.yml                libvirt URI, network, domain and work dir names
       default/molecule.yml              converge: ../utils/playbooks/default.yml
       luks/molecule.yml                 converge: ../utils/playbooks/luks.yml

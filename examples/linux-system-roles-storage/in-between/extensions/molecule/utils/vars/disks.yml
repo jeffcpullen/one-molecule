@@ -1,24 +1,46 @@
 ---
-# The disk objects the storage tests act on, copied byte-for-byte from
+# The node and disk objects the storage tests act on, translated from
 # before/tests/provision.fmf (standard-inventory-qcow2 -> qemu). One shared file,
 # because provision.fmf sits at the tests root and every scenario gets the same node.
-qemu_memory_mb: 2048
-qemu_drives:
+# Nothing here names a hypervisor. templates/domain.xml.j2 is the only place a
+# guest class becomes a libvirt bus, so a port to another hypervisor replaces that
+# template and keeps this file.
+
+# The node's memory, provision.fmf qemu.m.
+node_memory_mb: 2048
+
+# Guest disk classes. A class is how the guest kernel sees a disk, so it fixes the
+# device name prefix verify.yml matches, and its name is the value
+# find_unused_disk's with_interface filters on. It does not say how a hypervisor
+# attaches the disk, only what the guest must see once it is attached.
+disk_classes:
+  virtio:
+    guest_name_prefix: vd
+  scsi:
+    guest_name_prefix: sd
+  nvme:
+    guest_name_prefix: nvme
+
+# The nine data disks, in provision.fmf order. size is in bytes and copied
+# byte-for-byte from provision.fmf. guest_class is provision.fmf's interface key,
+# stated on every disk here. provision.fmf omits it on the first three, and this
+# translation states virtio for them rather than leaving it to a template default.
+test_disks:
   - size: 10737418240        # 10 GiB
-    interface: virtio
+    guest_class: virtio
   - size: 10737418240
-    interface: virtio
+    guest_class: virtio
   - size: 10737418240
-    interface: virtio
+    guest_class: virtio
   - size: 1099511627800      # ~1 TB
-    interface: scsi
+    guest_class: scsi
   - size: 1099511627800
-    interface: scsi
+    guest_class: scsi
   - size: 10737418240
-    interface: scsi
+    guest_class: scsi
   - size: 1099511627800
-    interface: nvme
+    guest_class: nvme
   - size: 10737418240
-    interface: nvme
+    guest_class: nvme
   - size: 10737418240
-    interface: nvme
+    guest_class: nvme
