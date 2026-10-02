@@ -34,11 +34,12 @@ and each changed file carries a licence and change header:
   values the size asserts reject. `storage_disklabel_type` is typed `str` but keeps its assert.
 
 The second cut changes behaviour. An explicit `storage_use_partitions: null` from a caller now fails
-validation, a string such as `"yes"` now passes where the assert rejected it, and on ansible-core 2.9
-and 2.10, which the role's `min_ansible_version` still admits and which do not enforce argument specs,
-the value is no longer checked at all. Upstream's `tests_invalid_input.yml` matches the assert's
-message for this variable, so its two `storage_use_partitions` cases would fail against this copy.
-That test is not converted here.
+validation, and a string such as `"yes"` now passes where the assert rejected it. Ansible 2.9 and 2.10
+do not enforce argument specs, so `meta/main.yml` raises `min_ansible_version` from 2.9 to 2.11 to
+keep the value checked. `tasks/include_mount.yml` still calls `mount` by its bare name, a workaround
+it states is for Ansible 2.9, and that is left in place. Upstream's `tests_invalid_input.yml` matches
+the assert's message for this variable, so its two `storage_use_partitions` cases would fail against
+this copy. That test is not converted here.
 
 The upstream repository's development tooling (CI, tox, sanity ignores and its own `tests/`) is not
 copied.

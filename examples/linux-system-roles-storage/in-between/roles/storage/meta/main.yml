@@ -1,10 +1,16 @@
 ---
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2018 Red Hat, Inc.
+# Changed by the one-molecule project from upstream meta/main.yml: min_ansible_version is 2.11 in
+# place of 2.9.
 galaxy_info:
   author: David Lehman <dlehman@redhat.com>
   description: Configure volumes and filesystems
   company: Red Hat, Inc.
   license: MIT
-  min_ansible_version: "2.9"
+  # 2.11 is the first release that enforces meta/argument_specs.yml, which is now the only check on
+  # storage_use_partitions.
+  min_ansible_version: "2.11"
   platforms:
     - name: Fedora
       versions:
