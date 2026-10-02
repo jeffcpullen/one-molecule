@@ -107,6 +107,15 @@ sections:
       - That idempotence is why an already-standing ancestor must be a true no-op, not a create that is idempotent only by luck of the playbook.
       - It depends on per-node state being accurate and independent (`design/data/state.yml`).
 
+  - title: The orchestrator owns the run under every executor
+    rules:
+      - The orchestrator stays alive for the whole run under every executor.
+      - The orchestrator owns ordering, the snapshot handoff, retry, and teardown, and never hands any of them to a CI engine.
+      - "The executor decides where each node's actions run (`design/data/execution-environments.yml`)."
+      - A run reports one result per node in a machine-readable report that CI renders.
+      - A node's result carries its scenario name, its parent, its outcome, its duration, and the action that failed.
+      - A skipped node's result carries the skip reason.
+
   - title: Traversal order
     rules:
       - Setup is pre-order, root first, each node gated on its parent's verify.

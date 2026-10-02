@@ -202,6 +202,12 @@ groups:
       - gist: "Skipping `destroy` on failure per owning node"
         why: "Leaked real cloud spend on every red run, so one policy, one place."
         tags: [src]
+      - gist: "Emitting per-node configs for a CI engine to order, retry and tear down"
+        why: "CI engines differ on whether teardown runs after a cancel, and a GitHub matrix cannot make a child wait on its own parent alone."
+        tags: [src]
+      - gist: "One CI job per scenario as the way a pipeline accounts for each scenario"
+        why: "A per-node result in a report CI renders accounts for each scenario with no CI-side ordering or teardown."
+        tags: [reasoned]
 
   - title: "design/data/state.yml (why this resolves #4666)"
     items:
