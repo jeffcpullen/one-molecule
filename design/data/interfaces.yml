@@ -117,7 +117,7 @@ groups:
         owns: "`design/data/lint.yml` (the run-level lint phase)"
         guardrail: "Molecule defines the payload and the result contract and holds no knowledge of any specific linter or its rules."
         version_binding: "The tool version is pinned by the project's environment, not by molecule or the author's machine."
-        open: "The result format is undecided, with SARIF a candidate rather than a requirement. How the phase relates to molecule #3983 is open (`design/data/open-questions.yml`)."
+        open: "The result format is undecided, with SARIF a candidate rather than a requirement."
         tags: [reasoned]
 
   - title: "The artifact build toolchain"
