@@ -61,6 +61,20 @@ sections:
       - "The orchestrator passes molecule's `${VAR}` through untouched, and each scenario's own read fills it in."
       - "A per-node name needs no arg, because molecule fills in `${MOLECULE_SCENARIO_NAME}` in each scenario's own read."
 
+  - title: Secrets reach the play by environment only
+    intro: "A secret is declared and supplied the way a Docker build `--secret` is, and it gets the protection ansible-runner gives its environment."
+    rules:
+      - A secret is declared once in the file by name, with no default.
+      - "A caller supplies a secret with a `--secret` flag that names it."
+      - "`--secret` takes the value of the caller's environment variable of the same name."
+      - A declared secret the caller does not supply is an error.
+      - "A `--secret` flag that names a secret the file does not declare is an error."
+      - The orchestrator adds each secret to the environment of the molecule process for every node in the run, under its declared name.
+      - "A play reads a secret with `lookup('env', ...)`."
+      - A secret is never referenced in config text, and a reference to one is an error.
+      - "A secret name never starts with `ANSIBLE_` or `MOLECULE_`."
+      - A secret value is persisted only where the executor persists its environment, which for ansible-runner is an owner-only artifact file.
+
   - title: The input set is enumerated and ordered
     rules:
       - Environment input stays a closed, documented set rather than free-form interpolation.

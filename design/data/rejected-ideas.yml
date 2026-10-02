@@ -130,6 +130,18 @@ groups:
       - gist: "An arg read from the environment without being named on the command line"
         why: "Every environment value a run takes into config text is named on its command line, so config text has no unnamed input."
         tags: [reasoned]
+      - gist: "Routing a secret through `ansible.env` or an arg"
+        why: "Molecule writes the filled-in config, `ansible.env` included, to the ephemeral `molecule.yml`, which every play reads as the `molecule_yml` hostvar."
+        tags: [src]
+      - gist: "A literal secret value on the command line"
+        why: "A value in argv shows in the process list and shell history, so `--secret` names an environment variable, as Docker's does."
+        tags: [reasoned]
+      - gist: "Masking secret values in molecule's `--debug` output"
+        why: "Molecule prints every `ANSIBLE_` and `MOLECULE_` variable under `--debug`, and a name rule keeps a secret out of that print with no molecule change."
+        tags: [src]
+      - gist: "Keeping a secret off disk at the executor"
+        why: "ansible-runner is the targeted executor, and a secret gets the protection it gives today, an owner-only artifact file."
+        tags: [reasoned]
       - gist: "A path DSL or `@collection/...` prefix syntax"
         why: "A variable naming an anchor plus a relative remainder suffices once anchors are complete, and a resolver is molecule inventing a language for missing data."
         tags: [reasoned]

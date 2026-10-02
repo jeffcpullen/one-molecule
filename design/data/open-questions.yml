@@ -10,12 +10,13 @@ title: "Open questions"
 intro: "Highest-churn file. Move items out to the topic files as they are decided."
 
 open:
-  - title: "Spell run args"
+  - title: "Spell run args and secrets"
     status: "behavior settled, spelling not started"
     raised: "2026-09-24"
     owning_doc: "`design/data/environment.yml`"
     framing:
       - "The key that declares an arg in the file is unnamed."
+      - "The key that declares a secret in the file is unnamed."
       - "The CLI flag that overrides an arg is unnamed."
       - "The arg reference syntax is unchosen, and it must differ from molecule's `${VAR}`."
       - "Arg declarations enter `spec/molecule-config.schema.yml` once the spelling is chosen."
