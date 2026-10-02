@@ -1,12 +1,11 @@
 ---
-# Molecule verify: check the disk objects create made reached the node in the
-# guest class utils/vars/disks.yml names. The role's own assertions run inside
-# each converge playbook, as they do upstream, so this checks the fixture they
-# rely on: three virtio, three scsi and three nvme data disks of the declared
-# sizes, with the nvme serials standard-inventory-qcow2 assigns. The counts and
-# sizes are read from the guest alone, so they hold whatever hypervisor attached
-# the disks. The def<index> serial is the one expectation a port must reproduce,
-# because templates/domain.xml.j2 sets it.
+# Molecule verify: check the disk objects create made reached the node. The
+# role's own assertions run inside each converge playbook, as they do upstream,
+# so this checks the fixture they rely on: every label utils/vars/disks.yml
+# declares is on exactly one disk of the declared size, and no other disk
+# carries a data disk label. Disks are found by label alone, never by driver,
+# bus or device name, so these checks hold whatever hypervisor attached them,
+# as long as it reproduces the labels.
 - name: Verify the data disks
   hosts: all
   gather_facts: false
@@ -19,42 +18,27 @@
       register: lsblk
       changed_when: false
 
-    - name: Keep the data disks, every disk but the OS disk
+    - name: Keep the disks carrying a data disk label
       ansible.builtin.set_fact:
-        found_disks: "{{ (lsblk.stdout | from_json).blockdevices |
-          selectattr('type', 'eq', 'disk') | rejectattr('name', 'eq', 'vda') | list }}"
+        found_disks: "{{ (lsblk.stdout | from_json).blockdevices | selectattr('type', 'eq', 'disk') |
+          selectattr('serial', 'string') | selectattr('serial', 'match', data_disk_label_prefix) | list }}"
 
-    - name: Work out the nvme serials create assigned
-      ansible.builtin.set_fact:
-        expected_serials: "{{ expected_serials | default([]) + ['def' ~ idx] }}"
-      loop: "{{ test_disks }}"
-      loop_control:
-        index_var: idx
-      when: item.guest_class == 'nvme'
-
-    - name: Check each guest class carries the declared number of disks
-      ansible.builtin.assert:
-        that:
-          - (found_disks | selectattr('name', 'match', item.value.guest_name_prefix) | list | length) ==
-            (test_disks | selectattr('guest_class', 'eq', item.key) | list | length)
-        fail_msg: "{{ item.key }}: found {{ found_disks | selectattr('name', 'match', item.value.guest_name_prefix) |
-          map(attribute='name') | list }}"
-      loop: "{{ disk_classes | dict2items }}"
-      loop_control:
-        label: "{{ item.key }}"
-
-    - name: Check the nvme serials
-      ansible.builtin.assert:
-        that:
-          - (found_disks | selectattr('name', 'match', disk_classes.nvme.guest_name_prefix) |
-            map(attribute='serial') | sort) == (expected_serials | sort)
-
-    - name: Check every data disk has its declared size, to the 512-byte sector
+    - name: Check every declared label is on exactly one disk of the declared size, to the 512-byte sector
       # qemu rounds a raw image that is not a whole number of sectors up to the
       # next one, so 1099511627800 bytes shows as 1099511628288.
       ansible.builtin.assert:
         that:
-          - ((item.0 | int) - (item.1 | int)) | abs < 512
-        fail_msg: "declared {{ item.0 }} bytes, found {{ item.1 }}"
-      loop: "{{ test_disks | map(attribute='size') | map('int') | sort |
-        zip(found_disks | map(attribute='size') | map('int') | sort) | list }}"
+          - matches | length == 1
+          - ((item.size | int) - (matches[0].size | default(0) | int)) | abs < 512
+        fail_msg: "{{ item.label }}: declared {{ item.size }} bytes, found {{ matches }}"
+      vars:
+        matches: "{{ found_disks | selectattr('serial', 'eq', item.label) | list }}"
+      loop: "{{ test_disks }}"
+      loop_control:
+        label: "{{ item.label }}"
+
+    - name: Check no disk carries a data disk label that was not declared
+      ansible.builtin.assert:
+        that:
+          - (found_disks | map(attribute='serial') | sort) == (test_disks | map(attribute='label') | sort)
+        fail_msg: "found labels {{ found_disks | map(attribute='serial') | sort }}"

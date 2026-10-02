@@ -9,38 +9,54 @@
 # The node's memory, provision.fmf qemu.m.
 node_memory_mb: 2048
 
-# Guest disk classes. A class is how the guest kernel sees a disk, so it fixes the
-# device name prefix verify.yml matches, and its name is the value
-# find_unused_disk's with_interface filters on. It does not say how a hypervisor
-# attaches the disk, only what the guest must see once it is attached.
+# Every data disk carries a label, a serial the guest reads back from lsblk SERIAL
+# and /dev/disk/by-id. The label is the only way anything in this tree finds a
+# data disk: the tests' disk lookup and verify.yml both select on it, never on a
+# driver, a bus or a device name. Only data disks carry a label starting with
+# this prefix.
+data_disk_label_prefix: om-
+
+# The disk classes. A class's disks are labelled
+# <data_disk_label_prefix><class>-<n>, so a test selects a class by that label
+# prefix (storage_test_disk_label, set in ../../config.yml). A port to another
+# hypervisor reproduces the labels, not the buses.
 disk_classes:
-  virtio:
-    guest_name_prefix: vd
-  scsi:
-    guest_name_prefix: sd
-  nvme:
-    guest_name_prefix: nvme
+  - virtio
+  - scsi
+  - nvme
 
 # The nine data disks, in provision.fmf order. size is in bytes and copied
 # byte-for-byte from provision.fmf. guest_class is provision.fmf's interface key,
 # stated on every disk here. provision.fmf omits it on the first three, and this
 # translation states virtio for them rather than leaving it to a template default.
+# label is the disk's serial, at most 20 characters (the virtio-blk limit), and is
+# not in provision.fmf. standard-inventory-qcow2 gives only its nvme disks a
+# serial (def<n>), which these labels replace.
 test_disks:
   - size: 10737418240        # 10 GiB
     guest_class: virtio
+    label: om-virtio-0
   - size: 10737418240
     guest_class: virtio
+    label: om-virtio-1
   - size: 10737418240
     guest_class: virtio
+    label: om-virtio-2
   - size: 1099511627800      # ~1 TB
     guest_class: scsi
+    label: om-scsi-0
   - size: 1099511627800
     guest_class: scsi
+    label: om-scsi-1
   - size: 10737418240
     guest_class: scsi
+    label: om-scsi-2
   - size: 1099511627800
     guest_class: nvme
+    label: om-nvme-0
   - size: 10737418240
     guest_class: nvme
+    label: om-nvme-1
   - size: 10737418240
     guest_class: nvme
+    label: om-nvme-2

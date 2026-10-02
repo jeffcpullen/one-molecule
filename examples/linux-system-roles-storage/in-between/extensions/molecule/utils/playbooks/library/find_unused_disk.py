@@ -1,4 +1,9 @@
 #!/usr/bin/python
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2018 Red Hat, Inc.
+# Changed by the one-molecule project from upstream library/find_unused_disk.py: disks are selected by a
+# label (the disk serial) with with_label, which replaces with_interface, its driver match and the
+# null_blk name filter.
 
 from __future__ import absolute_import, division, print_function
 
@@ -35,9 +40,9 @@ options:
         default: '0'
         type: str
 
-    with_interface:
-        description: Specifies which disk interface will be accepted (scsi, virtio, nvme).
-        default: null
+    with_label:
+        description: Only disks whose serial starts with this label are considered.
+        required: true
         type: str
 
     match_sector_size:
@@ -88,19 +93,6 @@ from ansible.module_utils.storage_lsr.size import Size
 
 
 SYS_CLASS_BLOCK = "/sys/class/block/"
-IGNORED_DEVICES = [re.compile(r'^/dev/nullb\d+$')]
-
-
-def is_ignored(disk_path):
-    sys_path = os.path.realpath(disk_path)
-    return any(ignore.match(sys_path) is not None for ignore in IGNORED_DEVICES)
-
-
-def is_device_interface(module, path, interface):
-    device = path.split('dev/')[-1]
-    # command checks if the device uses given interface (virtio, scsi or nvme)
-    result = module.run_command(['readlink', '/sys/block/%s/device/device/driver' % device, '/sys/block/%s/device/driver' % device])
-    return interface in result[1]
 
 
 def no_signature(run_command, disk_path):
@@ -144,14 +136,14 @@ def get_partitions(disk_path, info):
 
 
 def get_disks(module, info):
-    buf = module.run_command(["lsblk", "-p", "--pairs", "--bytes", "-o", "NAME,TYPE,SIZE,FSTYPE,LOG-SEC"])[1]
+    buf = module.run_command(["lsblk", "-p", "--pairs", "--bytes", "-o", "NAME,TYPE,SIZE,FSTYPE,LOG-SEC,SERIAL"])[1]
     disks = dict()
     for line in buf.splitlines():
         info.append("Line: %s" % line)
         if not line:
             continue
 
-        m = re.search(r'NAME="(?P<path>[^"]*)" TYPE="(?P<type>[^"]*)" SIZE="(?P<size>\d+)" FSTYPE="(?P<fstype>[^"]*)" LOG[_-]SEC="(?P<ssize>\d+)"', line)
+        m = re.search(r'NAME="(?P<path>[^"]*)" TYPE="(?P<type>[^"]*)" SIZE="(?P<size>\d+)" FSTYPE="(?P<fstype>[^"]*)" LOG[_-]SEC="(?P<ssize>\d+)" SERIAL="(?P<serial>[^"]*)"', line)
         if m is None:
             module.log("Line did not match: " + line)
             info.append("Line did not match: %s" % line)
@@ -162,7 +154,8 @@ def get_disks(module, info):
             continue
 
         disks[m.group('path')] = {"type": m.group('type'), "size": m.group('size'),
-                                  "fstype": m.group('fstype'), "ssize": m.group('ssize')}
+                                  "fstype": m.group('fstype'), "ssize": m.group('ssize'),
+                                  "serial": m.group('serial').strip()}
 
     return disks
 
@@ -173,16 +166,10 @@ def filter_disks(module):
     max_size = Size(module.params['max_size'])
 
     for path, attrs in get_disks(module, info).items():
-        if is_ignored(path):
-            info.append('Disk [%s] attrs [%s] is ignored' % (path, attrs))
-            continue
+        label = module.params['with_label']
 
-        interface = module.params['with_interface']
-
-        # do not use nvme unless explicitly asked to
-        if interface is not None and not is_device_interface(module, path, interface) or \
-           interface is None and is_device_interface(module, path, 'nvme'):
-            info.append('Disk [%s] attrs [%s] is not an interface [%s]' % (path, attrs, interface))
+        if not attrs["serial"].startswith(label):
+            info.append('Disk [%s] attrs [%s] does not carry label [%s]' % (path, attrs, label))
             continue
 
         if attrs["fstype"]:
@@ -220,7 +207,7 @@ def run_module():
         max_return=dict(type='int', required=False, default=10),
         min_size=dict(type='str', required=False, default='0'),
         max_size=dict(type='str', required=False, default='0'),
-        with_interface=dict(type='str', required=False, default=None),
+        with_label=dict(type='str', required=True),
         match_sector_size=dict(type='bool', required=False, default=False)
     )
 
@@ -234,6 +221,9 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
+
+    if not module.params['with_label']:
+        module.fail_json(msg="with_label must name a label, an empty one matches every disk")
 
     disks, info = filter_disks(module)
 

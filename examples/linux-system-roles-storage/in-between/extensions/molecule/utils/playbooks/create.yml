@@ -3,7 +3,7 @@
 # standard-inventory-qcow2's disk logic (tox-lsr) into a libvirt domain that is
 # defined per scenario and undefined again by destroy.yml. The nine data disks
 # are raw sparse files, and templates/domain.xml.j2 attaches each one on the
-# libvirt bus its guest_class maps to.
+# libvirt bus its guest_class maps to, with its label as the disk serial.
 - name: Create
   hosts: localhost
   gather_facts: false
@@ -21,10 +21,28 @@
       ansible.builtin.assert:
         that:
           - (item.guest_class | default('')) in disk_classes
-        fail_msg: "disk {{ idx }}: guest_class {{ item.guest_class | default('unset') }} is not one of {{ disk_classes | list }}"
+        fail_msg: "disk {{ idx }}: guest_class {{ item.guest_class | default('unset') }} is not one of {{ disk_classes }}"
       loop: "{{ test_disks }}"
       loop_control:
         index_var: idx
+
+    - name: Check every data disk carries a label its class selector matches
+      # The label becomes the disk's serial, and virtio-blk keeps at most 20
+      # characters of a serial.
+      ansible.builtin.assert:
+        that:
+          - (item.label | default('')) is match(data_disk_label_prefix ~ item.guest_class ~ '-')
+          - item.label | length <= 20
+        fail_msg: "disk {{ idx }}: label {{ item.label | default('unset') }} must start
+          {{ data_disk_label_prefix ~ item.guest_class ~ '-' }} and be at most 20 characters"
+      loop: "{{ test_disks }}"
+      loop_control:
+        index_var: idx
+
+    - name: Check no two data disks share a label
+      ansible.builtin.assert:
+        that:
+          - test_disks | map(attribute='label') | unique | length == test_disks | length
 
     - name: Make the per-domain work dir
       ansible.builtin.file:

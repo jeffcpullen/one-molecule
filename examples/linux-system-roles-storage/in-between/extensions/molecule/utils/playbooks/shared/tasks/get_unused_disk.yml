@@ -1,4 +1,8 @@
 ---
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2018 Red Hat, Inc.
+# Changed by the one-molecule project from upstream tests/tasks/get_unused_disk.yml: the disk lookup passes the
+# storage_test_disk_label selector as with_label, in place of storage_test_use_interface as with_interface.
 - name: Ensure test packages
   package:
     name: "{{ test_packages }}"
@@ -18,7 +22,7 @@
     min_size: "{{ min_size | d(__storage_min_size | d(omit)) }}"
     max_size: "{{ max_size | d(__storage_max_size | d(omit)) }}"
     max_return: "{{ max_return | d(__storage_max_return | d(omit)) }}"
-    with_interface: "{{ storage_test_use_interface | d(omit) }}"
+    with_label: "{{ storage_test_disk_label }}"
     match_sector_size: "{{ match_sector_size | d(__storage_match_sector_size | d(omit)) }}"
   register: unused_disks_return
 
