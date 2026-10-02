@@ -1,4 +1,8 @@
 ---
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2018 Red Hat, Inc.
+# Changed by the one-molecule project from upstream tasks/main-blivet.yml: the include of
+# enable_coprs.yml is removed, as nothing sets _storage_copr_packages so it never ran.
 
 - name: Add blivet package repository
   when:
@@ -47,13 +51,6 @@
     packages_only: true
     uses_kmod_kvdo: "{{ __storage_uses_kmod_kvdo }}"
   register: package_info
-  when: storage_skip_checks is not defined or
-        not "packages_installed" in storage_skip_checks
-
-- name: Enable copr repositories if needed
-  include_tasks: enable_coprs.yml
-  vars:
-    copr_packages: "{{ package_info.packages }}"
   when: storage_skip_checks is not defined or
         not "packages_installed" in storage_skip_checks
 
