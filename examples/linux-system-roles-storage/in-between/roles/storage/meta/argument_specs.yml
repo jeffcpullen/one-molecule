@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: MIT
+# Copyright (c) 2018 Red Hat, Inc.
+# Changed by the one-molecule project from upstream meta/argument_specs.yml: storage_use_partitions is
+# type bool with default false and a corrected description, and storage_disklabel_type is type str.
 ---
 argument_specs:
   main:
@@ -24,14 +27,14 @@ argument_specs:
           fails instead of implicitly removing existing devices
           or formatting.
       storage_use_partitions:
-        type: raw
-        default: null
+        type: bool
+        default: false
         description: >
-          Whether to use partition-based layout. Accepts `true`,
-          `false`, or `null`. When `null`, the role selects an
-          appropriate layout automatically.
+          Whether to create a partition on each pool backing disk
+          and use the partition, instead of the whole disk, as the
+          pool member.
       storage_disklabel_type:
-        type: raw
+        type: str
         default: null
         description: >
           The disk label type to use for partitioning, such as

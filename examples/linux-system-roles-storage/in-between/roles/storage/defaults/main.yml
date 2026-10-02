@@ -1,7 +1,11 @@
 ---
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2018 Red Hat, Inc.
+# Changed by the one-molecule project from upstream defaults/main.yml: storage_use_partitions defaults
+# to false in place of null, which the module already treated as false.
 # defaults file for template
 storage_provider: "blivet"
-storage_use_partitions: null
+storage_use_partitions: false
 # yamllint disable-line rule:line-length
 storage_disklabel_type: null  # leave unset to allow the role to select an appropriate label type
 # yamllint disable-line rule:line-length

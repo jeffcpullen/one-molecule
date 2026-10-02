@@ -1,16 +1,8 @@
 # SPDX-License-Identifier: MIT
+# Copyright (c) 2018 Red Hat, Inc.
+# Changed by the one-molecule project from upstream tasks/assert_role_vars.yml: the storage_use_partitions
+# assert is removed, as meta/argument_specs.yml now types it bool, which rejects non-boolean values.
 ---
-- name: Assert storage_use_partitions is null or a boolean
-  ansible.builtin.assert:
-    that:
-      - >-
-        (storage_use_partitions is none)
-        or (storage_use_partitions is sameas true)
-        or (storage_use_partitions is sameas false)
-    fail_msg: >-
-      storage_use_partitions must be null or a boolean,
-      got {{ storage_use_partitions | type_debug }}
-
 - name: Assert storage_disklabel_type is null or a string
   ansible.builtin.assert:
     that:

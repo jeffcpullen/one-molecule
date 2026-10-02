@@ -20,9 +20,28 @@ as `storage`.
 
 The storage role itself is in the tree at `roles/storage/`, so it can be cut down to what is worth
 keeping. Its runtime files (`defaults/`, `tasks/`, `vars/`, `meta/`, `library/`, `module_utils/`,
-`README.md` and `LICENSE`) are copied unchanged from the same commit, which is ahead of the latest
-release, 1.22.1, and adds `meta/argument_specs.yml` and `tasks/assert_role_vars.yml`. The upstream
-repository's development tooling (CI, tox, sanity ignores and its own `tests/`) is not copied.
+`README.md` and `LICENSE`) are copied from the same commit, which is ahead of the latest release,
+1.22.1, and adds `meta/argument_specs.yml` and `tasks/assert_role_vars.yml`. Two cuts change them,
+and each changed file carries a licence and change header:
+
+- The COPR path is removed. Nothing sets `_storage_copr_packages`, so it never ran.
+  `tasks/enable_coprs.yml` and `enable_copr.yml` are deleted, with their include in
+  `tasks/main-blivet.yml` and `_storage_copr_support_packages` in `vars/Fedora.yml`.
+- `storage_use_partitions` is checked by the argument spec as `type: bool`, default `false`, and its
+  assert is gone. The module only tests it for truth, so null always meant false, and the spec's
+  claim that null picks a layout was wrong. The other five asserts stay: the spec accepts `123` and
+  `true` for a `type: str` option unchanged (ansible-core 2.21.4), and the module does not reject the
+  values the size asserts reject. `storage_disklabel_type` is typed `str` but keeps its assert.
+
+The second cut changes behaviour. An explicit `storage_use_partitions: null` from a caller now fails
+validation, a string such as `"yes"` now passes where the assert rejected it, and on ansible-core 2.9
+and 2.10, which the role's `min_ansible_version` still admits and which do not enforce argument specs,
+the value is no longer checked at all. Upstream's `tests_invalid_input.yml` matches the assert's
+message for this variable, so its two `storage_use_partitions` cases would fail against this copy.
+That test is not converted here.
+
+The upstream repository's development tooling (CI, tox, sanity ignores and its own `tests/`) is not
+copied.
 `config.yml` sets `ANSIBLE_ROLES_PATH` to `roles/`, so the tests run this copy and not an installed
 one. The role's `library/` also carries the four test modules, unmodified. Whether the tests' disk
 lookup resolves to the label-selecting copy in `utils/playbooks/library/` or to the role's copy has not
@@ -104,7 +123,7 @@ replaces that template, keeps `disks.yml` and reproduces the labels.
 in-between/
   galaxy.yml                            collection root, without which config.yml is never loaded
   roles/
-    storage/                            the role under test, upstream runtime files unchanged
+    storage/                            the role under test, upstream runtime files with two cuts
   extensions/
     molecule/
       config.yml                        auto-loaded base config: dependency, driver, env, vars, playbooks
@@ -185,8 +204,9 @@ The other 49 are not here. Both converted scenarios passed a full `molecule test
 host at release 1.22.1, with the role installed from Galaxy. They have not been rerun since the move to
 this commit and the in-tree role. The default test sequence runs without `idempotence` and
 `side_effect`, because the LSR test playbooks create and remove volumes and provoke role failures on
-purpose. The vendored files and the role under `roles/storage/` are byte-for-byte upstream (storage at
-`75bb17d104c8e2327827d81ff5e653b84082fb57` on `main`) except five test files. The two converge
+purpose. The vendored files are byte-for-byte upstream (storage at
+`75bb17d104c8e2327827d81ff5e653b84082fb57` on `main`) except five test files, and the role under
+`roles/storage/` is too except for the two cuts described above. The two converge
 playbooks have only their include prefixes and a licence and change header changed.
 `find_unused_disk.py` and `get_unused_disk.yml` select by label, as described above.
 `run_role_with_clear_facts.yml` names the in-tree role. Each scenario runs once against scsi disks,
