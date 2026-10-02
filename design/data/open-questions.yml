@@ -32,6 +32,16 @@ open:
       - "A child on a different target than its parent must reach the parent's instances, so instances local to the parent's target do not qualify."
       - "Undecided is how an executor reports a cancel back to the orchestrator so teardown still runs."
 
+  - title: "Derive instance names for catalog selections"
+    status: "waiting on run identity"
+    raised: "2026-09-21"
+    owning_doc: "`spec/molecule-config.schema.yml`"
+    framing:
+      - "Only a catalog selection gets a derived instance name, and an inline platform keeps its `name` as written."
+      - "Undecided is the spelling, a name molecule derives with no author input or a templated `name:` the author writes."
+      - "Undecided is whether the inventory hostname stays the catalog name while the derived name goes to the create step as the backing object's name."
+      - "The derived name needs run identity, which is a residual ephemeral item below."
+
   - title: "The per-node run report"
     status: "raised, not started"
     raised: "2026-10-02"
@@ -102,7 +112,7 @@ resolved:
     owning_doc: "`design/data/environment.yml`"
   - title: "Lift `platforms` into `defaults:` for shared instance definitions"
     date: "2026-09-21"
-    resolution: "Resolved by the platform catalog. A run-level `platforms:` catalog defines each platform once and scenarios select it by name, so shared definitions need no `defaults:` cascade. Instance-name uniqueness is derived from the catalog name plus scenario and run identity. The derived-name spelling (auto-prefix versus a templated `name:`) is the remaining detail."
+    resolution: "Resolved by the platform catalog. A run-level `platforms:` catalog defines each platform once and scenarios select it by name, so shared definitions need no `defaults:` cascade. Instance-name derivation for catalog selections is an open item above."
     owning_doc: "`spec/molecule-config.schema.yml`"
   - title: "`execution_environments` as a matrix axis"
     date: "2026-09-21"

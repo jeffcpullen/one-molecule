@@ -24,6 +24,9 @@ x-spec:
     - A scenario's `platforms:` is a selection of catalog names, or inline platform objects for backward compatibility.
     - A root scenario with no `platforms:` selects the whole catalog. A child selects none of its own and inherits the parent's shared inventory.
     - Creation stays on the node, whose `playbooks.create` stands up the selected platforms and consumes their `vars`. The catalog dedups definition, not creation.
+    - An inline platform object keeps its `name` exactly as written, as in molecule today.
+    - A catalog selection's instance name is derived from the catalog name plus the scenario and run identity (`design/data/open-questions.yml`).
+    - A catalog name and an inline platform name that match in one run is an error.
     - '`labels:` on a platform or a scenario are selection membership, and a label filters only the dimension it appears on.'
     - '`runtime:` is run-only and names the sealed execution the sequence runs inside, with `method: ee | host | <custom>` (`design/data/execution-environments.yml`).'
     - Under the `ee` method, `execution_environments` fans the run out to one cell per EE, and each EE image is a run precondition molecule checks but never builds.
