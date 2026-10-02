@@ -28,6 +28,10 @@ provisioner:
     cleanup: ../utils/playbooks/cleanup.yml
     verify: ../utils/playbooks/verify.yml
   env:
+    # The role under test is in this tree at roles/storage/, copied from upstream
+    # at the commit the vendored tests come from. Molecule runs from the tree
+    # root, so the project directory is where roles/ sits.
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/roles
     # The tests' real parameterization surface (roles/storage/tests/tests_*.yml
     # and tests/tasks/setup.yml read these with lookup('env'), which runs on the
     # controller, so molecule passes them through the provisioner env).

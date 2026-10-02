@@ -57,7 +57,7 @@ unchanged and still referenced.
 | osism/ansible-collection-commons | 4 → 1 | 2 → 0 | 521 → 54 |
 | openstack/ansible-role-systemd_service | 4 → 1 | 1 → 0 | 151 → 44 |
 | linux-system-roles/network | 5 → 1 | 0 | 622 → 213 |
-| linux-system-roles/storage | 8 → 1 | 0 | 1029 → 259 |
+| linux-system-roles/storage | 8 → 1 | 0 | 1029 → 267 |
 | Total, the Molecule projects | 143 → 8 | 95 → 0 | 5987 → 2257 |
 
 prometheus-community/ansible is counted over a representative three-role subset, and it is the one

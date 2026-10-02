@@ -12,19 +12,28 @@ role's own `tests_<scenario>.yml`). Everything those playbooks include, the veri
 `test-verify-*` chain, the `setup` / `run_role_with_clear_facts` / `get_unused_disk` task helpers and
 the two helper scripts, is the shared LSR test library, vendored once under `utils/playbooks/shared/`.
 The four test modules and their `module_utils` sit beside it in `utils/playbooks/library/` and
-`utils/playbooks/module_utils/`. Four vendored files are edited, each with a licence and change header.
+`utils/playbooks/module_utils/`. Five vendored files are edited, each with a licence and change header.
 The two converge playbooks have only their include prefixes repointed at `shared/`, and their test
 logic is untouched. `shared/tasks/get_unused_disk.yml` and `library/find_unused_disk.py` select disks
-by label instead of by driver (see below). The storage role itself is not vendored. Molecule's
-dependency step installs it from `extensions/molecule/requirements.yml` under the legacy name the tests
-call, `linux-system-roles.storage`, pinned to 1.22.1, the release the vendored files come from.
+by label instead of by driver (see below). `shared/tasks/run_role_with_clear_facts.yml` calls the role
+as `storage`.
+
+The storage role itself is in the tree at `roles/storage/`, so it can be cut down to what is worth
+keeping. Its runtime files (`defaults/`, `tasks/`, `vars/`, `meta/`, `library/`, `module_utils/`,
+`README.md` and `LICENSE`) are copied unchanged from the same commit, which is ahead of the latest
+release, 1.22.1, and adds `meta/argument_specs.yml` and `tasks/assert_role_vars.yml`. The upstream
+repository's development tooling (CI, tox, sanity ignores and its own `tests/`) is not copied.
+`config.yml` sets `ANSIBLE_ROLES_PATH` to `roles/`, so the tests run this copy and not an installed
+one. The role's `library/` also carries the four test modules, unmodified. Whether the tests' disk
+lookup resolves to the label-selecting copy in `utils/playbooks/library/` or to the role's copy has not
+been checked by a run.
 
 ## The reuse this makes visible
 
 A `luks` converge reaches 40 files through its includes, module calls and module imports, counted
 statically with conditional branches included. 39 of them are the vendored test machinery: the 33-file
 `shared/` library (the `test-verify-*` / `verify-pool-*` chain alone is 24) and the 6 module files.
-They are the same `.github`-distributed files every LSR role and every one of the 50 storage test groups
+They are the same `.github`-distributed files every LSR role and every one of the 51 storage test groups
 pulls in, which is why they live once in `shared/` and each scenario adds only its converge on top.
 Convert a second role and it reuses the same `shared/` tree rather than copying it. The
 scenario-specific surface is one playbook riding on a large shared substrate.
@@ -50,11 +59,11 @@ A scenario gets the first N disks of that list. N is the inventory var `storage_
 `create`, the domain template and `verify` act on that slice only, so a scenario whose test needs no
 disk gets no data disk. `default` sets 0 and `luks` takes the default 1.
 
-The number each of the 50 test groups needs, read from the disk request in its `tests_<group>.yml`:
+The number each of the 51 test groups needs, read from the disk request in its `tests_<group>.yml`:
 
 | Disks | Test groups |
 |---|---|
-| 0 | default, deps, include_vars_from_parent |
+| 0 | default, deps, include_vars_from_parent, invalid_input |
 | 2 | create_lvm_cache_then_remove, create_raid_pool_then_remove, create_raid_volume_then_remove, fatals_cache_volume, fatals_raid_pool, fatals_raid_volume, lvm_multiple_disks_multiple_volumes, null_raid_pool, swap |
 | 3 | create_thinp_then_remove, raid_pool_options, raid_volume_cleanup, raid_volume_options, lvm_pool_members, stratis |
 | 1 | every other group (32) |
@@ -94,10 +103,12 @@ replaces that template, keeps `disks.yml` and reproduces the labels.
 ```
 in-between/
   galaxy.yml                            collection root, without which config.yml is never loaded
+  roles/
+    storage/                            the role under test, upstream runtime files unchanged
   extensions/
     molecule/
       config.yml                        auto-loaded base config: dependency, driver, env, vars, playbooks
-      requirements.yml                  collections and the pinned role, for the dependency step
+      requirements.yml                  collections, for the dependency step
       utils/
         playbooks/
           create.yml                    make the domain + the scenario's labelled disks
@@ -137,7 +148,7 @@ this tree carries a `galaxy.yml`. With no collection root the search finds nothi
 missing playbook is a warning rather than an error, `molecule create` then exits 0 having created
 nothing. So the shared blocks (dependency, driver, env, vars, create/destroy/cleanup/verify) live in
 `config.yml` once and a scenario file is its `converge` plus, where it differs from 1, its disk count.
-Those two knobs are what vary across the 50 test groups, and the `after/` single-file form carries both
+Those two knobs are what vary across the 51 test groups, and the `after/` single-file form carries both
 in one list.
 
 ## Running it
@@ -165,17 +176,19 @@ if it is not.
 | Molecule lifecycle | tox-lsr, .fmf plans | utils/playbooks/ (create/verify/destroy/cleanup once) |
 | Test library | injected per role from .github | utils/playbooks/shared/ (vendored once, 33 files) plus 6 module files |
 | Per-scenario file | tox-lsr conventions, .fmf plans | one converge playbook, everything else shared |
-| Scenarios | 50 distinct test groups (150 playbooks, base plus scsi and nvme variants) | 2 scenario dirs under extensions/molecule, one per vendored test, scsi only |
+| Scenarios | 51 distinct test groups (151 playbooks, base plus scsi and nvme variants of 50 of them) | 2 scenario dirs under extensions/molecule, one per vendored test, scsi only |
 
 ## Caveats
 
-Only 2 of the 50 test groups are converted, the two whose test playbooks are vendored in `before/`.
-The other 48 follow the same shape and are not here. Both converted scenarios pass a full
-`molecule test` against a libvirt host. The default test sequence runs without `idempotence` and
+Only 2 of the 51 test groups are converted, the two whose test playbooks are vendored in `before/`.
+The other 49 are not here. Both converted scenarios passed a full `molecule test` against a libvirt
+host at release 1.22.1, with the role installed from Galaxy. They have not been rerun since the move to
+this commit and the in-tree role. The default test sequence runs without `idempotence` and
 `side_effect`, because the LSR test playbooks create and remove volumes and provoke role failures on
-purpose. The vendored files are byte-for-byte upstream (storage at
-`bd96ce4e96f49906daf8dacd0ab9d286c60dc033`, tag 1.22.1) except four. The two converge playbooks have
-only their include prefixes and a licence and change header changed. `find_unused_disk.py` and
-`get_unused_disk.yml` select by label, as described above. Each scenario runs once against scsi disks,
+purpose. The vendored files and the role under `roles/storage/` are byte-for-byte upstream (storage at
+`75bb17d104c8e2327827d81ff5e653b84082fb57` on `main`) except five test files. The two converge
+playbooks have only their include prefixes and a licence and change header changed.
+`find_unused_disk.py` and `get_unused_disk.yml` select by label, as described above.
+`run_role_with_clear_facts.yml` names the in-tree role. Each scenario runs once against scsi disks,
 so the nvme coverage upstream's `_nvme` variants carry is not reproduced here. `default` creates no
 data disk. `luks` creates one, `om-scsi-0`, and its disk lookup takes it as `sda`.

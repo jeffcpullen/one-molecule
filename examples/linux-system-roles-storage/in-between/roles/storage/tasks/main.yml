@@ -1,0 +1,27 @@
+---
+- name: Set platform/version specific variables
+  include_tasks: tasks/set_vars.yml
+
+- name: Validate role parameters
+  ansible.builtin.include_tasks: assert_role_vars.yml
+
+- name: Define an empty list of pools to be used in testing
+  set_fact:
+    _storage_pools_list: []
+
+- name: Define an empty list of volumes to be used in testing
+  set_fact:
+    _storage_volumes_list: []
+
+- name: Include the appropriate provider tasks
+  include_tasks: "main-{{ storage_provider }}.yml"
+
+- name: Record role success fingerprint
+  sr_fingerprint:
+    status: success
+    role_name: storage
+    role_path: "{{ role_path }}"
+    ansible_play_hosts_all: "{{ ansible_play_hosts_all }}"
+    distribution: "{{ ansible_facts['distribution'] }}"
+    distribution_version: "{{ ansible_facts['distribution_version'] }}"
+    write_log_file: "{{ __storage_write_log_file }}"
