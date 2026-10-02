@@ -1,7 +1,12 @@
 ---
 # All shared config comes from ../config.yml (the auto-loaded base config).
-# This file only sets the converge playbook that makes the scenario distinct.
+# This file sets the converge playbook that makes the scenario distinct, and its
+# data disk count, because tests_default.yml looks up no disk.
 provisioner:
   name: ansible
   playbooks:
     converge: ../utils/playbooks/default.yml
+  inventory:
+    group_vars:
+      all:
+        storage_test_disk_count: 0

@@ -32,37 +32,62 @@ scenario-specific surface is one playbook riding on a large shared substrate.
 ## The lifecycle, read as objects not hosts
 
 `create` makes the objects `converge` acts on, `destroy` removes them, `cleanup` unwinds side effects.
-For storage the objects are the nine disks. `create.yml` defines and boots a libvirt domain with those
-disks, `converge` is the role's test playbook whose `shared/tasks/get_unused_disk.yml` discovers them,
-`verify` checks the nine labelled data disks are present on the node, `destroy` undefines the domain
-and removes its files, and `cleanup` is a no-op because a fresh node is made per scenario.
+For storage the objects are the scenario's data disks. `create.yml` defines and boots a libvirt domain
+with those disks, `converge` is the role's test playbook whose `shared/tasks/get_unused_disk.yml`
+discovers them, `verify` checks exactly those labelled disks are on the node, `destroy` undefines the
+domain and removes its files, and `cleanup` is a no-op because a fresh node is made per scenario.
 
-The disk objects translate `before/tests/provision.fmf` through `standard-inventory-qcow2` (tox-lsr):
-nine raw sparse files, `format=raw`, virtio on the virtio bus, scsi via a `virtio-scsi` controller, and
-nvme on libvirt's native nvme bus with one controller per disk. `utils/vars/disks.yml` carries the
-sizes byte-for-byte and names no hypervisor. `provision.fmf` leaves the class off its first three
-disks, and `disks.yml` states virtio for them.
+## One ordered disk list, each scenario takes what it needs
+
+`utils/vars/disks.yml` declares one ordered list of three scsi data disks, the scsi disks of
+`before/tests/provision.fmf` with their sizes byte-for-byte: 1099511627800, 1099511627800 and
+10737418240 bytes (1 TiB, 1 TiB and 10 GiB), labelled `om-scsi-0` to `om-scsi-2`. They are raw sparse
+files, `format=raw`, attached through one `virtio-scsi` controller as `standard-inventory-qcow2`
+(tox-lsr) attaches them, and `disks.yml` names no hypervisor.
+
+A scenario gets the first N disks of that list. N is the inventory var `storage_test_disk_count`, which
+`config.yml` sets to 1 and a scenario's `molecule.yml` overrides when its test needs a different number.
+`create`, the domain template and `verify` act on that slice only, so a scenario whose test needs no
+disk gets no data disk. `default` sets 0 and `luks` takes the default 1.
+
+The number each of the 50 test groups needs, read from the disk request in its `tests_<group>.yml`:
+
+| Disks | Test groups |
+|---|---|
+| 0 | default, deps, include_vars_from_parent |
+| 2 | create_lvm_cache_then_remove, create_raid_pool_then_remove, create_raid_volume_then_remove, fatals_cache_volume, fatals_raid_pool, fatals_raid_volume, lvm_multiple_disks_multiple_volumes, null_raid_pool, swap |
+| 3 | create_thinp_then_remove, raid_pool_options, raid_volume_cleanup, raid_volume_options, lvm_pool_members, stratis |
+| 1 | every other group (32) |
 
 ## Disks are selected by label
 
-Every data disk carries a label, `om-<class>-<n>` (for example `om-scsi-1`), declared in `disks.yml`
-and set by `create` as the disk serial. The guest reads it back from `lsblk` SERIAL and
-`/dev/disk/by-id`. The label is the only way the tree finds a data disk. The tests' disk lookup passes
-the selector `storage_test_disk_label` to `find_unused_disk`, which keeps only disks whose serial starts
-with it, and `verify.yml` checks each declared label is on exactly one disk of the declared size.
-Nothing selects on a driver, a bus or a device name. `templates/domain.xml.j2` is the only place a class
-becomes a libvirt bus, and it sets the label with the same `<serial>` element on all three buses
-(libvirt hands an nvme disk's serial to its controller). A port to another hypervisor replaces that
-template, keeps `disks.yml` and reproduces the labels.
+Every data disk carries a label, declared in `disks.yml` and set by `create` as the disk serial. The
+guest reads it back from `lsblk` SERIAL and `/dev/disk/by-id`. The label is the only way the tree finds
+a data disk. The tests' disk lookup passes the selector `storage_test_disk_label`, `om-scsi-` in
+`config.yml`, to `find_unused_disk`, which keeps only disks whose serial starts with it, and
+`verify.yml` checks each label in the scenario's slice is on exactly one disk of the declared size and
+no other disk carries a data disk label. Nothing selects on a driver, a bus or a device name.
+`templates/domain.xml.j2` is the only place a disk meets a libvirt bus. A port to another hypervisor
+replaces that template, keeps `disks.yml` and reproduces the labels.
 
-This diverges from upstream in three places. Upstream's `find_unused_disk` takes `with_interface` and
-substring-matches it against the disk's kernel driver path, so `virtio` also matches the scsi disks,
-whose driver is `virtio_scsi`. Here it takes `with_label` and matches the serial, and the `null_blk`
-name filter goes with the driver match. Upstream's generated `_nvme_generated` and `_scsi_generated`
-playbooks set `storage_test_use_interface`, and here the selector is `storage_test_disk_label`, one
-clean class per value. Upstream's base playbooks leave it unset, which takes any non-nvme disk, and here
-the base run takes the virtio class, the `om-virtio-` default in `config.yml`. The `def<n>` serial
-`standard-inventory-qcow2` gives its nvme disks is replaced by their labels.
+## Where this diverges from upstream
+
+- **One disk class.** Upstream provisions nine disks (three virtio, three scsi, three nvme) and ships
+  each test group as three playbooks: the base playbook and the generated `_scsi` and `_nvme` variants. No
+  role or assertion code branches on the class. `find_unused_disk` returns device names sorted, so on
+  that layout a base or `_scsi` run asking for three disks or fewer takes `sda`, `sdb`, `sdc` in that
+  order, which is this list. Here each group runs once, against scsi disks.
+- **No nvme coverage.** The only nvme-specific code on the path is blivet's NVMe device population,
+  which runs only when an nvme disk exists. Upstream CI never makes one: Testing Farm attaches every
+  drive as a SCSI LUN and skips the nvme tests, and the GitHub Actions qemu job skips them too.
+- **lvm_pool_members and stratis get three disks where upstream base got six.** Both take every
+  qualifying disk as the pool, and a base run on the `provision.fmf` layout qualifies its three scsi and three virtio disks.
+  Here they get three, as upstream's `_scsi` variant does.
+- **Selection by label, not driver.** Upstream's `find_unused_disk` takes `with_interface` and
+  substring-matches it against the disk's kernel driver path, so `virtio` also matches the scsi disks,
+  whose driver is `virtio_scsi`. Here it takes `with_label` and matches the serial, and the `null_blk`
+  name filter goes with the driver match. Upstream's generated variants set
+  `storage_test_use_interface`, and here the selector is `storage_test_disk_label`.
 
 ## Folder shape
 
@@ -75,8 +100,8 @@ in-between/
       requirements.yml                  collections and the pinned role, for the dependency step
       utils/
         playbooks/
-          create.yml                    make the domain + nine labelled disks
-          verify.yml                    check the nine labels on the node
+          create.yml                    make the domain + the scenario's labelled disks
+          verify.yml                    check exactly those labels are on the node
           destroy.yml                   remove them
           cleanup.yml                   no-op (ephemeral node)
           default.yml                   default scenario converge (role's tests_default.yml)
@@ -93,12 +118,12 @@ in-between/
                                         resolve_blockdev, bsize
           module_utils/storage_lsr/     __init__.py, size.py
           templates/
-            domain.xml.j2               guest_class -> libvirt bus, label -> disk serial
+            domain.xml.j2               disk -> scsi bus, label -> disk serial
             user-data.j2                cloud-init NoCloud
         vars/
-          disks.yml                     the nine disks, their classes and labels
+          disks.yml                     the ordered three-disk scsi list and its labels
           hypervisor.yml                libvirt URI, network, domain and work dir names
-      default/molecule.yml              converge: ../utils/playbooks/default.yml
+      default/molecule.yml              converge: ../utils/playbooks/default.yml, 0 disks
       luks/molecule.yml                 converge: ../utils/playbooks/luks.yml
 ```
 
@@ -111,8 +136,9 @@ Molecule auto-loads a base config from `extensions/molecule/config.yml` and deep
 this tree carries a `galaxy.yml`. With no collection root the search finds nothing, and because a
 missing playbook is a warning rather than an error, `molecule create` then exits 0 having created
 nothing. So the shared blocks (dependency, driver, env, vars, create/destroy/cleanup/verify) live in
-`config.yml` once and every scenario file is just its `converge`. The single knob that varies across the
-50 test groups is the converge playbook, which is what the `after/` single-file form turns into one list.
+`config.yml` once and a scenario file is its `converge` plus, where it differs from 1, its disk count.
+Those two knobs are what vary across the 50 test groups, and the converge playbook is what the `after/`
+single-file form turns into one list.
 
 ## Running it
 
@@ -133,13 +159,13 @@ if it is not.
 
 | | Before | In-between |
 |---|---|---|
-| Disk provisioning | provision.fmf via standard-inventory-qcow2 | utils/playbooks/create.yml + domain.xml.j2 (same disks, each labelled) |
+| Disk provisioning | provision.fmf via standard-inventory-qcow2, nine disks in three classes for every run | utils/playbooks/create.yml + domain.xml.j2, the first N of the three scsi disks, each labelled |
 | Disk selection | find_unused_disk matches the kernel driver (with_interface) | find_unused_disk matches the label on the disk serial (with_label) |
 | Shared config | .github-managed vars, harness env | extensions/molecule/config.yml (auto-loaded once) |
 | Molecule lifecycle | tox-lsr, .fmf plans | utils/playbooks/ (create/verify/destroy/cleanup once) |
 | Test library | injected per role from .github | utils/playbooks/shared/ (vendored once, 33 files) plus 6 module files |
 | Per-scenario file | tox-lsr conventions, .fmf plans | one converge playbook, everything else shared |
-| Scenarios | 50 distinct test groups (150 playbooks) | 2 scenario dirs under extensions/molecule, one per vendored test |
+| Scenarios | 50 distinct test groups (150 playbooks, base plus scsi and nvme variants) | 2 scenario dirs under extensions/molecule, one per vendored test, scsi only |
 
 ## Caveats
 
@@ -150,7 +176,6 @@ The other 48 follow the same shape and are not here. Both converted scenarios pa
 purpose. The vendored files are byte-for-byte upstream (storage at
 `bd96ce4e96f49906daf8dacd0ab9d286c60dc033`, tag 1.22.1) except four. The two converge playbooks have
 only their include prefixes and a licence and change header changed. `find_unused_disk.py` and
-`get_unused_disk.yml` select by label, as described above. Each scenario runs the base playbook only,
-so by default it exercises the virtio class. `luks` also passes with the selector overridden,
-`molecule test -s luks -- -e storage_test_disk_label=om-scsi-` (and `om-nvme-`), where the lookup
-took `sda` and `nvme0n1`. `default` never looks a disk up, so its class does not matter.
+`get_unused_disk.yml` select by label, as described above. Each scenario runs once against scsi disks,
+so the nvme coverage upstream's `_nvme` variants carry is not reproduced here. `default` creates no
+data disk. `luks` creates one, `om-scsi-0`, and its disk lookup takes it as `sda`.

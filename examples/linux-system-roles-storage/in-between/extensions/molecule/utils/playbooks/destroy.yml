@@ -2,7 +2,8 @@
 # Molecule destroy: remove the objects create made. The domain is stopped and
 # undefined only if libvirt knows it, so a missing domain is not an error and a
 # real libvirt failure still fails the task. Its work dir holds the overlay, the
-# nine data disks, the seed and the SSH keypair, so removing it removes them all.
+# scenario's data disks, the seed and the SSH keypair, so removing it removes them
+# all.
 - name: Destroy
   hosts: localhost
   gather_facts: false

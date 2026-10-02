@@ -8,9 +8,11 @@ against real VMs.
 - `before/` copies a representative slice of that current layout verbatim.
 - `in-between/` is a 1-to-1 conversion into the Molecule shape that ships today: scenarios under
   `extensions/molecule/`, shared machinery in `utils/`. It converts the two tests vendored in `before/`,
-  both pass a full `molecule test` against a libvirt host (its README says what that needs), and it
-  reproduces the `before/` disk provisioning, labelling every disk so the tests select disks by label
-  rather than by upstream's kernel driver match.
+  both pass a full `molecule test` against a libvirt host (its README says what that needs). It
+  provisions one ordered list of the three scsi disks from `before/` and gives each scenario the first
+  N it needs, labelling every disk so the tests select disks by label rather than by upstream's kernel
+  driver match. It drops the virtio and nvme disks and the nvme coverage, and its README states each
+  divergence and records the disk count every test group needs.
 - `after/molecule.yml` declares the same `tests/` playbooks in one root file. Molecule cannot run a
   single root config today, so the after shows how the layout would be authored, not a shipped setup.
 

@@ -1,9 +1,10 @@
 ---
 # Molecule verify: check the disk objects create made reached the node. The
 # role's own assertions run inside each converge playbook, as they do upstream,
-# so this checks the fixture they rely on: every label utils/vars/disks.yml
-# declares is on exactly one disk of the declared size, and no other disk
-# carries a data disk label. Disks are found by label alone, never by driver,
+# so this checks the fixture they rely on: every label in the scenario's slice of
+# utils/vars/disks.yml (scenario_disks) is on exactly one disk of the declared
+# size, and no other disk carries a data disk label. A scenario with no data
+# disks passes only when the node has none. Disks are found by label alone, never by driver,
 # bus or device name, so these checks hold whatever hypervisor attached them,
 # as long as it reproduces the labels.
 - name: Verify the data disks
@@ -33,12 +34,12 @@
         fail_msg: "{{ item.label }}: declared {{ item.size }} bytes, found {{ matches }}"
       vars:
         matches: "{{ found_disks | selectattr('serial', 'eq', item.label) | list }}"
-      loop: "{{ test_disks }}"
+      loop: "{{ scenario_disks }}"
       loop_control:
         label: "{{ item.label }}"
 
     - name: Check no disk carries a data disk label that was not declared
       ansible.builtin.assert:
         that:
-          - (found_disks | map(attribute='serial') | sort) == (test_disks | map(attribute='label') | sort)
+          - (found_disks | map(attribute='serial') | sort) == (scenario_disks | map(attribute='label') | sort)
         fail_msg: "found labels {{ found_disks | map(attribute='serial') | sort }}"

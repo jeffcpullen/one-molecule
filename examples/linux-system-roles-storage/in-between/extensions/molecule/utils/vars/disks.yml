@@ -3,8 +3,8 @@
 # before/tests/provision.fmf (standard-inventory-qcow2 -> qemu). One shared file,
 # because provision.fmf sits at the tests root and every scenario gets the same node.
 # Nothing here names a hypervisor. templates/domain.xml.j2 is the only place a
-# guest class becomes a libvirt bus, so a port to another hypervisor replaces that
-# template and keeps this file.
+# disk meets a libvirt bus, so a port to another hypervisor replaces that template
+# and keeps this file.
 
 # The node's memory, provision.fmf qemu.m.
 node_memory_mb: 2048
@@ -16,47 +16,23 @@ node_memory_mb: 2048
 # this prefix.
 data_disk_label_prefix: om-
 
-# The disk classes. A class's disks are labelled
-# <data_disk_label_prefix><class>-<n>, so a test selects a class by that label
-# prefix (storage_test_disk_label, set in ../../config.yml). A port to another
-# hypervisor reproduces the labels, not the buses.
-disk_classes:
-  - virtio
-  - scsi
-  - nvme
-
-# The nine data disks, in provision.fmf order. size is in bytes and copied
-# byte-for-byte from provision.fmf. guest_class is provision.fmf's interface key,
-# stated on every disk here. provision.fmf omits it on the first three, and this
-# translation states virtio for them rather than leaving it to a template default.
-# label is the disk's serial, at most 20 characters (the virtio-blk limit), and is
-# not in provision.fmf. standard-inventory-qcow2 gives only its nvme disks a
-# serial (def<n>), which these labels replace.
+# The data disks, one ordered list of the three scsi disks in provision.fmf, in
+# its order. These are the disks upstream's base and _scsi playbooks take,
+# because find_unused_disk sorts and they come first. provision.fmf's three
+# virtio and three nvme disks are not translated. size is in bytes and copied
+# byte-for-byte from provision.fmf. label is the disk's serial, at most 20
+# characters, and is not in provision.fmf.
 test_disks:
-  - size: 10737418240        # 10 GiB
-    guest_class: virtio
-    label: om-virtio-0
-  - size: 10737418240
-    guest_class: virtio
-    label: om-virtio-1
-  - size: 10737418240
-    guest_class: virtio
-    label: om-virtio-2
-  - size: 1099511627800      # ~1 TB
-    guest_class: scsi
+  - size: 1099511627800      # 1 TiB plus 24 bytes
     label: om-scsi-0
   - size: 1099511627800
-    guest_class: scsi
     label: om-scsi-1
-  - size: 10737418240
-    guest_class: scsi
+  - size: 10737418240        # 10 GiB
     label: om-scsi-2
-  - size: 1099511627800
-    guest_class: nvme
-    label: om-nvme-0
-  - size: 10737418240
-    guest_class: nvme
-    label: om-nvme-1
-  - size: 10737418240
-    guest_class: nvme
-    label: om-nvme-2
+
+# The disks a scenario gets: the first storage_test_disk_count of test_disks. The
+# count is an inventory var (default in ../../config.yml, overridden in a
+# scenario's molecule.yml), read from the one platform's hostvars so create.yml,
+# which runs on localhost, and verify.yml, which runs on the node, see the same
+# slice. A scenario that needs no data disk gets none.
+scenario_disks: "{{ test_disks[:(hostvars[groups['all'][0]]['storage_test_disk_count'] | int)] }}"

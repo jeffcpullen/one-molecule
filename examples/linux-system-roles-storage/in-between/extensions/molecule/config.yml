@@ -45,10 +45,13 @@ provisioner:
         # The label selector the tests' disk lookup (shared/tasks/get_unused_disk.yml)
         # passes to find_unused_disk: only disks whose serial starts with it are
         # candidates. It replaces upstream's storage_test_use_interface, which
-        # matched the kernel driver. Upstream's base playbooks leave that unset and
-        # take any non-nvme disk. Here they take the virtio class, and a scsi or nvme
-        # run sets om-scsi- or om-nvme-. The labels are in utils/vars/disks.yml.
-        storage_test_disk_label: om-virtio-
+        # matched the kernel driver. The labels are in utils/vars/disks.yml.
+        storage_test_disk_label: om-scsi-
+        # How many data disks create attaches: the first N of the ordered list in
+        # utils/vars/disks.yml. Most storage tests take one disk, so one is the
+        # default, and a scenario that needs a different number sets it in its
+        # own molecule.yml. The per-test numbers are in ../../README.md.
+        storage_test_disk_count: 1
         # All eight vars of upstream tests/vars/rh_distros_vars.yml (before/),
         # values unchanged. No vendored test file reads them, and no file in
         # before/ loads that file. They are carried for completeness.

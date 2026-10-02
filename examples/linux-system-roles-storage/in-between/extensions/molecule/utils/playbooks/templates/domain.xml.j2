@@ -1,15 +1,12 @@
 {#- Libvirt domain for a storage-role test node. vda is the OS overlay. This
-    template is the only place a disk's guest_class (utils/vars/disks.yml) maps
-    to a libvirt bus:
-      virtio  bus virtio, target vdX
-      scsi    bus scsi on one virtio-scsi controller, target sdX
-      nvme    bus nvme, one nvme controller per disk, target nvmeNn1
-    Every data disk carries its label as a disk <serial>, the same element on
-    all three buses. For an nvme disk libvirt hands that serial to the disk's
-    own controller, which is where the guest reads it. A port to another
-    hypervisor replaces this mapping, keeps disks.yml and reproduces the labels.
-    Every disk is a native libvirt disk, so libvirt applies its SELinux labels
-    to all of them. The emulator is left to libvirt's default for the arch. -#}
+    template is the only place a data disk (utils/vars/disks.yml) meets a
+    libvirt bus: every one goes on bus scsi on one virtio-scsi controller, target
+    sdX, as standard-inventory-qcow2 attaches provision.fmf's scsi disks. Only the
+    scenario's slice, scenario_disks, is attached. Every data disk carries its
+    label as a disk <serial>. A port to another hypervisor replaces this
+    template, keeps disks.yml and reproduces the labels. Every disk is a native
+    libvirt disk, so libvirt applies its SELinux labels to all of them. The
+    emulator is left to libvirt's default for the arch. -#}
 <domain type='kvm'>
   <name>{{ domain }}</name>
   <memory unit='MiB'>{{ node_memory_mb }}</memory>
@@ -39,41 +36,16 @@
 
     <controller type='scsi' index='0' model='virtio-scsi'/>
 
-    {#- Data disks. The file name is the global drive index (matches create.yml
-        disk{{ idx }}.raw), target letters count per bus. Each nvme disk gets its
-        own controller, as standard-inventory-qcow2 gives each its own -device
-        nvme. -#}
-    {%- set ns = namespace(v=0, s=0, n=0) -%}
-    {%- set vletters = 'bcdefghijk' -%}
+    {#- Data disks. The file name is the drive index (matches create.yml
+        disk{{ idx }}.raw). -#}
     {%- set sletters = 'abcdefghij' -%}
-    {%- for d in test_disks -%}
-      {%- if d.guest_class == 'virtio' %}
+    {%- for d in scenario_disks %}
     <disk type='file' device='disk'>
       <driver name='qemu' type='raw'/>
       <source file='{{ workdir }}/disk{{ loop.index0 }}.raw'/>
-      <target dev='vd{{ vletters[ns.v] }}' bus='virtio'/>
+      <target dev='sd{{ sletters[loop.index0] }}' bus='scsi'/>
       <serial>{{ d.label }}</serial>
     </disk>
-        {%- set ns.v = ns.v + 1 -%}
-      {%- elif d.guest_class == 'scsi' %}
-    <disk type='file' device='disk'>
-      <driver name='qemu' type='raw'/>
-      <source file='{{ workdir }}/disk{{ loop.index0 }}.raw'/>
-      <target dev='sd{{ sletters[ns.s] }}' bus='scsi'/>
-      <serial>{{ d.label }}</serial>
-    </disk>
-        {%- set ns.s = ns.s + 1 -%}
-      {%- elif d.guest_class == 'nvme' %}
-    <controller type='nvme' index='{{ ns.n }}'/>
-    <disk type='file' device='disk'>
-      <driver name='qemu' type='raw'/>
-      <source file='{{ workdir }}/disk{{ loop.index0 }}.raw'/>
-      <target dev='nvme{{ ns.n }}n1' bus='nvme'/>
-      <serial>{{ d.label }}</serial>
-      <address type='drive' controller='{{ ns.n }}' bus='0' target='0' unit='0'/>
-    </disk>
-        {%- set ns.n = ns.n + 1 -%}
-      {%- endif -%}
     {%- endfor %}
 
     <interface type='network'>

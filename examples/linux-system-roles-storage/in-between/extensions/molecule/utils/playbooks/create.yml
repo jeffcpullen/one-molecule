@@ -1,9 +1,10 @@
 ---
 # Molecule create: make the objects converge acts on. Faithful translation of
 # standard-inventory-qcow2's disk logic (tox-lsr) into a libvirt domain that is
-# defined per scenario and undefined again by destroy.yml. The nine data disks
-# are raw sparse files, and templates/domain.xml.j2 attaches each one on the
-# libvirt bus its guest_class maps to, with its label as the disk serial.
+# defined per scenario and undefined again by destroy.yml. The scenario's data
+# disks, the first storage_test_disk_count of utils/vars/disks.yml, are raw sparse
+# files, and templates/domain.xml.j2 attaches each one on the virtio-scsi
+# controller with its label as the disk serial.
 - name: Create
   hosts: localhost
   gather_facts: false
@@ -17,24 +18,24 @@
           - groups['all'] | length == 1
         fail_msg: "This create playbook makes one node, the platforms list has {{ groups['all'] | length }}"
 
-    - name: Check every data disk names a guest class the domain template maps
+    - name: Check the scenario asks for no more data disks than disks.yml declares
       ansible.builtin.assert:
         that:
-          - (item.guest_class | default('')) in disk_classes
-        fail_msg: "disk {{ idx }}: guest_class {{ item.guest_class | default('unset') }} is not one of {{ disk_classes }}"
-      loop: "{{ test_disks }}"
-      loop_control:
-        index_var: idx
+          - (hostvars[instance]['storage_test_disk_count'] | int) >= 0
+          - (hostvars[instance]['storage_test_disk_count'] | int) <= test_disks | length
+        fail_msg: "storage_test_disk_count is {{ hostvars[instance]['storage_test_disk_count'] }},
+          utils/vars/disks.yml declares {{ test_disks | length }} data disks"
 
-    - name: Check every data disk carries a label its class selector matches
-      # The label becomes the disk's serial, and virtio-blk keeps at most 20
-      # characters of a serial.
+    - name: Check every data disk carries a label the tests' disk lookup selects
+      # The label becomes the disk's serial, and a serial is kept to at most 20
+      # characters, the virtio-blk limit, so a label survives a port to that bus.
       ansible.builtin.assert:
         that:
-          - (item.label | default('')) is match(data_disk_label_prefix ~ item.guest_class ~ '-')
+          - (item.label | default('')) is match(hostvars[instance]['storage_test_disk_label'])
+          - (item.label | default('')) is match(data_disk_label_prefix)
           - item.label | length <= 20
         fail_msg: "disk {{ idx }}: label {{ item.label | default('unset') }} must start
-          {{ data_disk_label_prefix ~ item.guest_class ~ '-' }} and be at most 20 characters"
+          {{ hostvars[instance]['storage_test_disk_label'] }} and be at most 20 characters"
       loop: "{{ test_disks }}"
       loop_control:
         index_var: idx
@@ -63,12 +64,12 @@
           -b {{ base_image }} {{ workdir }}/root.qcow2
         creates: "{{ workdir }}/root.qcow2"
 
-    - name: Create each data disk as a sparse raw image
+    - name: Create each of the scenario's data disks as a sparse raw image
       # standard-inventory-qcow2: NamedTemporaryFile().truncate(size), format=raw
       ansible.builtin.command:
         cmd: "truncate --size={{ item.size }} {{ workdir }}/disk{{ idx }}.raw"
         creates: "{{ workdir }}/disk{{ idx }}.raw"
-      loop: "{{ test_disks }}"
+      loop: "{{ scenario_disks }}"
       loop_control:
         index_var: idx
 

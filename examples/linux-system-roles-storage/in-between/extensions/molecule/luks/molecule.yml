@@ -1,6 +1,7 @@
 ---
 # All shared config comes from ../config.yml (the auto-loaded base config).
 # This file only sets the converge playbook that makes the scenario distinct.
+# tests_luks.yml takes one data disk, the config.yml default count.
 provisioner:
   name: ansible
   playbooks:
