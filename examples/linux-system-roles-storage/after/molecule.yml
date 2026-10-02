@@ -10,6 +10,11 @@ defaults:
   dependency:
     name: galaxy
     enabled: false
+  provisioner:
+    inventory:
+      group_vars:
+        all:
+          storage_test_disk_count: 1
 
 scenarios:
   - name: change_disk_fs
@@ -33,6 +38,11 @@ scenarios:
   - name: create_lvm_cache_then_remove
     playbooks:
       converge: tests/tests_create_lvm_cache_then_remove.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 2
   - name: create_lvm_pool_then_remove
     playbooks:
       converge: tests/tests_create_lvm_pool_then_remove.yml
@@ -54,18 +64,43 @@ scenarios:
   - name: create_raid_pool_then_remove
     playbooks:
       converge: tests/tests_create_raid_pool_then_remove.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 2
   - name: create_raid_volume_then_remove
     playbooks:
       converge: tests/tests_create_raid_volume_then_remove.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 2
   - name: create_thinp_then_remove
     playbooks:
       converge: tests/tests_create_thinp_then_remove.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 3
   - name: default
     playbooks:
       converge: tests/tests_default.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 0
   - name: deps
     playbooks:
       converge: tests/tests_deps.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 0
   - name: disk_errors
     playbooks:
       converge: tests/tests_disk_errors.yml
@@ -75,18 +110,38 @@ scenarios:
   - name: fatals_cache_volume
     playbooks:
       converge: tests/tests_fatals_cache_volume.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 2
   - name: fatals_raid_pool
     playbooks:
       converge: tests/tests_fatals_raid_pool.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 2
   - name: fatals_raid_volume
     playbooks:
       converge: tests/tests_fatals_raid_volume.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 2
   - name: filesystem_one_disk
     playbooks:
       converge: tests/tests_filesystem_one_disk.yml
   - name: include_vars_from_parent
     playbooks:
       converge: tests/tests_include_vars_from_parent.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 0
   - name: luks2
     playbooks:
       converge: tests/tests_luks2.yml
@@ -105,6 +160,11 @@ scenarios:
   - name: lvm_multiple_disks_multiple_volumes
     playbooks:
       converge: tests/tests_lvm_multiple_disks_multiple_volumes.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 2
   - name: lvm_one_disk_multiple_volumes
     playbooks:
       converge: tests/tests_lvm_one_disk_multiple_volumes.yml
@@ -117,6 +177,11 @@ scenarios:
   - name: lvm_pool_members
     playbooks:
       converge: tests/tests_lvm_pool_members.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 3
   - name: lvm_pool_pv_grow
     playbooks:
       converge: tests/tests_lvm_pool_pv_grow.yml
@@ -132,15 +197,35 @@ scenarios:
   - name: null_raid_pool
     playbooks:
       converge: tests/tests_null_raid_pool.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 2
   - name: raid_pool_options
     playbooks:
       converge: tests/tests_raid_pool_options.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 3
   - name: raid_volume_cleanup
     playbooks:
       converge: tests/tests_raid_volume_cleanup.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 3
   - name: raid_volume_options
     playbooks:
       converge: tests/tests_raid_volume_options.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 3
   - name: remove_mount
     playbooks:
       converge: tests/tests_remove_mount.yml
@@ -156,9 +241,19 @@ scenarios:
   - name: stratis
     playbooks:
       converge: tests/tests_stratis.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 3
   - name: swap
     playbooks:
       converge: tests/tests_swap.yml
+    provisioner:
+      inventory:
+        group_vars:
+          all:
+            storage_test_disk_count: 2
   - name: volume_relabel
     playbooks:
       converge: tests/tests_volume_relabel.yml

@@ -137,8 +137,8 @@ this tree carries a `galaxy.yml`. With no collection root the search finds nothi
 missing playbook is a warning rather than an error, `molecule create` then exits 0 having created
 nothing. So the shared blocks (dependency, driver, env, vars, create/destroy/cleanup/verify) live in
 `config.yml` once and a scenario file is its `converge` plus, where it differs from 1, its disk count.
-Those two knobs are what vary across the 50 test groups, and the converge playbook is what the `after/`
-single-file form turns into one list.
+Those two knobs are what vary across the 50 test groups, and the `after/` single-file form carries both
+in one list.
 
 ## Running it
 

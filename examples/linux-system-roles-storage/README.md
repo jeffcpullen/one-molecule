@@ -13,8 +13,10 @@ against real VMs.
   N it needs, labelling every disk so the tests select disks by label rather than by upstream's kernel
   driver match. It drops the virtio and nvme disks and the nvme coverage, and its README states each
   divergence and records the disk count every test group needs.
-- `after/molecule.yml` declares the same `tests/` playbooks in one root file. Molecule cannot run a
-  single root config today, so the after shows how the layout would be authored, not a shipped setup.
+- `after/molecule.yml` declares the same `tests/` playbooks in one root file, with the in-between's
+  disk count as a default of 1 that the 18 scenarios needing 0, 2 or 3 disks override. Molecule cannot
+  run a single root config today, so the after shows how the layout would be authored, not a shipped
+  setup.
 
 The three read as a progression: their process now, the same tests in current Molecule, and the proposed
 single-file form.
@@ -24,7 +26,7 @@ single-file form.
 | | Before | In-between | After |
 |---|---|---|---|
 | Test config locations (tox.ini, .fmf/, .ostree/, plans/, tests/.fmf/, tests/provision.fmf, tests/vars/, tests/tasks/) | 8 | extensions/molecule/ (config.yml + utils/ shared once, converge-only per scenario) | 1 |
-| Test playbooks (tests/tests_*.yml) | 150 (50 distinct groups, the other 100 generated nvme and scsi variants) | 2 scenario dirs under extensions/molecule, the 2 tests vendored in before/ | 50 scenarios in one file |
+| Test playbooks (tests/tests_*.yml) | 150 (50 distinct groups, the other 100 generated nvme and scsi variants) | 2 scenario dirs under extensions/molecule, the 2 tests vendored in before/ | 50 scenarios in one file, 18 with a disk count override |
 | Runnable with today's Molecule | not Molecule | yes, both scenarios pass `molecule test` (molecule 25.9.0 or later, a libvirt host) | no |
 
 The 150 playbooks and 50 groups are counted in the upstream `tests/` tree at the pinned commit, which is
