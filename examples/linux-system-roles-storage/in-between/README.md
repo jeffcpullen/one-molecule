@@ -16,13 +16,15 @@ The four test modules and their `module_utils` sit beside it in `utils/playbooks
 The two converge playbooks have only their include prefixes repointed at `shared/`, and their test
 logic is untouched. `shared/tasks/get_unused_disk.yml` and `library/find_unused_disk.py` select disks
 by label instead of by driver (see below). `shared/tasks/run_role_with_clear_facts.yml` calls the role
-as `storage`.
+as `storage`, and it now resets and fills the pool and volume lists the role used to set for testing
+(see the third cut below).
 
 The storage role itself is in the tree at `roles/storage/`, so it can be cut down to what is worth
 keeping. Its runtime files (`defaults/`, `tasks/`, `vars/`, `meta/`, `library/`, `module_utils/`,
 `README.md` and `LICENSE`) are copied from the same commit, which is ahead of the latest release,
-1.22.1, and adds `meta/argument_specs.yml` and `tasks/assert_role_vars.yml`. Two cuts change them,
-and each changed file carries a licence and change header:
+1.22.1, and adds `meta/argument_specs.yml` and `tasks/assert_role_vars.yml`. Three cuts change them,
+each changed file carries a licence and change header, and each changed task file has its module
+names fully qualified:
 
 - The COPR path is removed. Nothing sets `_storage_copr_packages`, so it never ran.
   `tasks/enable_coprs.yml` and `enable_copr.yml` are deleted, with their include in
@@ -32,6 +34,13 @@ and each changed file carries a licence and change header:
   claim that null picks a layout was wrong. The other five asserts stay: the spec accepts `123` and
   `true` for a `type: str` option unchanged (ansible-core 2.21.4), and the module does not reject the
   values the size asserts reject. `storage_disklabel_type` is typed `str` but keeps its assert.
+- The role no longer sets `_storage_pools_list` and `_storage_volumes_list`, which only tests read.
+  The two tasks in `tasks/main.yml` that emptied them and the two in `tasks/main-blivet.yml` that
+  copied them from `blivet_output` are removed. `run_role_with_clear_facts.yml` resets
+  `blivet_output` and both lists before each role run, because `meta: clear_facts` leaves registered
+  results and `set_fact` values in place, then fills the lists from `blivet_output` unless that result
+  failed. Tests already read `blivet_output` directly, in `verify-role-failed.yml` and `luks.yml`.
+  `sr_fingerprint` stays in the role: it is a usage record shipped as a feature, not test plumbing.
 
 The second cut changes behaviour. An explicit `storage_use_partitions: null` from a caller now fails
 validation, and a string such as `"yes"` now passes where the assert rejected it. Ansible 2.9 and 2.10
@@ -124,7 +133,7 @@ replaces that template, keeps `disks.yml` and reproduces the labels.
 in-between/
   galaxy.yml                            collection root, without which config.yml is never loaded
   roles/
-    storage/                            the role under test, upstream runtime files with two cuts
+    storage/                            the role under test, upstream runtime files with three cuts
   extensions/
     molecule/
       config.yml                        auto-loaded base config: dependency, driver, env, vars, playbooks
@@ -207,7 +216,7 @@ this commit and the in-tree role. The default test sequence runs without `idempo
 `side_effect`, because the LSR test playbooks create and remove volumes and provoke role failures on
 purpose. The vendored files are byte-for-byte upstream (storage at
 `75bb17d104c8e2327827d81ff5e653b84082fb57` on `main`) except five test files, and the role under
-`roles/storage/` is too except for the two cuts described above. The two converge
+`roles/storage/` is too except for the three cuts described above. The two converge
 playbooks have only their include prefixes and a licence and change header changed.
 `find_unused_disk.py` and `get_unused_disk.yml` select by label, as described above.
 `run_role_with_clear_facts.yml` names the in-tree role. Each scenario runs once against scsi disks,

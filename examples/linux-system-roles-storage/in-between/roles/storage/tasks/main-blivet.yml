@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2018 Red Hat, Inc.
 # Changed by the one-molecule project from upstream tasks/main-blivet.yml: the include of
-# enable_coprs.yml is removed, as nothing sets _storage_copr_packages so it never ran, and module names are
-# fully qualified.
+# enable_coprs.yml is removed, as nothing sets _storage_copr_packages so it never ran, the two
+# set_fact tasks that copied blivet_output into _storage_pools_list and _storage_volumes_list for
+# testing are removed, the test helper run_role_with_clear_facts.yml sets them instead, and module
+# names are fully qualified.
 
 - name: Add blivet package repository
   when:
@@ -167,14 +169,6 @@
 # - name: Print mod args
 #   debug:
 #     msg: mod_args {{ blivet_output.mod_arg_str }}
-
-- name: Set the list of pools for test verification
-  ansible.builtin.set_fact:
-    _storage_pools_list: "{{ blivet_output.pools }}"
-
-- name: Set the list of volumes for test verification
-  ansible.builtin.set_fact:
-    _storage_volumes_list: "{{ blivet_output.volumes }}"
 
 # Mount Management
 #
