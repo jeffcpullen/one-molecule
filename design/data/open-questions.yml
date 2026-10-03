@@ -31,6 +31,8 @@ open:
       - "Undecided is whether one tree's nodes may run on different executor targets."
       - "A child on a different target than its parent must reach the parent's instances, so instances local to the parent's target do not qualify."
       - "Undecided is how an executor reports a cancel back to the orchestrator so teardown still runs."
+      - "Undecided is how the orchestrator handles its own cancel signal so teardown runs within a CI engine's grace period."
+      - "Undecided is what the orchestrator reports as left standing when that grace period runs out."
 
   - title: "Derive instance names for catalog selections"
     status: "waiting on run identity"
