@@ -287,6 +287,9 @@ groups:
       - gist: "Fanning out to siblings or descendants on a targeted run"
         why: "Target plus ancestors only, and the undeclared-dependency case gets an opt-in sibling selector."
         tags: [reasoned]
+      - gist: "Re-running each standing ancestor's `verify` on a targeted run"
+        why: "An out-of-band deletion is not molecule's to defend, and it already fails loudly as `unreachable`, so the re-check only makes every targeted run slower."
+        tags: [reasoned]
 
   - title: "Platform list duplication"
     items:

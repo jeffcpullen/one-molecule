@@ -1,7 +1,7 @@
 ---
 $schema: https://json-schema.org/draft/2020-12/schema
 title: Open-questions source
-description: 'Bespoke shape for design/data/open-questions.yml: the register of undecided items, a TODO backlog, and a resolved list. Each open item keeps bounded framing lines only, and states what is unknown or undecided about the design rather than an action for anyone to take. Every text string forbids the semicolon and the em or en dash (house writing style).'
+description: 'Bespoke shape for design/data/open-questions.yml: the register of undecided items and a TODO backlog. A decided item moves to its owning source and is deleted, so there is no resolved list. Each open item keeps bounded framing lines only, and states what is unknown or undecided about the design rather than an action for anyone to take. Every text string forbids the semicolon and the em or en dash (house writing style).'
 type: object
 additionalProperties: false
 required:
@@ -9,7 +9,6 @@ required:
   - intro
   - open
   - todo
-  - resolved
 properties:
   title:
     $ref: '#/$defs/line'
@@ -31,11 +30,6 @@ properties:
         $ref: '#/$defs/linelist'
       documentation_backlog:
         $ref: '#/$defs/gistlist'
-  resolved:
-    type: array
-    minItems: 1
-    items:
-      $ref: '#/$defs/resolveditem'
 $defs:
   line:
     type: string
@@ -70,7 +64,7 @@ $defs:
       owning_doc:
         allOf:
           - $ref: '#/$defs/line'
-        description: Optional owning doc when the question is decided.
+        description: Optional source that owns the decision, where the settled part already lives.
   linelist:
     type: object
     additionalProperties: false
@@ -106,23 +100,3 @@ $defs:
               $ref: '#/$defs/line'
             detail:
               $ref: '#/$defs/line'
-  resolveditem:
-    type: object
-    additionalProperties: false
-    required:
-      - title
-      - date
-      - resolution
-    properties:
-      title:
-        $ref: '#/$defs/line'
-      date:
-        $ref: '#/$defs/line'
-      resolution:
-        allOf:
-          - $ref: '#/$defs/line'
-        description: One bounded line stating the outcome.
-      owning_doc:
-        allOf:
-          - $ref: '#/$defs/line'
-        description: Optional owning doc that now carries the decision.

@@ -92,6 +92,7 @@ sections:
       - The requested node then runs, with its snapshot restored from its parent exactly as in a complete run.
       - Verify is included for a rebuilt ancestor because it is the readiness gate and a freshly built layer has not been through it.
       - A standing ancestor is trusted rather than re-verified, which is what keeps a targeted run cheap.
+      - "A standing ancestor whose instances were deleted outside molecule fails the run as `unreachable`, never as a silent pass."
       - An implicitly built ancestor is left standing when the run ends.
       - The end-of-run report lists what a filtered run leaves standing.
       - "Refusing to build a missing ancestor is available per scenario via `missing_parent: fail` (`design/data/tree-spec.yml`), a behavior key rather than a flag-only mode."

@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=../structure/open-questions.schema.yml
 ---
-# Open-questions source: undecided items, the TODO backlog, and resolved items.
+# Open-questions source: undecided items and the TODO backlog. A decided item moves to its
+# owning source and is deleted here.
 #
 # Each open item keeps bounded framing lines only. Deep argumentation, motivation quotes,
 # and inline file.py:line citations stay out of the corpus. No semicolons and no em or
@@ -97,32 +98,3 @@ todo:
         detail: "The worked example for two developers on different container engines is one parent scenario whose driver is parameterized, not two alternative parents. Rejecting multi-parent with an OR (`design/data/tree-spec.yml`) leaves an obligation to show the right one."
       - gist: "Declaring a dependency beats filling it in"
         detail: "The sibling selector (`design/data/lifecycle.yml`) is a way to get work done, not the repair, and the docs should say so where it is introduced."
-
-resolved:
-  - title: "Where environment and caller input reach"
-    date: "2026-09-24"
-    resolution: "Env is for play and args are for config text. Play environment is `ansible.env`, cascading through `defaults:` from the run or any node, and there is no run-only top-level `env:`."
-    owning_doc: "`design/data/environment.yml`"
-  - title: "Lift `platforms` into `defaults:` for shared instance definitions"
-    date: "2026-09-21"
-    resolution: "Resolved by the platform catalog. A run-level `platforms:` catalog defines each platform once and scenarios select it by name, so shared definitions need no `defaults:` cascade. Instance-name derivation for catalog selections is an open item above."
-    owning_doc: "`spec/molecule-config.schema.yml`"
-  - title: "`execution_environments` as a matrix axis"
-    date: "2026-09-21"
-    resolution: "Resolved by the runtime reframe. Execution environments are the `ee` method's axis under `runtime:`, one run cell per EE, not a matrix axis. The venv python and ansible-core grid is dropped and lives with the outer caller, and the executor is a first-class pluggable `runtime.executor` seam with ansible-runner the default."
-    owning_doc: "`design/data/execution-environments.yml`"
-  - title: "Trusting a standing ancestor's state"
-    date: "2026-09-20"
-    resolution: "Trust the state file. A targeted run runs nothing for a standing ancestor and does not re-check it, since an out-of-band deletion is not molecule's to defend and surfaces as a loud `unreachable`, never a silent wrong success. Re-running each ancestor's `verify` is rejected."
-  - title: "Ancestor handling on a targeted run"
-    date: "2026-09-13"
-    resolution: "A parent is a dependency, so a run resolves the full ancestor chain whether or not it was selected. A standing ancestor runs nothing, a missing one runs its full sequence minus `destroy`, and what this run built is left standing. Multi-parent is rejected and `missing_parent: create | fail` is the opt-out."
-    owning_doc: "`design/data/tree-spec.yml` / `design/data/lifecycle.yml`"
-  - title: "Where a tree is declared"
-    date: "2026-09-24"
-    resolution: "In the single file only, by `children:` nesting. A directory-mode project keeps molecule's behavior, `shared_state` included, and there is no `parent:` key and no implicit parent."
-    owning_doc: "`design/data/tree-spec.yml`"
-  - title: "How the tree is declared"
-    date: "2026-09-12"
-    resolution: "Covers what activates a tree, the removed `owns_instances` name (ownership is now derived), the snapshot and copy-at-start rule, the depth bound, the `--destroy` policy and destroy ownership, and the ephemeral directory's purpose, categories and layout."
-    owning_doc: "`design/data/tree-spec.yml`, `design/data/lifecycle.yml`, `design/data/ephemeral.yml`"
