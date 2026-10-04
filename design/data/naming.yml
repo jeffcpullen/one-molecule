@@ -40,7 +40,7 @@ groups:
       - term: "Depth"
         means: "Tree nesting distance, unbounded and guarded only by the cycle check."
       - term: "Snapshot"
-        means: "What a child starts from, a copy of the parent's inventory, vars, and state owned by the child."
+        means: "What a child starts from, a copy of the parent's inventory directory owned by the child."
         never: "A live read of the parent."
       - term: "Copy-at-start"
         means: "The child copies the parent's inventory into its own ephemeral dir once at node start, then reads only its own files."
