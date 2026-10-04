@@ -119,10 +119,10 @@ sections:
     rules:
       - Ancestor-to-descendant mutation is the point of the model.
       - Ancestor-to-descendant mutation is strictly ordered by the gate, so it is always safe.
-      - Molecule provides no guard rails for sibling independence, no name prefixes and no allocation.
+      - The orchestrator provides no guard rails for sibling independence, no name prefixes and no allocation.
       - Each escape hatch below is the model itself rather than a workaround.
       - A sibling collision surfaces as a nondeterministic, worker-count-dependent failure.
-      - Molecule should at least detect two concurrent siblings whose inventories name the same host and report the collision in tree terms.
+      - The orchestrator should at least detect two concurrent siblings whose inventories name the same host and report the collision in tree terms.
     tables:
       - header: [Need, Escape hatch]
         rows:

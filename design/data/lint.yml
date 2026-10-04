@@ -29,7 +29,7 @@ sections:
       - The lint phase is off by default.
       - An existing project changes nothing while the phase is off.
       - The lint phase is a command, not a plugin.
-      - Molecule runs the command it is told and holds no knowledge of specific linters.
+      - The orchestrator runs the command it is told and holds no knowledge of specific linters.
       - Molecule never acquires linter knowledge.
       - If lint fails, nothing in the run starts.
 

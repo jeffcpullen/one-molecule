@@ -24,8 +24,8 @@ sections:
     tables:
       - header: [Method, Isolation, Fan-out, Owner of the outer loop]
         rows:
-          - ["`ee`", A container carries the controller toolchain, One cell per EE, Molecule natively]
-          - ["`host`", None, None, Molecule in the ambient session]
+          - ["`ee`", A container carries the controller toolchain, One cell per EE, The orchestrator natively]
+          - ["`host`", None, None, The orchestrator in the ambient session]
           - ["`<custom>`", Per plugin, Per plugin, The registered runtime plugin]
     rules:
       - "`runtime:` is run-only and declares the runtime once for the whole run."
@@ -52,7 +52,7 @@ sections:
       - "ansible-builder is one build plugin and never a binding, and further methods may be added."
       - "Molecule defines what to build and which method, and the plugin performs the build."
       - "An EE cannot be built by the run it carries, so it is always built ahead of time."
-      - "At run time molecule checks an EE is available and never builds it."
+      - "At run time the orchestrator checks an EE is available and never builds it."
 
   - title: Execution-environment entry forms
     intro: Each entry under `runtime.execution_environments` is one EE reference in one of two forms.
@@ -110,7 +110,7 @@ sections:
           - ["`missing`", "Pull only when not present locally, the default"]
           - ["`never`", Require it present locally and fail loudly if absent]
     rules:
-      - "`missing` is the default because molecule never builds at run time against a registry."
+      - "`missing` is the default because the orchestrator never builds at run time against a registry."
       - "`never` is the fail-loud behavior for an image expected to be present already."
 
   - title: Provenance and run identity

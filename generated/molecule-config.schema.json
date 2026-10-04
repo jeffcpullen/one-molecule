@@ -30,7 +30,7 @@
       "A catalog name and an inline platform name that match in one run is an error.",
       "`labels:` on a platform or a scenario are selection membership, and a label filters only the dimension it appears on.",
       "`runtime:` is run-only and names the sealed execution the sequence runs inside, with `method: ee | host | <custom>` (`design/data/execution-environments.yml`).",
-      "Under the `ee` method, `execution_environments` fans the run out to one cell per EE, and each EE image is a run precondition molecule checks but never builds.",
+      "Under the `ee` method, `execution_environments` fans the run out to one cell per EE, and each EE image is a run precondition the orchestrator checks but never builds.",
       "A bare run executes every scenario, platform, and EE, because labels only narrow when named.",
       "A `--label` selection narrows only the dimension its label appears on, and multiple labels union.",
       "A `--skip-label` subtracts the items carrying that label from the run.",
@@ -52,7 +52,7 @@
     "runtime": {
       "x-class": "run-only",
       "type": "object",
-      "description": "The sealed, selectable execution the sequence runs inside. Molecule orders and references it, never builds or inspects its contents (`design/data/execution-environments.yml`).",
+      "description": "The sealed, selectable execution the sequence runs inside. The orchestrator orders and references it, never builds or inspects its contents (`design/data/execution-environments.yml`).",
       "additionalProperties": false,
       "required": [
         "method"
@@ -81,7 +81,7 @@
         "execution_environments": {
           "x-class": "run-only",
           "type": "array",
-          "description": "The `ee` method's axis. A list of EE references, one run cell per entry (and per tag or digest in the discrete form). Molecule checks availability, never builds.",
+          "description": "The `ee` method's axis. A list of EE references, one run cell per entry (and per tag or digest in the discrete form). The orchestrator checks availability, never builds.",
           "items": {
             "$ref": "#/definitions/executionEnvironment"
           }

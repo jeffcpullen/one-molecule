@@ -85,9 +85,9 @@ sections:
   - title: Collectable output, the pipeline case
     intro: The concept is Decided and the variable name is Proposed.
     rules:
-      - A pipeline stores the output of a run and takes the collection path from a variable molecule applies.
+      - A pipeline stores the output of a run and takes the collection path from a variable the orchestrator applies.
       - The same code has to work on a dev box.
-      - "With a tree, a path input can only mean a root, beneath which molecule lays the tree out."
+      - "With a tree, a path input can only mean a root, beneath which the orchestrator lays the tree out."
       - Read as a root, a pipeline archives one directory to get the whole run, per node, in tree shape.
       - Collectable output gets its own variable name rather than reusing the ephemeral-directory override (`design/data/ephemeral.yml`).
       - A pipeline that only wants where do I collect from should not have to know about ephemeral directories.

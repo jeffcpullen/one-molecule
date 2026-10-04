@@ -88,7 +88,7 @@ sections:
       - No distro-aware image recipes, because resolving a dependency set is explicitly outside the aim (`design/data/target.yml`).
       - No registry, tag scheme, or cache policy.
       - "No build key on `platforms[]`."
-      - Molecule orders and gates the step, and the author writes the step.
+      - The orchestrator orders and gates the step, and the author writes the step.
       - Every provisioning workaround is a failure of ordering, gating, or ownership, not molecule failing to know about a container engine.
 
   - title: Shipping a reference example is not shipping a resolver

@@ -185,10 +185,10 @@ sections:
         description: "`ansible.cfg` is generated per node and is not snapshotted."
         check: none
       - name: snapshot-copied-once
-        description: A child copies its parent's inventory into its own ephemeral directory once, at node start, then reads only its own files.
+        description: The orchestrator copies a parent's inventory into the child's ephemeral directory once, at node start, and the child then reads only its own files.
         check: none
       - name: snapshot-parent-only
-        description: The child snapshots the parent only, because the parent's inventory is already parent-merged.
+        description: The orchestrator snapshots only the parent into a child, because the parent's inventory is already parent-merged.
         check: none
       - name: retry-recopies
         description: A retry re-copies.
@@ -294,7 +294,7 @@ sections:
         description: Structural notices, such as a parent absent from a filtered run, are reported once per run, naming the scenarios they apply to.
         check: none
       - name: tree-reported-to-teach
-        description: The tree is reported because it teaches, so molecule states each node's parent and which ancestors it built implicitly.
+        description: The tree is reported because it teaches, so the orchestrator states each node's parent and which ancestors it built implicitly.
         check: none
 
   - title: CLI is override, not source
@@ -303,7 +303,7 @@ sections:
       Selection of what an invocation covers is the exception and stays on the command line.
     rules:
       - name: behavior-keyed-first
-        description: Any knob that changes how molecule behaves gets a key in `molecule.yml` first.
+        description: Any knob that changes how molecule or the orchestrator behaves gets a key in `molecule.yml` first.
         check: none
       - name: flag-is-override
         description: A flag is only an override of that key.
@@ -315,7 +315,7 @@ sections:
         description: "Precedence: CLI ▸ environment ▸ config ▸ built-in default (`spec/molecule-config.schema.yml` expands the config tier)."
         check: none
       - name: behavior-in-file
-        description: Behavior, meaning what molecule does, belongs in the file.
+        description: Behavior, meaning what molecule or the orchestrator does, belongs in the file.
         check: none
       - name: selection-on-cli
         description: Selection, meaning `-s`, `--exclude`, the sibling selector, and what this invocation covers, stays on the command line.

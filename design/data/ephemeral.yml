@@ -67,7 +67,7 @@ sections:
   - title: Teardown and reset name their own target
     intro: Teardown and reset name their own target, and nothing removes a parent by reaching upward.
     rules:
-      - A node removes its own directory, its subtree included.
+      - The orchestrator removes a node's own directory, its subtree included.
       - Nothing reaches for `.parent` when removing state directories.
       - "`molecule reset -s <node>` clears that node's directory and its subtree."
       - "`molecule reset` alone clears the project segment, every run included."

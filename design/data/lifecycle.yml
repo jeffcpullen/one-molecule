@@ -42,10 +42,10 @@ sections:
     description: Teardown of owned objects. What owning means is `design/data/tree-spec.yml`.
     rules:
       - name: teardown-at-owner
-        description: Molecule tears down an owned object only at its owner.
+        description: The orchestrator tears down an owned object only at its owner.
         check: none
       - name: teardown-never-ancestors
-        description: Molecule never runs an ancestor's `destroy` on behalf of a descendant.
+        description: The orchestrator never runs an ancestor's `destroy` on behalf of a descendant.
         check: none
       - name: teardown-post-order
         description: Post-order teardown runs a descendant's `destroy` before its ancestors'.

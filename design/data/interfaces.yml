@@ -128,7 +128,7 @@ groups:
         counterpart_role: "The author's artifact build toolchain"
         provides: "An artifact node whose `create` runs the author's build and whose `destroy` removes what it made (`design/data/provisioning.yml`)."
         accepts: "The built artifact's existence, asserted by the node's `verify`."
-        semantics: "Molecule orders and gates the step, the author writes it, and the artifact outlives the children that consume it."
+        semantics: "The orchestrator orders and gates the step, the author writes it, and the artifact outlives the children that consume it."
         initiator: molecule
         coupling: loose
         bindings:
@@ -138,7 +138,7 @@ groups:
         class: seam
         status: proposed
         owns: "`design/data/provisioning.yml` (a node can own something that is not an instance)"
-        guardrail: "Molecule orders and gates the step and the author writes it, with no distro-aware recipes and no registry, tag, or cache policy."
+        guardrail: "The orchestrator orders and gates the step and the author writes it, with no distro-aware recipes and no registry, tag, or cache policy."
         opaque: "Molecule holds no knowledge of what is inside an image, even when it ships a reference example."
         tags: [reasoned]
 

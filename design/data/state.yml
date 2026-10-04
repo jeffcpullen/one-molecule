@@ -33,7 +33,7 @@ sections:
       - "A child never needs to read an ancestor's `created`, because it only runs after the ancestor's verify passed."
       - The ordering guarantee carries the information the state read was standing in for.
       - The inventory is copied, not shared (`design/data/tree-spec.yml`).
-      - A child snapshots its parent's inventory into its own directory once at start and reads only its own files afterwards.
+      - The orchestrator snapshots a parent's inventory into the child's directory once at start, and the child reads only its own files afterwards.
       - No node opens another node's file at all.
 
   - title: What per-node state leaves alone
@@ -59,7 +59,7 @@ sections:
     rules:
       - The orchestrator reads the owner's generation, never the node.
       - No node opens another node's files.
-      - Molecule already knows the whole tree and hands a child its parent's inventory at node start.
+      - The orchestrator already knows the whole tree and hands a child its parent's inventory at node start.
       - The generation travels the same way, including into a worker process.
       - The owner is the nearest ancestor that owns instances, not simply the parent.
       - An intermediate node may own nothing.
