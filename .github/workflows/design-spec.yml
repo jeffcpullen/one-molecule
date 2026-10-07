@@ -15,6 +15,7 @@ on:
       - 'generated/**'
       - 'vendor/**'
       - 'tools/build.py'
+      - 'examples/*/molecule.yml'
       - 'examples/*/after/molecule.yml'
       - '.github/workflows/design-spec.yml'
   pull_request:
@@ -67,7 +68,7 @@ jobs:
       - name: Lint example configs against the config schema
         run: |
           shopt -s nullglob
-          files=(examples/*/after/molecule.yml)
+          files=(examples/*/molecule.yml examples/*/after/molecule.yml)
           if [ ${#files[@]} -gt 0 ]; then
             check-jsonschema --schemafile generated/molecule-config.schema.json "${files[@]}"
           fi

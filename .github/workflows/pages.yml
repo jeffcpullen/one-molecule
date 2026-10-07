@@ -16,6 +16,7 @@ on:
       - '.github/pages/**'
       - '.github/workflows/pages.yml'
       - 'tools/converter/**'
+      - 'examples/*/molecule.yml'
       - 'examples/*/after/molecule.yml'
       - 'generated/**'
   workflow_dispatch:

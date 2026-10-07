@@ -22,7 +22,7 @@ tracked file.
 
 Lint the examples against the generated schema (no code here):
       check-jsonschema --schemafile generated/molecule-config.schema.json \\
-          examples/*/after/molecule.yml
+          examples/*/molecule.yml examples/*/after/molecule.yml
 """
 
 import json

@@ -15,7 +15,7 @@ from playwright.sync_api import sync_playwright
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from cli import ROOT, load_schema, load_starter  # noqa: E402
+from cli import example_source, load_schema, load_starter  # noqa: E402
 from render import convert_text  # noqa: E402
 
 READY_TIMEOUT_MS = 120000
@@ -47,7 +47,7 @@ def notice_lines(result):
 
 def check_preset(page, slug, schema):
     """Load one preset in the page and compare every file and notice with CPython."""
-    expected = convert_text((ROOT / "examples" / slug / "after" / "molecule.yml").read_text(), schema)
+    expected = convert_text(example_source(slug).read_text(), schema)
     page.select_option("#preset", slug)
     expected_paths = [f["path"] for f in expected["files"]]
     page.wait_for_function(f"{SHOWN_PATHS}.join() === {json.dumps(','.join(expected_paths))}")
