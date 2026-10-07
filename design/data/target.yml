@@ -29,7 +29,7 @@ what_should_be:
       explanation: "Molecule stays a single-scenario tool. The orchestrator owns the tree, the cascade, ordering and every read across nodes, and hands each node a config molecule already understands. What exists keeps working, and what is new lives above the handoff (`design/data/tree-spec.yml`)."
 
 day_one_surface:
-  - "Learning surface is the cost being held down: an existing project changes nothing, the whole feature on day one is the root file with `children:` nesting, and every other concept here (derived ownership, `--destroy=on-success`, `MOLECULE_DESTROY`, the location and scratch variables) is opt-in or invisible."
+  - "Learning surface is the cost being held down: an existing project changes nothing, the whole feature on day one is the root file with `children:` nesting, and every other concept here (derived ownership, the location and scratch variables) is opt-in or invisible."
   - "Trees are not collection-only: they work in flat non-collection layouts too, serially, so the standalone-role author gets them without moving into a collection (`design/data/tree-spec.yml`)."
 
 milestone_selection:
@@ -46,7 +46,6 @@ rework_check:
     - ["Child nests under its parent", "Unchanged by sealed execution or matrices, the tree is orthogonal to how it runs", "Safe"]
     - ["State strictly per node", "The precondition for everything else", "Safe"]
     - ["Copy the parent's inventory at start", "Pays forward: a node's directory is self-contained, so it is **one** mount into a sealed environment. Live ancestor reads would have needed N", "Safe, and better than expected"]
-    - ["`--destroy` gains `on-success`, plus env var", "Orthogonal to structure", "Safe"]
     - ["Depth unbounded, iterative traversal", "Iterative is required anyway once runs fan out", "Safe"]
     - ["Ephemeral layout mirrors the tree", "Incomplete. A run dimension sits **above** the tree, and an environment dimension above that", "Shape now, see below"]
     - ["Scheduler runs nodes", "Incomplete. The unit becomes a node **within a run context**, not a bare node", "Shape now, see below"]

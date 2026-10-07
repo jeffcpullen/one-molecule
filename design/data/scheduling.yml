@@ -6,17 +6,16 @@
 # per-tree fail-fast. State the rule, never the implementation reasoning. Rejected
 # alternatives live in design/data/rejected-ideas.yml, and open items in
 # design/data/open-questions.yml. One idea per rule, no semicolons, no em or en dashes.
-# design/data/lifecycle.yml owns teardown on failure and the lifting of the destroy-never
-# restriction, design/data/target.yml owns the run-context fan-out, this file owns scheduling.
+# design/data/lifecycle.yml owns teardown on failure, design/data/target.yml owns the
+# run-context fan-out, this file owns scheduling.
 
 title: Scheduling
 intro: >-
   How a run schedules nodes across `--workers`: the current flag and its guardrails, the
   submit-when-ready scheduler, the global concurrency cap, ordering between trees and between
   siblings, the sibling-independence contract, and per-tree fail-fast. `design/data/lifecycle.yml` owns
-  teardown on failure and the lifting of the destroy-never restriction, `design/data/target.yml` owns the
-  run-context fan-out, this file owns scheduling.
-status: the scheduler, ordering, sibling waves, the sibling contract, and per-tree fail-fast are decided, the sibling-collision guard is proposed
+  teardown on failure, `design/data/target.yml` owns the run-context fan-out, this file owns scheduling.
+status: the scheduler, ordering, sibling waves, the sibling contract, per-tree fail-fast, and the `workers` key are decided, the sibling-collision guard is proposed
 
 sections:
   - title: What `--workers` is
@@ -24,11 +23,24 @@ sections:
     rules:
       - "`--workers` is an experimental flag on `test`, `destroy`, and `check` only."
       - "`--workers` accepts an integer, `cpus`, or `cpus-1`, floored at 1."
+      - "`--workers` defaults to 1, so a run without it runs one scenario at a time."
       - The unit of concurrency is one whole scenario.
       - There is no concurrency inside a scenario.
       - "`--workers` has no relation to ansible's `forks`."
-      - "`--workers` is available in collection mode only, so a `galaxy.yml` is required."
+      - "`--workers` greater than 1 is available in collection mode only, so a `galaxy.yml` is required."
+      - "`--workers` greater than 1 is rejected together with `--destroy=never`."
       - A freed slot starts the next runnable unit, the same slot-refill semantics as a `forks` pool.
+
+  - title: The `workers` key
+    intro: The cap declared in `molecule.yml`, so a project commits it rather than typing it.
+    rules:
+      - "A run-level `workers` key sets the same cap as `--workers`."
+      - "The `workers` key accepts the values `--workers` accepts and has the same default."
+      - "`--workers` overrides the `workers` key."
+      - "The `workers` key applies to `test`, `destroy`, and `check` only, the commands that take `--workers`."
+      - "The `workers` key carries every restriction `--workers` carries."
+      - "The collection-mode restriction is checked at run time, because the schema cannot see a `galaxy.yml`."
+      - "The `workers` key enters `spec/molecule-config.schema.yml` in version 0.3.0."
 
   - title: The scheduler
     intro: Submit-what-is-ready, refill on completion.

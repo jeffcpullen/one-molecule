@@ -80,7 +80,6 @@ sections:
       - Environment input stays a closed, documented set rather than free-form interpolation.
       - The precedence is defaults, then config file, then environment, then CLI.
       - "`ENV_VAR_CONFIG_MAPPING` is the home for the mapping, and it gains entries rather than a replacement."
-      - "`MOLECULE_DESTROY` for `--destroy` is the first new entry (`design/data/lifecycle.yml`)."
 
   - title: Collectable output, the pipeline case
     intro: The concept is Decided and the variable name is Proposed.

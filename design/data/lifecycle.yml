@@ -13,7 +13,7 @@ intro: >-
   objects, how a targeted run resolves ancestors, traversal order, failure
   and skip semantics, retry, and teardown. `design/data/tree-spec.yml` owns the parent edge and the
   ownership-derivation rule, this file owns the lifecycle.
-status: proposed, actions and traversal settled, the destroy-policy additions still proposed
+status: proposed, actions and traversal settled
 
 sections:
   - title: Actions per node
@@ -151,32 +151,14 @@ sections:
     rules:
       - On failure, cleanups run post-order, always.
       - "`destroy` at each owning node is governed only by the `--destroy` policy, with no failure-specific exception."
-      - "Retrying via `molecule test -s <node>` tears down the subtree below the node and leaves every ancestor alone, so the root survives without the destroy policy being involved."
-      - The destroy policy covers the narrower case of a full run that fails midway where the author wants the wreckage to inspect.
-
-  - title: The destroy policy
-    intro: Proposed. `--destroy` gains `on-success`, so the values become always, on-success, never, with the default staying always.
-    tables:
-      - header: [Value, Meaning]
-        rows:
-          - ["`always` (default)", "Destroy every owning node, pass or fail. What a pipeline needs, so a pipeline configures nothing"]
-          - ["`on-success`", "Destroy only when the whole run is green, and keep everything when anything failed"]
-          - ["`never`", "Today's meaning, unchanged"]
-    rules:
-      - "Dev-box ergonomics come from adding `MOLECULE_DESTROY` to the env-var config mapping, so `export MOLECULE_DESTROY=on-success` is set once and the flag is never typed."
+      - "Retrying via `molecule test -s <node>` tears down the subtree below the node and leaves every ancestor alone, so the root survives without `--destroy` being involved."
+      - "`--destroy=never` covers the narrower case of a full run that fails midway where the author wants the wreckage to inspect."
+      - "`--destroy` takes `always` (default) or `never`, as molecule does today."
       - CI sets nothing and gets `always`.
-
-  - title: Lifting the destroy-never plus workers restriction
-    intro: Proposed.
-    rules:
-      - "The current code rejects `--destroy=never` together with `--workers` greater than 1."
-      - That guard protected the hoisted main-process destroy, which per-node ownership removes.
-      - "`never` is an explicit user choice and the end-of-run summary covers the stranding risk, so the restriction goes."
-      - "`design/data/scheduling.yml` lists it as a current guardrail."
 
   - title: Anything left standing is reported
     rules:
-      - "Whatever `on-success` or `never` leaves behind is listed at the end of the run, per node, with the command to remove it."
+      - "Whatever `--destroy=never` leaves behind is listed at the end of the run, per node, with the command to remove it."
       - The same report covers the destructive-by-implication case, where retrying a node tears down its subtree without the user asking.
       - An unasked-for teardown is announced rather than hidden behind a flag, because it costs a tool's trust permanently.
       - On an interactive terminal the implied teardown is named before it runs, not only in the end-of-run summary.

@@ -117,7 +117,7 @@ groups:
       - term: "Retry"
         means: "Cleaning a node's subtree post-order then re-running the node while leaving ancestors standing (`molecule test -s <node>`)."
       - term: "Destroy policy"
-        means: "`--destroy` with always (default), on-success, or never, mapped from the MOLECULE_DESTROY env var."
+        means: "`--destroy` with always (default) or never."
       - term: "Skipped (vs failed)"
         means: "Descendants under a gate failure are marked skipped with a reason, not failed."
 
@@ -280,14 +280,16 @@ groups:
         means: "The behavior key, create or fail."
       - term: "`wave:`"
         means: "A node's integer ordering tier among its siblings, roots included (default 0)."
+      - term: "`workers:`"
+        means: "The run-level concurrency cap, the committed form of `--workers` (`design/data/scheduling.yml`)."
 
   - title: Command-line flags and subcommands
     intro: The flags that stay on the command line, and the subcommands over the tree.
     terms:
       - term: "`--workers`"
-        means: "The experimental global concurrency cap (an integer, cpus, or cpus-1), one whole scenario per slot."
-      - term: "`--destroy` (and `MOLECULE_DESTROY`)"
-        means: "The destroy-policy flag and its env-var mapping."
+        means: "The experimental global concurrency cap (an integer, cpus, or cpus-1, default 1), one whole scenario per slot, overriding the `workers:` key."
+      - term: "`--destroy`"
+        means: "The destroy-policy flag."
       - term: "`-s` / `--exclude`"
         means: "Selection knobs that stay on the command line."
       - term: "`--missing-parent`"

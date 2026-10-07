@@ -105,6 +105,38 @@ open:
       - "Undecided is how a run switches the report on and where it writes it."
       - "Unknown is whether molecule's existing run results already carry what a per-node report needs."
 
+  - title: "Add an `on-success` destroy value"
+    status: "proposed, not settled"
+    raised: "2026-10-07"
+    owning_doc: "`design/data/lifecycle.yml`"
+    framing:
+      - "`--destroy` takes `always` (default) or `never`."
+      - "`on-success` would destroy only when the whole run is green, and keep everything when anything failed."
+      - "CI sets nothing and still gets `always`."
+      - "The value is orthogonal to the tree structure."
+      - "Whatever it leaves standing falls under the end-of-run report of anything left standing."
+
+  - title: "Set the destroy policy from the environment"
+    status: "proposed, not settled"
+    raised: "2026-10-07"
+    owning_doc: "`design/data/environment.yml`"
+    framing:
+      - "`--destroy` is reachable today only by typing the flag."
+      - "A `MOLECULE_DESTROY` entry in `ENV_VAR_CONFIG_MAPPING` would let a dev box set the policy once and never type the flag."
+      - "It would be the first new entry the mapping gains."
+      - "CI sets nothing and still gets `always`."
+
+  - title: "Allow `--destroy=never` with workers greater than 1"
+    status: "raised, not started"
+    raised: "2026-10-07"
+    owning_doc: "`design/data/lifecycle.yml`"
+    framing:
+      - "Molecule rejects `--destroy=never` together with workers greater than 1, and this design keeps that restriction (`design/data/scheduling.yml`)."
+      - "The restriction protects the destroy molecule hoists to the main process."
+      - "Per-node ownership removes that hoisted destroy."
+      - "`never` is an explicit user choice, and the end-of-run report covers what it leaves standing."
+      - "Undecided is whether lifting the restriction is worth proposing to molecule."
+
   - title: "Name the run-level lint key"
     status: "behavior settled, spelling not started"
     raised: "2026-10-07"
