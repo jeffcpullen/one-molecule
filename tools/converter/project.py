@@ -26,6 +26,8 @@ SHARED_ROOT = "default"
 SHARED_STATE = "shared_state"
 INSTANCE_STAGES = ("create", "destroy")
 WORKERS = "workers"
+HOST_VARS = "host_vars"
+INVENTORY = "inventory"
 CPU_OFFSETS = {"cpus": 0, "cpus-1": -1}
 DESTROY_VALUES = ("always", "never")
 PROJECT_DIR_VAR = "MOLECULE_PROJECT_DIRECTORY"
@@ -81,17 +83,19 @@ def _copy(value):
     return value
 
 
-def select_platforms(selection, catalog, node_name, notices):
+def select_platforms(selection, catalog, node_name, notices, host_vars=None):
     """Turn a platform selection into molecule platform entries.
 
-    A catalog name becomes a copy of that catalog entry named `<node>-<catalog name>`.
-    An inline platform object is copied as written.
+    A catalog name becomes a copy of that catalog entry named `<node>-<catalog name>`,
+    without the entry's `host_vars`. An inline platform object is copied as written.
 
     Args:
         selection: the node's resolved `platforms` list.
         catalog: {catalog name: catalog entry}.
         node_name: the scenario that selects them.
         notices: list that receives an error notice for an unknown catalog name.
+        host_vars: dict that receives {instance name: the entry's `host_vars`} for each
+            selected entry that has them, or None.
 
     Returns:
         The list of platform entries.
@@ -108,8 +112,39 @@ def select_platforms(selection, catalog, node_name, notices):
             continue
         entry = _copy(entry)
         entry[NAME] = f"{node_name}-{item}"
+        own = entry.pop(HOST_VARS, None)
+        if host_vars is not None and isinstance(own, dict):
+            host_vars[entry[NAME]] = own
         out.append(entry)
     return out
+
+
+def merge_host_vars(resolved, catalog_host_vars, node_name, notices):
+    """Merge catalog host_vars under a node's own `provisioner.inventory.host_vars`.
+
+    The node's value wins where both set a variable, and mappings merge by key.
+
+    Args:
+        resolved: the node's merged config. Not modified.
+        catalog_host_vars: {instance name: host_vars} from the catalog.
+        node_name: the node, for notices.
+        notices: list that receives an error notice when the node's inventory is not a mapping.
+
+    Returns:
+        The config with the merged `provisioner.inventory.host_vars`.
+    """
+    if not catalog_host_vars:
+        return resolved
+    provisioner = resolved.get(PROVISIONER, {})
+    inventory = provisioner.get(INVENTORY, {}) if isinstance(provisioner, dict) else None
+    if not isinstance(inventory, dict):
+        notices.append(_notice(
+            "error", node_name, PROVISIONER,
+            "`provisioner.inventory` is not a mapping, so the catalog `host_vars` cannot merge into it."))
+        return resolved
+    host_vars = deep_merge(catalog_host_vars, inventory[HOST_VARS]) if HOST_VARS in inventory else _copy(
+        catalog_host_vars)
+    return {**resolved, PROVISIONER: {**provisioner, INVENTORY: {**inventory, HOST_VARS: host_vars}}}
 
 
 def _read_catalog(entries, notices):
@@ -125,6 +160,9 @@ def _read_catalog(entries, notices):
             notices.append(_notice(
                 "error", None, PLATFORMS, f"Catalog name `{entry[NAME]}` is defined twice."))
             continue
+        if HOST_VARS in entry and not isinstance(entry[HOST_VARS], dict):
+            notices.append(_notice(
+                "error", None, PLATFORMS, f"Catalog entry `{entry[NAME]}` has `host_vars` that is not a mapping."))
         catalog[entry[NAME]] = entry
     return catalog
 
@@ -312,7 +350,7 @@ def project(config, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
 
     seen = set()
 
-    def walk(node, parent, parent_platforms):
+    def walk(node, parent, parent_platforms, parent_host_vars):
         if not isinstance(node, dict) or not isinstance(node.get(NAME), str):
             notices.append(_notice("error", parent, None, "A scenario entry needs a string `name`."))
             return
@@ -325,6 +363,7 @@ def project(config, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
 
         bare = fold_playbooks_alias(_config_layer(node, classes), name, notices)
         merged = deep_merge(run_defaults, bare)
+        catalog_host_vars = {}
         if PLATFORMS not in merged and parent is None and catalog:
             merged[PLATFORMS] = list(catalog)
         if isinstance(merged.get(PLATFORMS), list):
@@ -333,9 +372,11 @@ def project(config, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
                     notices.append(_notice(
                         "error", name, PLATFORMS,
                         f"Inline platform `{item[NAME]}` has the same name as a catalog entry."))
-            merged[PLATFORMS] = select_platforms(merged[PLATFORMS], catalog, name, notices)
+            merged[PLATFORMS] = select_platforms(merged[PLATFORMS], catalog, name, notices, catalog_host_vars)
         if shared and parent is not None and parent_platforms is not None:
             merged[PLATFORMS] = _copy(parent_platforms)
+            catalog_host_vars = _copy(parent_host_vars)
+        merged = merge_host_vars(merged, catalog_host_vars, name, notices)
         provisioner = merged.get(PROVISIONER)
         if isinstance(provisioner, dict) and isinstance(provisioner.get("playbooks"), dict):
             merged[PROVISIONER] = {**provisioner, "playbooks": {
@@ -363,10 +404,10 @@ def project(config, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
         files.append({"path": f"{scenarios_dir}/{name}/{SCENARIO_FILE}", "content": resolved})
 
         for child in node.get(CHILDREN) or []:
-            walk(child, name, resolved.get(PLATFORMS))
+            walk(child, name, resolved.get(PLATFORMS), catalog_host_vars)
 
     for root in roots:
-        walk(root, None, None)
+        walk(root, None, None, {})
 
     return {"files": files, "notices": notices}
 

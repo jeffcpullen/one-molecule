@@ -349,6 +349,106 @@ class Rules(unittest.TestCase):
         self.assertEqual(result["files"][0]["content"], {})
 
 
+class CatalogHostVars(unittest.TestCase):
+    """A catalog entry's host_vars reach each selecting scenario under its instance name (tree-spec catalog-host-vars-*)."""
+
+    def test_schema_declares_host_vars_on_a_catalog_entry(self):
+        self.assertIn("host_vars", SCHEMA["definitions"]["catalogPlatform"]["properties"])
+
+    def test_translated_for_every_selection_and_never_a_platform_key(self):
+        config = {
+            "platforms": [{"name": "vm", "image": "debian:13", "host_vars": {"port": 22}}, {"name": "ct"}],
+            "scenarios": [{"name": "a"}, {"name": "b", "platforms": ["vm"]}, {"name": "c", "platforms": ["ct"]}],
+        }
+        result = project(config, SCHEMA)
+        self.assertEqual(result["notices"], [])
+        files = {f["path"]: f["content"] for f in result["files"]}
+        a = files["extensions/molecule/a/molecule.yml"]
+        self.assertEqual(a["platforms"], [{"name": "a-vm", "image": "debian:13"}, {"name": "a-ct"}])
+        self.assertEqual(a["provisioner"], {"inventory": {"host_vars": {"a-vm": {"port": 22}}}})
+        b = files["extensions/molecule/b/molecule.yml"]
+        self.assertEqual(b["platforms"], [{"name": "b-vm", "image": "debian:13"}])
+        self.assertEqual(b["provisioner"]["inventory"]["host_vars"], {"b-vm": {"port": 22}})
+        self.assertNotIn("provisioner", files["extensions/molecule/c/molecule.yml"])
+        for content in files.values():
+            for platform in content.get("platforms", []):
+                self.assertNotIn("host_vars", platform)
+        self.assertEqual(config["platforms"][0]["host_vars"], {"port": 22})
+
+    def test_scenario_host_vars_merge_over_the_catalog_and_win(self):
+        config = {
+            "platforms": [{"name": "vm", "host_vars": {"port": 22, "user": "root", "opts": {"x": 1, "y": 2}}}],
+            "defaults": {"provisioner": {"name": "ansible", "inventory": {
+                "group_vars": {"all": {"g": 1}},
+                "host_vars": {"a-vm": {"opts": {"y": 3}}},
+            }}},
+            "scenarios": [{"name": "a", "provisioner": {"inventory": {"host_vars": {
+                "a-vm": {"user": "admin"},
+                "other": {"k": "v"},
+            }}}}],
+        }
+        result = project(config, SCHEMA)
+        self.assertEqual(result["notices"], [])
+        provisioner = result["files"][0]["content"]["provisioner"]
+        self.assertEqual(provisioner, {
+            "name": "ansible",
+            "inventory": {
+                "group_vars": {"all": {"g": 1}},
+                "host_vars": {
+                    "a-vm": {"port": 22, "user": "admin", "opts": {"x": 1, "y": 3}},
+                    "other": {"k": "v"},
+                },
+            },
+        })
+
+    def test_scenario_null_for_a_variable_wins(self):
+        config = {
+            "platforms": [{"name": "vm", "host_vars": {"port": 22}}],
+            "scenarios": [{"name": "a", "provisioner": {"inventory": {"host_vars": {"a-vm": {"port": None}}}}}],
+        }
+        provisioner = project(config, SCHEMA)["files"][0]["content"]["provisioner"]
+        self.assertEqual(provisioner["inventory"]["host_vars"], {"a-vm": {"port": None}})
+
+    def test_inline_platform_is_untouched(self):
+        inline = {"name": "box", "host_vars": {"k": 1}}
+        result = project({"scenarios": [{"name": "a", "platforms": [inline]}]}, SCHEMA)
+        self.assertEqual(result["files"][0]["content"], {"platforms": [inline]})
+
+    def test_shared_state_children_carry_the_parent_instance_host_vars(self):
+        config = {
+            "platforms": [{"name": "instance", "host_vars": {"port": 22}}],
+            "scenarios": [{"name": "default", "children": [
+                {"name": "a"},
+                {"name": "b", "provisioner": {"inventory": {"host_vars": {"default-instance": {"port": 2222}}}}},
+            ]}],
+        }
+        result = project(config, SCHEMA)
+        self.assertEqual(result["notices"], [])
+        files = {f["path"]: f["content"] for f in result["files"]}
+        for name, port in (("default", 22), ("a", 22), ("b", 2222)):
+            with self.subTest(name=name):
+                content = files[f"extensions/molecule/{name}/molecule.yml"]
+                self.assertEqual(content["platforms"], [{"name": "default-instance"}])
+                self.assertEqual(content["provisioner"]["inventory"]["host_vars"], {"default-instance": {"port": port}})
+
+    def test_lost_children_get_none(self):
+        config = {
+            "platforms": [{"name": "vm", "host_vars": {"port": 22}}],
+            "scenarios": [{"name": "p", "children": [{"name": "c"}]}],
+        }
+        files = {f["path"]: f["content"] for f in project(config, SCHEMA)["files"]}
+        self.assertNotIn("provisioner", files["extensions/molecule/c/molecule.yml"])
+
+    def test_bad_values_are_errors(self):
+        result = project({"platforms": [{"name": "vm", "host_vars": ["x"]}], "scenarios": [{"name": "a"}]}, SCHEMA)
+        self.assertIn(("error", None, "platforms"), {(n["kind"], n["node"], n["key"]) for n in result["notices"]})
+        result = project({
+            "platforms": [{"name": "vm", "host_vars": {"k": 1}}],
+            "scenarios": [{"name": "a", "provisioner": {"inventory": None}}],
+        }, SCHEMA)
+        self.assertIn(("error", "a", "provisioner"), {(n["kind"], n["node"], n["key"]) for n in result["notices"]})
+
+
 class Playbooks(unittest.TestCase):
     """Referenced playbooks resolve from the project root, whatever the scenarios directory."""
 

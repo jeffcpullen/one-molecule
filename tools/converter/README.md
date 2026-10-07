@@ -127,6 +127,12 @@ config lands where Molecule looks for it: `extensions/molecule/config.yml` for a
 project's VCS root. Any other tree with children keeps a `lost` notice per child that names the
 condition that failed.
 
+A catalog selection becomes a platform entry named `<scenario>-<catalog name>`, without the entry's
+`host_vars`. Those reach the scenario's `provisioner.inventory.host_vars` under the same name,
+merged under the scenario's own host_vars for that instance the way mappings merge across layers,
+so the scenario's value wins where both set a variable. A child mapped onto `shared_state` carries
+the parent's catalog host_vars along with the parent's platform entries.
+
 A relative `playbooks` path in the root file resolves against the project root, as spec 0.3.0
 states, so the projection writes it into each scenario file as
 `${MOLECULE_PROJECT_DIRECTORY}/<path>`, which Molecule fills in on each scenario's own read. The
