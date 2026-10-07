@@ -1,10 +1,11 @@
 ---
 name: pages
 
-# Publishes the design/docs/ pages as the GitHub Pages site. Only the markdown
-# in design/docs/ is published. The pages are copied into a build directory
-# with the Jekyll config and layouts from .github/pages/, and Jekyll builds from
-# there.
+# Publishes the design/docs/ pages as the GitHub Pages site. The markdown in
+# design/docs/ is copied into a build directory with the Jekyll config and
+# layouts from .github/pages/, and Jekyll builds from there. The converter page
+# from tools/converter/ is staged under converter/ as static files, after its
+# tests pass.
 
 on:
   push:
@@ -14,6 +15,9 @@ on:
       - 'design/docs/**'
       - '.github/pages/**'
       - '.github/workflows/pages.yml'
+      - 'tools/converter/**'
+      - 'examples/*/after/molecule.yml'
+      - 'generated/**'
   workflow_dispatch:
 
 permissions:
@@ -40,6 +44,16 @@ jobs:
           mkdir -p pages-build
           cp design/docs/*.md pages-build/
           cp -r .github/pages/. pages-build/
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Test and stage the converter page
+        run: |
+          pip install pyyaml
+          python3 -m unittest discover -s tools/converter -p 'test_*.py'
+          python3 tools/converter/stage_pages.py pages-build/converter
 
       - uses: actions/jekyll-build-pages@v1
         with:

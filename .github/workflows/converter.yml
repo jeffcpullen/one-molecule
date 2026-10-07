@@ -1,0 +1,54 @@
+---
+name: converter
+
+# Tests the converter under tools/converter/. The fixture tests run the Python
+# core under CPython. The browser check stages the page, serves it, and proves
+# that the same module run through Pyodide in Chromium gives the same files and
+# notices for every preset.
+
+on:
+  push:
+    paths: &converter-paths
+      - 'tools/converter/**'
+      - 'examples/*/after/molecule.yml'
+      - 'generated/**'
+      - '.github/workflows/converter.yml'
+  pull_request:
+    paths: *converter-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Fixture and rule tests
+        run: python3 -m unittest discover -s tools/converter -p 'test_*.py' -v
+
+  browser:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.63.0-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Python packages
+        run: pip install pyyaml playwright==1.63.0
+
+      - name: Stage, serve and check the page
+        run: |
+          python3 tools/converter/stage_pages.py "$RUNNER_TEMP/site"
+          python3 -m http.server 8000 --directory "$RUNNER_TEMP/site" &
+          sleep 1
+          python3 tools/converter/browser_smoke.py http://127.0.0.1:8000/index.html

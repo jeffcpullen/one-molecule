@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>one-molecule converter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>one-molecule converter</h1>
+    <p>Type a single-config <code>molecule.yml</code> (spec 0.1.0) on the left. The right side shows the
+      per-scenario files today's Molecule would need, and what the projection could not carry.
+      The conversion runs in your browser, in Python, from the same module the repository tests.</p>
+    <div class="bar">
+      <label>Example <select id="preset"><option value="">(choose)</option></select></label>
+      <button id="share" type="button">Copy share link</button>
+      <span id="status">Loading Python runtime...</span>
+    </div>
+  </header>
+  <main>
+    <section class="pane">
+      <h2>Single-config molecule.yml</h2>
+      <textarea id="source" spellcheck="false" autocomplete="off"></textarea>
+    </section>
+    <section class="pane">
+      <h2>Projected file tree</h2>
+      <ul id="tree"></ul>
+      <pre id="file"></pre>
+      <h2>Notices</h2>
+      <ul id="notices"></ul>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.29.5/full/pyodide.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

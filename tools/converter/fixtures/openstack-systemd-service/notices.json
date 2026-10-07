@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "unresolved",
+    "node": "default",
+    "key": "provisioner.playbooks",
+    "message": "Playbook paths are copied as written. Today's Molecule resolves them against the scenario directory `molecule/default/`. The spec does not say what a path in the root file is relative to, so whether they need rebasing is undecided. Paths: converge: tests/test.yml, side_effect: tests/side_effect.yml, verify: tests/verify.yml."
+  }
+]

@@ -1,0 +1,61 @@
+"""YAML in and out around the projection core. Shared by the CLI and the web page."""
+
+import json
+
+import yaml
+
+from project import project
+
+
+class _IndentedDumper(yaml.SafeDumper):
+    """SafeDumper that indents sequences under their parent key."""
+
+    def increase_indent(self, flow=False, indentless=False):
+        return super().increase_indent(flow, False)
+
+
+def dump(value):
+    """Render a value as a block-style YAML document that starts with `---`.
+
+    Args:
+        value: the data to render.
+
+    Returns:
+        The YAML text.
+    """
+    body = yaml.dump(value, Dumper=_IndentedDumper, sort_keys=False,
+                     default_flow_style=False, allow_unicode=True, width=10000)
+    return "---\n" + body
+
+
+def convert_text(text, schema):
+    """Parse a single-config molecule.yml and project it.
+
+    Args:
+        text: the YAML source.
+        schema: the config schema as a dict.
+
+    Returns:
+        A dict with `files`, a list of {path, text}, and `notices`.
+    """
+    try:
+        config = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        return {"files": [], "notices": [
+            {"kind": "error", "node": None, "key": None, "message": f"YAML parse error: {exc}"}]}
+    result = project(config, schema)
+    files = [{"path": f["path"], "text": dump(f["content"])} for f in result["files"]]
+    return {"files": files, "notices": result["notices"]}
+
+
+def convert_json(text, schema_text):
+    """JSON wrapper of `convert_text` for the web page.
+
+    Args:
+        text: the YAML source.
+        schema_text: the config schema as JSON text.
+
+    Returns:
+        The `convert_text` result as JSON text.
+    """
+    return json.dumps(convert_text(text, json.loads(schema_text)))
