@@ -14,6 +14,14 @@ class _IndentedDumper(yaml.SafeDumper):
         return super().increase_indent(flow, False)
 
 
+def _represent_str(dumper, value):
+    style = "|" if "\n" in value else None
+    return dumper.represent_scalar("tag:yaml.org,2002:str", value, style=style)
+
+
+_IndentedDumper.add_representer(str, _represent_str)
+
+
 def dump(value):
     """Render a value as a block-style YAML document that starts with `---`.
 

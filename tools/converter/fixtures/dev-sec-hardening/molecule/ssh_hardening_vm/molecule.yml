@@ -1,0 +1,62 @@
+---
+driver:
+  name: vagrant
+  provider:
+    name: libvirt
+platforms:
+  - name: ${USER}
+    box: ${MOLECULE_DISTRO}
+    memory: 1024
+    cpus: 2
+provisioner:
+  name: ansible
+  options:
+    diff: true
+  env:
+    ANSIBLE_PIPELINING: 'True'
+  config_options:
+    defaults:
+      interpreter_python: auto_silent
+      callbacks_enabled: profile_tasks, timer
+      library: ${MOLECULE_PROJECT_DIRECTORY}/plugins/modules:/usr/share/ansible:${MOLECULE_VAGRANT_PLUGIN_DIR}
+      inject_facts_as_vars: false
+  playbooks:
+    converge: devsec.hardening.molecule_ssh_hardening_vm_converge
+    verify: devsec.hardening.molecule_ssh_hardening_vm_verify
+    prepare: devsec.hardening.molecule_ssh_hardening_vm_prepare
+verifier:
+  name: ansible
+  env:
+    ANSIBLE_PIPELINING: 'True'
+scenario:
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - verify molecule/shared/prerequisites.yml
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - destroy
+  test_sequence:
+    - dependency
+    - verify molecule/shared/prerequisites.yml
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - destroy

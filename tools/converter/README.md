@@ -45,18 +45,35 @@ runs the same check against the deployed site after every deploy.
 Each directory under `fixtures/` is the expected projection of `examples/<slug>/after/molecule.yml`,
 compared byte for byte. Only fixture-covered examples appear as presets on the page.
 
-| Example | Covered |
-|---|---|
-| openstack-systemd-service | yes |
+| Example | Covered | What it shows |
+|---|---|---|
+| openstack-systemd-service | yes | Run `defaults:` merged under one scenario, playbook paths `unresolved` |
+| osism-commons | yes | Two scenarios with no shared config, FQCN playbooks `lost` |
+| dev-sec-hardening | yes | Seven scenarios sharing `defaults:`, FQCN playbooks `lost` |
+| david-igou-armbian | yes | Catalog platform selections `unresolved` |
+| david-igou-routeros-configuration | no | The projection drops YAML comments, so the throwaway `chr_admin_password` would lose its inline `# notsecret` marker in every fixture file |
+| the other five | not yet | |
 
-The openstack fixture differs from upstream's `before/molecule/default/molecule.yml` in two places
-only. The three playbook paths lack upstream's `../../` prefix, because the spec does not say what a
-path in the root file is relative to, and the tool reports that as `unresolved`. `scenario.name` is
-absent, because the scenario directory carries the name.
+Each fixture was compared with upstream's `before/` scenario files, with any upstream base
+`config.yml` merged under each scenario the way Molecule merges it. Every difference traces to a
+choice the example's own `after/molecule.yml` makes, never to the tool:
+
+- `scenario.name` is absent, because the scenario directory carries the name.
+- openstack's three playbook paths lack upstream's `../../` prefix, because the spec does not say
+  what a path in the root file is relative to.
+- Upstream's in-directory playbooks are FQCN references in osism, dev-sec and armbian.
+- dev-sec's sequence entries read `verify molecule/shared/prerequisites.yml` where upstream reads
+  `verify ../shared/prerequisites.yml`.
+- armbian's static `--inventory=inventory/` argument and `ansible.playbooks` paths are replaced by
+  the catalog and the FQCN references.
+
+Molecule v26.6.0 moves `provisioner.playbooks` into `ansible.playbooks` on load, so the
+projection's `provisioner.playbooks` is equivalent to upstream's `ansible.playbooks`.
 
 ## What it does not check
 
 The tool checks run, node and `defaults:` keys against the spec's own key lists. It does not validate values against
 Molecule's per-key schema. The `check-jsonschema-examples` hook does that for the examples only.
 Catalog platform selections have no projection yet, because the instance name a selection gets is an
-open question in the design.
+open question in the design. Only `playbooks` values are checked for the path anchor. A path inside
+another value, such as a `test_sequence` entry, is copied as written with no notice.

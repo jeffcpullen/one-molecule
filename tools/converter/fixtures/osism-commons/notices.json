@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "lost",
+    "node": "delegated",
+    "key": "provisioner.playbooks",
+    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: prepare: osism.commons.molecule_delegated_prepare, converge: osism.commons.molecule_delegated_converge."
+  }
+]

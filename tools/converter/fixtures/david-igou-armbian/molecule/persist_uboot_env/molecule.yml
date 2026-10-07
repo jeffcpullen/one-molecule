@@ -1,0 +1,29 @@
+---
+provisioner:
+  playbooks:
+    create: david_igou.molecule_provisioners.create
+    destroy: david_igou.molecule_provisioners.destroy
+    prepare: david_igou.armbian.molecule_shared_prepare
+    converge: david_igou.armbian.molecule_persist_uboot_env_converge
+    verify: david_igou.armbian.molecule_persist_uboot_env_verify
+verifier:
+  name: ansible
+dependency:
+  name: galaxy
+  enabled: true
+  options:
+    requirements-file: extensions/molecule/requirements-test.yml
+ansible:
+  executor:
+    args:
+      ansible_playbook:
+        - --inventory=${MOLECULE_EPHEMERAL_DIRECTORY}/inventory/
+scenario:
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy

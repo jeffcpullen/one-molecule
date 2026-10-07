@@ -4,6 +4,8 @@ import pathlib
 import sys
 import unittest
 
+import yaml
+
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
@@ -33,6 +35,15 @@ class ExampleFixtures(unittest.TestCase):
                 self.assertEqual(sorted(produced), sorted(expected))
                 for path, text in produced.items():
                     self.assertEqual(text, expected[path], path)
+
+    def test_rendering_is_lossless(self):
+        for slug in sorted(p.name for p in FIXTURES.iterdir() if p.is_dir()):
+            source = (ROOT / "examples" / slug / "after" / "molecule.yml").read_text()
+            data = project(yaml.safe_load(source), SCHEMA)
+            texts = {f["path"]: f["text"] for f in convert_text(source, SCHEMA)["files"]}
+            for item in data["files"]:
+                with self.subTest(slug=slug, path=item["path"]):
+                    self.assertEqual(yaml.safe_load(texts[item["path"]]), item["content"])
 
 
 class Rules(unittest.TestCase):
@@ -78,6 +89,15 @@ class Rules(unittest.TestCase):
         unresolved = {n["node"] for n in result["notices"] if n["key"] == "platforms"}
         self.assertEqual(unresolved, {"a", "b"})
         self.assertTrue(all("platforms" not in f["content"] for f in result["files"]))
+
+    def test_fqcn_playbook_reported_lost_not_as_path(self):
+        config = {"scenarios": [{"name": "a", "playbooks": {
+            "converge": "ns.coll.molecule_converge", "verify": "tests/verify.yml"}}]}
+        notices = project(config, SCHEMA)["notices"]
+        by_kind = {n["kind"]: n["message"] for n in notices if n["key"] == "provisioner.playbooks"}
+        self.assertIn("converge: ns.coll.molecule_converge", by_kind["lost"])
+        self.assertNotIn("ns.coll", by_kind["unresolved"])
+        self.assertIn("verify: tests/verify.yml", by_kind["unresolved"])
 
     def test_unknown_key_is_error(self):
         result = project({"scenarios": [{"name": "a", "parent": "x"}]}, SCHEMA)

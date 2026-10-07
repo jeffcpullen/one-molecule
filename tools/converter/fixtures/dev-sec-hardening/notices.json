@@ -1,0 +1,44 @@
+[
+  {
+    "kind": "lost",
+    "node": "mysql_hardening",
+    "key": "provisioner.playbooks",
+    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: converge: devsec.hardening.molecule_mysql_hardening_converge, verify: devsec.hardening.molecule_mysql_hardening_verify, prepare: devsec.hardening.molecule_mysql_hardening_prepare."
+  },
+  {
+    "kind": "lost",
+    "node": "nginx_hardening",
+    "key": "provisioner.playbooks",
+    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: converge: devsec.hardening.molecule_nginx_hardening_converge, verify: devsec.hardening.molecule_nginx_hardening_verify, prepare: devsec.hardening.molecule_nginx_hardening_prepare."
+  },
+  {
+    "kind": "lost",
+    "node": "os_hardening",
+    "key": "provisioner.playbooks",
+    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: converge: devsec.hardening.molecule_os_hardening_converge, verify: devsec.hardening.molecule_os_hardening_verify, prepare: devsec.hardening.molecule_os_hardening_prepare."
+  },
+  {
+    "kind": "lost",
+    "node": "os_hardening_vm",
+    "key": "provisioner.playbooks",
+    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: converge: devsec.hardening.molecule_os_hardening_vm_converge, verify: devsec.hardening.molecule_os_hardening_vm_verify, prepare: devsec.hardening.molecule_os_hardening_vm_prepare."
+  },
+  {
+    "kind": "lost",
+    "node": "ssh_hardening",
+    "key": "provisioner.playbooks",
+    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: converge: devsec.hardening.molecule_ssh_hardening_converge, verify: devsec.hardening.molecule_ssh_hardening_verify, prepare: devsec.hardening.molecule_ssh_hardening_prepare."
+  },
+  {
+    "kind": "lost",
+    "node": "ssh_hardening_custom_tests",
+    "key": "provisioner.playbooks",
+    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: converge: devsec.hardening.molecule_ssh_hardening_custom_tests_converge, prepare: devsec.hardening.molecule_ssh_hardening_custom_tests_prepare."
+  },
+  {
+    "kind": "lost",
+    "node": "ssh_hardening_vm",
+    "key": "provisioner.playbooks",
+    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: converge: devsec.hardening.molecule_ssh_hardening_vm_converge, verify: devsec.hardening.molecule_ssh_hardening_vm_verify, prepare: devsec.hardening.molecule_ssh_hardening_vm_prepare."
+  }
+]

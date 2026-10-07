@@ -1,0 +1,40 @@
+---
+provisioner:
+  playbooks:
+    create: david_igou.molecule_provisioners.create
+    destroy: david_igou.molecule_provisioners.destroy
+    prepare: david_igou.armbian.molecule_image_build_prepare
+    converge: david_igou.armbian.molecule_image_build_converge
+    verify: david_igou.armbian.molecule_image_build_verify
+  inventory:
+    group_vars:
+      molecule:
+        scenario_userpatches:
+          - dest: config/boards/orangepi5pro.conf
+            content: |
+              function pre_config_uboot_target__orangepi5pro_pxe_first() {
+                  declare -a t=("pxe" "dhcp" "mmc1" "mmc0" "nvme" "scsi" "usb" "spi")
+                  sed -i -e "s/#define BOOT_TARGETS.*/#define BOOT_TARGETS \"${t[*]}\"/" \
+                      include/configs/rockchip-common.h
+              }
+verifier:
+  name: ansible
+dependency:
+  name: galaxy
+  enabled: true
+  options:
+    requirements-file: extensions/molecule/requirements-test.yml
+ansible:
+  executor:
+    args:
+      ansible_playbook:
+        - --inventory=${MOLECULE_EPHEMERAL_DIRECTORY}/inventory/
+scenario:
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy
