@@ -216,22 +216,22 @@ be named `default`, and `shared_state: true` in a shared base config makes every
 reuse what `default` built. In the single file, `default` is a root and the scenarios that test
 against it are its children.
 
-The converter writes a tree as `shared_state` when all of these hold:
+A tree maps onto Molecule's `shared_state` only when all of these hold:
 
-- There is one root, named `default`.
-- Every other scenario is a direct child of it.
-- The root resolves at least one platform.
-- The root's `scenario.test_sequence`, when set, includes both `create` and `destroy`.
-- No child selects platforms or sets its own `create` or `destroy` playbook.
+- It has one root, named `default`.
+- Every other node is a direct child of the `default` root.
+- The `default` root resolves at least one platform.
+- The `default` root's `scenario.test_sequence`, when set, includes both `create` and
+  `destroy`.
+- No child selects platforms.
+- No child sets its own `create` or `destroy` playbook.
 
-It then writes a base config with `shared_state: true` and gives each child the root's resolved
-platform entries. The base config goes to `extensions/molecule/config.yml` for a collection,
-and to `.config/molecule/config.yml` at the project root for the `molecule/` layout, which must
-be the project's version-control root.
+A tree of this shape reaches Molecule with `shared_state: true` in the shared base config, and
+each child reaches Molecule carrying the root's resolved platform entries. The
+`collection-shared-state` example is a working tree of this shape.
 
-Today's Molecule has no form for any other tree shape or for `wave`. The converter reports each
-as a `lost` notice that names the condition that failed. The `collection-shared-state` example
-is a working tree of this shape.
+Today's Molecule has no form for a tree with children of any other shape. The converter
+reports such a tree, and any `wave`, as a `lost` notice that names the condition that failed.
 
 ## What the converter writes for today's Molecule
 
@@ -255,6 +255,10 @@ The converter places each scenario under a scenarios directory.
 |---|---|
 | `extensions/molecule/<name>/molecule.yml` | A collection |
 | `molecule/<name>/molecule.yml` | A standalone role or a playbook project |
+
+For a tree of the `shared_state` shape, the converter writes the base config to
+`extensions/molecule/config.yml` for a collection, and to `.config/molecule/config.yml` at the
+project root for the `molecule/` layout, which must be the project's version-control root.
 
 What the converter writes for keys that only the single file has:
 

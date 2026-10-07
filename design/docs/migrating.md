@@ -82,9 +82,9 @@ scenario tests against it under `shared_state: true`. Worked case:
    each child `default`'s platform entries. An empty notice list means the tree matched
    `shared_state` exactly.
 
-The converter writes a tree as `shared_state` only in this shape: one root named `default`,
-every other scenario a direct child of it. Any other shape gets a `lost` notice that names the
-condition that failed. See
+A tree maps onto `shared_state` only in this shape: one root named `default`, every other
+scenario a direct child of it. The converter reports any other shape with a `lost` notice that
+names the condition that failed. See
 [the tree today's Molecule runs](reference.md#the-tree-todays-molecule-runs).
 
 ## Recipe 3: Define a repeated platform once
