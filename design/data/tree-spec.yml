@@ -95,6 +95,37 @@ sections:
         description: "`shared_state` is not a key in the single file."
         check: static
 
+  - title: The tree today's molecule runs
+    description: >-
+      Today's molecule runs one tree shape, as `shared_state` with a setup scenario named `default`.
+      This section fixes that shape. Today's molecule has no form for a tree with children of any
+      other shape.
+    rules:
+      - name: shared-state-one-root
+        description: "A tree maps onto molecule's `shared_state` only when it has one root, named `default`."
+        check: resolved
+      - name: shared-state-direct-children
+        description: Every node other than the `default` root is a direct child of it.
+        check: resolved
+      - name: shared-state-root-platform
+        description: The `default` root resolves at least one platform.
+        check: resolved
+      - name: shared-state-root-sequence
+        description: "The `default` root's `scenario.test_sequence`, when set, includes both `create` and `destroy`."
+        check: resolved
+      - name: shared-state-child-no-platforms
+        description: No child selects platforms.
+        check: resolved
+      - name: shared-state-child-no-create-destroy
+        description: "No child sets its own `create` or `destroy` playbook."
+        check: resolved
+      - name: shared-state-base-config
+        description: "A tree of this shape reaches molecule with `shared_state: true` in the shared base config."
+        check: resolved
+      - name: shared-state-child-root-platforms
+        description: Each child of this shape reaches molecule carrying the root's resolved platform entries.
+        check: resolved
+
   - title: Partial runs
     description: >-
       Selection narrows what is tested, never what is depended on. Ancestor closure is upward only,

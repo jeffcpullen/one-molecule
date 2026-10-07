@@ -1,87 +1,102 @@
 # yaml-language-server: $schema=../structure/documentation-plan.schema.yml
 ---
-# documentation-plan source, the Diataxis documentation map for fully
-# documenting the single top-level molecule.yml. An index archetype: mapping
-# tables (page to owning docs, recipe to project) plus the recipe and tutorial
-# lists. It references owning docs, it does not restate them. Status of any
-# design item lives in its owning doc, never here.
+# documentation-plan source, the Diataxis documentation map for the single
+# top-level molecule.yml at spec 0.3.0. An index archetype: mapping tables
+# (page to owning docs, recipe to example) plus the tutorial and example rules.
+# It references owning docs, it does not restate them. Status of any design
+# item lives in its owning doc, never here.
 # One idea per rule, no semicolons, no em or en dashes.
 
 title: "Documentation plan: the single top-level `molecule.yml`"
 intro: >-
-  Maps the design docs onto a Diataxis structure and lists the pages, guides, and examples
-  a full documentation set would need. It references the owning docs, it does
-  not restate them. Status of any design item lives in its owning doc, never here.
+  Maps spec 0.3.0 and the design docs it relies on onto a Diataxis structure. A subject the spec
+  does not declare has no page. It references the owning docs, it does not restate them.
 status: planning output, not design, references owning docs and does not restate them
 
 sections:
   - title: Explanation
     intro: The why, concept and rationale pages.
     tables:
-      - header: [Page, Owning docs]
+      - header:
+          - Page
+          - Owning docs
         rows:
-          - ["The missing scope (the problem)", "`design/data/naming.yml` (scenario, tree, run), `design/data/layout.yml` (what this dissolves), README 7-layout table"]
-          - ["Scenarios as a tree (parent = dependency, verify = gate, ancestor closure)", "README, `design/data/tree-spec.yml`"]
-          - ["Why the project root", "`design/data/layout.yml` (rejected homes)"]
-          - ["Defaults vs dependency", "`design/data/defaults.yml`"]
-          - ["Ownership is derived, not declared", "`design/data/tree-spec.yml`"]
-          - ["Why removing shared state resolves #4666", "`design/data/state.yml`"]
-          - ["Objections answered (FAQ)", "`design/data/upstream-baseline.yml`, `design/data/rejected-ideas.yml`"]
-          - ["Vocabulary, taught", "`design/data/naming.yml`"]
+          - - "The pattern (the root file, the shared playbooks folder, why the project root)"
+            - "`design/data/layout.yml`"
+          - - "The missing scope (the problem)"
+            - "`design/data/naming.yml`, `design/data/layout.yml`"
+          - - "Every scenario in one file"
+            - "`spec/molecule-config.schema.yml`, `design/data/layout.yml`"
+          - - "Nothing written today is lost"
+            - "`spec/molecule-config.schema.yml`, `design/data/tree-spec.yml` (activation)"
+          - - "A parent for a dependency, `defaults:` for shared config"
+            - "`design/data/defaults.yml`"
+          - - "What happens to `shared_state`"
+            - "`design/data/tree-spec.yml` (activation, the tree today's molecule runs), `design/data/rejected-ideas.yml`"
 
   - title: Reference
     intro: The what, the spec pages.
     tables:
-      - header: [Page, Owning docs]
+      - header:
+          - Page
+          - Owning docs
         rows:
-          - ["Root `molecule.yml` schema (`runtime`, `defaults`, `scenarios`, `children`)", "`spec/molecule-config.schema.yml`, `design/data/layout.yml`"]
-          - ["Config scope and precedence (`defaults:` vs bare)", "`spec/molecule-config.schema.yml`, `design/data/layout.yml`"]
-          - ["Platform catalog and selection (top-level `platforms:`, defined once and selected by name)", "`spec/molecule-config.schema.yml`"]
-          - ["Labels and selection (`labels:` on platforms, scenarios, and EEs, with `--label` and `--skip-label`)", "`design/data/tree-spec.yml`, `design/data/execution-environments.yml`"]
-          - ["The parent edge, activation, `missing_parent`", "`design/data/tree-spec.yml`"]
-          - ["Lifecycle (actions, traversal, retry, teardown)", "`design/data/lifecycle.yml`"]
-          - ["State and the snapshot (copy-at-start, inventory channel, precedence, per-node group)", "`design/data/tree-spec.yml`, `design/data/state.yml`"]
-          - ["Ephemeral directory (three categories, layout, reset)", "`design/data/ephemeral.yml`"]
-          - ["Environment and the four path anchors", "`design/data/environment.yml`"]
-          - ["Scheduling (`--workers`, submit-when-ready, fail-fast)", "`design/data/scheduling.yml`"]
-          - ["Reporting (`molecule matrix` tree, once-per-run notices)", "`design/data/tree-spec.yml`"]
-          - ["Run-level lint", "`design/data/lint.yml`"]
-          - ["Provisioning step (owned artifacts before `create`)", "`design/data/provisioning.yml`"]
-          - ["Runtime envelope and execution environments (`runtime`, methods, the executor and build seams, EE cells)", "`design/data/execution-environments.yml`"]
-          - ["Glossary (authoritative term list)", "`design/data/naming.yml`"]
-    rules:
-      - "Banner these proposed-but-load-bearing pages rather than omit them: FQCN-addressable playbooks (`design/data/layout.yml`) and the runtime envelope (`design/data/execution-environments.yml`)."
+          - - "The root file and its top-level keys (`workers`, `platforms`, `defaults`, `scenarios`)"
+            - "`spec/molecule-config.schema.yml`"
+          - - "Scenario keys (`name`, config keys, `playbooks`, `wave`, `children`)"
+            - "`spec/molecule-config.schema.yml`"
+          - - "The platform catalog, selection, and catalog `host_vars`"
+            - "`spec/molecule-config.schema.yml`, `design/data/tree-spec.yml` (the handoff to molecule)"
+          - - "Scope and precedence (`defaults:` vs bare)"
+            - "`spec/molecule-config.schema.yml`"
+          - - "Paths (a relative `playbooks` path resolves against the project root)"
+            - "`spec/molecule-config.schema.yml`"
+          - - "The tree (roots, the parent edge, sharing a parent's instances)"
+            - "`spec/molecule-config.schema.yml`, `design/data/tree-spec.yml` (the edge, activation)"
+          - - "The tree today's molecule runs"
+            - "`design/data/tree-spec.yml` (the tree today's molecule runs)"
+          - - "What the converter writes for today's molecule"
+            - "`tools/converter/README.md`"
+          - - "Glossary"
+            - "`design/data/naming.yml`"
 
   - title: How-to
-    intro: Task recipes, the migrations. Each maps to a project collected in the `one-molecule` PoC repo.
+    intro: Task recipes, the migrations. Each points at a synthetic example where one exists.
     tables:
-      - header: [Recipe, Maps to project]
+      - header:
+          - Recipe
+          - Worked example
         rows:
-          - ["Convert a `shared_state` project to a tree", "david-igou routeros"]
-          - ["Convert a per-role `roles/*/molecule/` layout", "prometheus-community"]
-          - ["Convert a delegated-driver, many-scenario collection", "arista-avd"]
-          - ["Move a `../shared/` directory into the shared playbooks folder", "dev-sec hardening"]
-          - ["Add a child scenario to an existing tree", ""]
-          - ["Share one converge/verify across scenarios (incl. the module-dispatch caveat)", ""]
-          - ["Test one node without its siblings (partial selection + ancestor closure)", ""]
-          - ["Run a tree in parallel (`--workers`)", ""]
-          - ["Refuse implicit provisioning for a costly layer (`missing_parent: fail`)", ""]
+          - - "Convert a project of independent scenarios"
+            - "`examples/collection`, `examples/roles`, `examples/playbooks`"
+          - - "Convert a `shared_state` project to a tree"
+            - "`examples/collection-shared-state`"
+          - - "Define a repeated platform once"
+            - ""
+          - - "Share one converge or verify playbook"
+            - "`examples/roles`"
+          - - "Add a child to a `shared_state` tree"
+            - "`examples/collection-shared-state`"
+          - - "Run scenarios in parallel (`workers`)"
+            - ""
+          - - "Check the conversion with the converter"
+            - ""
 
   - title: Tutorial
     intro: Learning, start to finish, greenfield.
     tables:
-      - header: [Tutorial, What it teaches]
+      - header:
+          - Tutorial
+          - What it teaches
         rows:
-          - ["Your first tree", "`base` + `app`, one root file, one shared verify"]
-          - ["A multi-level pipeline", "the satellite chain (`vm -> install-satellite -> org-and-auth -> repositories -> content-view`): depth, the gate, the snapshot flowing down"]
-          - ["Using the `defaults:` block", "one shared block cascades to a node and its subtree, while a bare key applies to its node alone"]
-          - ["Selecting with labels", "label platforms and scenarios, then narrow a run with `--label` and `--skip-label`"]
-          - ["The platform catalog", "define each platform once at the top level and select it by name"]
+          - - "Getting started with a playbook project"
+            - "one scenario, then two independent scenarios, then a platform defined once, then a `default` root with children"
 
   - title: Examples
     intro: Worked examples that support every quadrant.
     rules:
-      - "The `examples/` directory holds 10 real projects, each before and after, licensed and traceable."
+      - "The synthetic examples come first: `playbooks`, `roles`, `collection` and `collection-shared-state`, each a single-file project at `examples/<name>/molecule.yml`."
+      - "Each upstream example carries its original layout in `before/` and the converted root file in `after/`, licensed and traceable."
 
   - title: What changes for an existing project
     intro: An existing project keeps running unchanged, and each fact below is owned by a design doc.
@@ -89,12 +104,3 @@ sections:
       - "The first change adds structure and changes no behavior (noun before verb)."
       - "Existing directory layouts keep running unchanged, and the root file is a second discovery mode, not a replacement, per `design/data/layout.yml`."
       - "No existing behavior changes, because a directory-mode project keeps molecule's behavior, `shared_state` included, per `design/data/tree-spec.yml`."
-
-  - title: What exists versus what is unwritten
-    tables:
-      - header: [Category, State]
-        rows:
-          - ["Written (design rationale)", "all of Explanation, as design docs"]
-          - ["A rewrite, not new reasoning", "Reference, extract the spec from the same docs at user altitude"]
-          - ["Write from the examples", "How-to, the PoC before/after supplies each recipe"]
-          - ["Greenfield writing", "the two Tutorials"]
