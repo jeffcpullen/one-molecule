@@ -78,8 +78,11 @@ actually uses instead and the cells may carry a short phrase rather than a bare 
 
 Thirteen lines is the floor and the shortest existing READMEs sit exactly there. Add a caveat paragraph when the numbers
 need explaining, and say the unflattering thing plainly. One existing README opens its caveat with "Line
-count is the one metric that does not improve here". That is the register: no spin, no hedging, and state
-what you did not count.
+count does not improve here, and neither does the folder count". That is the register: no spin, no
+hedging, and state what you did not count.
+
+Scenario folders after counts the upstream scenario folders that still hold a file once the single file
+has absorbed their config, which is any folder still holding a playbook.
 
 ## LANDMINE: the counts live in two places and they drift
 
@@ -105,8 +108,16 @@ of shared configuration you meet, and do not decide it by how the upstream proje
 that test against a shared environment under the node that stands it up declares the relationship it
 stood in for. There is no `parent:` key.
 
-If an `after/` uses the FQCN playbook reference form, carry the same honest caveat the existing examples
-and `migrating.md` carry: it depends on an unmerged upstream molecule change.
+Write every `after/molecule.yml` against the latest released version of the spec in
+`spec/molecule-config.schema.yml`, using only what that version declares. A form the design proposes but
+the spec leaves out, or one that waits on an unmerged upstream change, has no place in an `after/`. Where
+a recipe or a design source disagrees with the spec, the spec wins, and the disagreement is a finding for
+its owner.
+
+Stage playbooks stay where upstream keeps them, in each scenario's own directory. Leave a stage unset
+when Molecule's default discovery finds it there, and write any other path exactly as upstream wrote it,
+relative to the scenario directory. Where the spec is silent on a case, report the gap to
+`om-design-author` rather than inventing a form.
 
 ## The converter tool
 
