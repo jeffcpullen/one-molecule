@@ -51,7 +51,6 @@ sections:
           - ["Glossary (authoritative term list)", "`design/data/naming.yml`"]
     rules:
       - "Banner these proposed-but-load-bearing pages rather than omit them: FQCN-addressable playbooks (`design/data/layout.yml`) and the runtime envelope (`design/data/execution-environments.yml`)."
-      - "The worked examples in `examples/` already depend on the FQCN-addressable playbooks page."
 
   - title: How-to
     intro: Task recipes, the migrations. Each maps to a project collected in the `one-molecule` PoC repo.
