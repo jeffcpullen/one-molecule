@@ -15,7 +15,7 @@ from playwright.sync_api import sync_playwright
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from cli import example_source, load_schema, load_starter  # noqa: E402
+from cli import example_scenarios_dir, example_source, load_schema, load_starter  # noqa: E402
 from render import convert_text  # noqa: E402
 
 READY_TIMEOUT_MS = 120000
@@ -47,8 +47,10 @@ def notice_lines(result):
 
 def check_preset(page, slug, schema):
     """Load one preset in the page and compare every file and notice with CPython."""
-    expected = convert_text(example_source(slug).read_text(), schema)
+    scenarios_dir = example_scenarios_dir(slug)
+    expected = convert_text(example_source(slug).read_text(), schema, scenarios_dir)
     page.select_option("#preset", slug)
+    assert page.input_value("#scenarios-dir") == scenarios_dir, (slug, page.input_value("#scenarios-dir"))
     expected_paths = [f["path"] for f in expected["files"]]
     page.wait_for_function(f"{SHOWN_PATHS}.join() === {json.dumps(','.join(expected_paths))}")
     paths = shown_paths(page)
@@ -100,6 +102,22 @@ def check_share(browser, url):
     assert other.evaluate("converter.source()") == text
     assert shown_paths(other) == ["extensions/molecule/shared-link/molecule.yml"]
     print("ok share link round-trips the source")
+    page.select_option("#scenarios-dir", "molecule")
+    page.wait_for_function(f"{SHOWN_PATHS}.join() === 'molecule/shared-link/molecule.yml'")
+    page.click("#share")
+    page.wait_for_function("window.location.hash.includes('&dir=molecule')")
+    third = context.new_page()
+    third.goto(page.url)
+    third.wait_for_selector("#status:has-text('Ready')", timeout=READY_TIMEOUT_MS)
+    assert third.input_value("#scenarios-dir") == "molecule"
+    assert shown_paths(third) == ["molecule/shared-link/molecule.yml"]
+    print("ok the scenarios directory selector reruns the conversion and round-trips the share link")
+    bad = context.new_page()
+    bad.goto(third.url.replace("&dir=molecule", "&dir=..%2Fetc"))
+    bad.wait_for_selector("#status:has-text('Ready')", timeout=READY_TIMEOUT_MS)
+    assert bad.input_value("#scenarios-dir") == "extensions/molecule", bad.input_value("#scenarios-dir")
+    assert shown_paths(bad) == ["extensions/molecule/shared-link/molecule.yml"], shown_paths(bad)
+    print("ok a share link with an unknown scenarios directory keeps the default")
     context.close()
 
 

@@ -1,18 +1,17 @@
 ---
+driver:
+  name: default
+platforms:
+  - name: default-instance
+    image: quay.io/fedora/fedora-toolbox:42
 provisioner:
   name: ansible
-  config_options:
-    defaults:
-      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
   inventory:
     group_vars:
       all:
-        app_root: '{{ lookup(''env'', ''TMPDIR'') | default(''/tmp'', true) }}/example-shared-state'
+        ansible_connection: containers.podman.podman
   playbooks:
-    cleanup: ../../../playbooks/molecule/noop.yml
-    prepare: ../../../playbooks/molecule/noop.yml
-scenario:
-  test_sequence:
-    - prepare
-    - converge
-    - verify
+    converge: ../../../playbooks/molecule/converge.yml
+    create: ../../../playbooks/molecule/create.yml
+    destroy: ../../../playbooks/molecule/destroy.yml
+    verify: ../../../playbooks/molecule/verify-app_users.yml

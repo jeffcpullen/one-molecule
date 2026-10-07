@@ -11,7 +11,9 @@ provisioner:
       all:
         ansible_connection: containers.podman.podman
   playbooks:
-    converge: ../../../playbooks/molecule/converge.yml
-    create: ../../../playbooks/molecule/create.yml
-    destroy: ../../../playbooks/molecule/destroy.yml
-    verify: ../../../playbooks/molecule/verify-motd.yml
+    converge: ../../playbooks/molecule/converge.yml
+    create: ../../playbooks/molecule/create.yml
+    destroy: ../../playbooks/molecule/destroy.yml
+    verify: ../../playbooks/molecule/verify-motd.yml
+verifier:
+  name: ansible

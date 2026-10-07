@@ -11,8 +11,17 @@ WAVE = "wave"
 NAME = "name"
 DEFAULTS = "defaults"
 SCENARIOS = "scenarios"
-SCENARIO_ROOT = "extensions/molecule"
+COLLECTION_SCENARIOS_DIR = "extensions/molecule"
+PROJECT_SCENARIOS_DIR = "molecule"
+SCENARIOS_DIRS = (COLLECTION_SCENARIOS_DIR, PROJECT_SCENARIOS_DIR)
 SCENARIO_FILE = "molecule.yml"
+BASE_CONFIG_PATHS = {
+    COLLECTION_SCENARIOS_DIR: f"{COLLECTION_SCENARIOS_DIR}/config.yml",
+    PROJECT_SCENARIOS_DIR: ".config/molecule/config.yml",
+}
+SHARED_ROOT = "default"
+SHARED_STATE = "shared_state"
+INSTANCE_STAGES = ("create", "destroy")
 
 
 class KeyClasses:
@@ -164,21 +173,98 @@ def _check_keys(mapping, allowed, where, notices):
             notices.append(_notice("error", where, key, f"`{key}` is not a key the spec declares here."))
 
 
-def project(config, schema):
+def _bare_stages(node):
+    stages = set()
+    alias = node.get(PLAYBOOKS_ALIAS)
+    if isinstance(alias, dict):
+        stages.update(alias)
+    provisioner = node.get(PROVISIONER)
+    if isinstance(provisioner, dict) and isinstance(provisioner.get("playbooks"), dict):
+        stages.update(provisioner["playbooks"])
+    return stages
+
+
+def _selects_any(selection, catalog):
+    if not isinstance(selection, list):
+        return False
+    return any(isinstance(item, dict) or item in catalog for item in selection)
+
+
+def shared_state_blocker(roots, run_defaults, classes, catalog):
+    """Return why a tree cannot map onto Molecule's `shared_state`, or None when it can.
+
+    The tree maps when it has exactly one root, named `default`, with at least one child,
+    every other node is a direct child of it, the root resolves at least one platform,
+    the root's resolved `scenario.test_sequence`, when set, has both `create` and
+    `destroy`, and no child selects platforms or sets its own `create` or `destroy`
+    playbook. A mapped child is projected with the parent's resolved platform entries.
+
+    Args:
+        roots: the `scenarios` list.
+        run_defaults: the run `defaults:` layer, with the playbooks alias folded.
+        classes: the `KeyClasses` read from the schema.
+        catalog: {catalog name: catalog entry}.
+
+    Returns:
+        A sentence fragment naming the first condition that fails, or None.
+    """
+    if len(roots) != 1:
+        return "the run has more than one root"
+    root = roots[0]
+    if not isinstance(root, dict):
+        return "the root is not a mapping"
+    if root.get(NAME) != SHARED_ROOT:
+        return f"the root is named `{root.get(NAME)}`, not `{SHARED_ROOT}`"
+    merged = deep_merge(run_defaults, _config_layer(root, classes))
+    selection = merged[PLATFORMS] if PLATFORMS in merged else list(catalog)
+    if not _selects_any(selection, catalog):
+        return f"`{SHARED_ROOT}` resolves no platforms for its children to share"
+    scenario = merged.get("scenario")
+    sequence = scenario.get("test_sequence") if isinstance(scenario, dict) else None
+    if isinstance(sequence, list):
+        missing = [stage for stage in INSTANCE_STAGES if stage not in sequence]
+        if missing:
+            return (f"the `{SHARED_ROOT}` test_sequence has no `{missing[0]}`, and `{SHARED_STATE}` "
+                    f"runs `{missing[0]}` only from that sequence")
+    for child in root.get(CHILDREN) or []:
+        if not isinstance(child, dict):
+            return "a child is not a mapping"
+        name = child.get(NAME)
+        if child.get(CHILDREN):
+            return f"`{name}` has children of its own, and `{SHARED_STATE}` shares one level only"
+        if PLATFORMS in child:
+            return f"`{name}` selects platforms of its own"
+        own = sorted(set(INSTANCE_STAGES) & _bare_stages(child))
+        if own:
+            return f"`{name}` sets its own `{own[0]}` playbook"
+    return None
+
+
+def project(config, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
     """Project a single-config molecule.yml into per-scenario files.
 
     Args:
         config: the parsed single-config molecule.yml.
         schema: the config schema as a dict (generated JSON form).
+        scenarios_dir: the scenarios directory, `extensions/molecule` for a collection
+            or `molecule` for a standalone role or playbook project.
 
     Returns:
-        A dict with `files`, a list of {path, content} in tree pre-order, and
-        `notices`, a list of {kind, node, key, message} where kind is `error`,
-        `unresolved` or `lost`.
+        A dict with `files`, a list of {path, content} with any base `config.yml` first
+        (`extensions/molecule/config.yml` for a collection, `.config/molecule/config.yml`
+        at the project root otherwise) and the scenario files in tree pre-order, and
+        `notices`, a list of
+        {kind, node, key, message} where kind is `error`, `unresolved` or `lost`.
     """
     classes = KeyClasses(schema)
     notices = []
     files = []
+
+    if scenarios_dir not in SCENARIOS_DIRS:
+        notices.append(_notice(
+            "error", None, None,
+            f"`{scenarios_dir}` is not a scenarios directory. Use one of: " + ", ".join(SCENARIOS_DIRS) + "."))
+        return {"files": files, "notices": notices}
 
     if not isinstance(config, dict):
         notices.append(_notice("error", None, None, "The file is not a mapping."))
@@ -198,9 +284,15 @@ def project(config, schema):
         notices.append(_notice("error", None, SCENARIOS, "`scenarios` must be a non-empty list."))
         return {"files": files, "notices": notices}
 
+    has_children = any(isinstance(r, dict) and r.get(CHILDREN) for r in roots)
+    blocker = shared_state_blocker(roots, run_defaults, classes, catalog) if has_children else None
+    shared = has_children and blocker is None
+    if shared:
+        files.append({"path": BASE_CONFIG_PATHS[scenarios_dir], "content": {SHARED_STATE: True}})
+
     seen = set()
 
-    def walk(node, parent):
+    def walk(node, parent, parent_platforms):
         if not isinstance(node, dict) or not isinstance(node.get(NAME), str):
             notices.append(_notice("error", parent, None, "A scenario entry needs a string `name`."))
             return
@@ -222,6 +314,8 @@ def project(config, schema):
                         "error", name, PLATFORMS,
                         f"Inline platform `{item[NAME]}` has the same name as a catalog entry."))
             merged[PLATFORMS] = select_platforms(merged[PLATFORMS], catalog, name, notices)
+        if shared and parent is not None and parent_platforms is not None:
+            merged[PLATFORMS] = _copy(parent_platforms)
         resolved = _ordered(merged, classes)
 
         if node.get(WAVE, 0) not in (0, None):
@@ -230,18 +324,19 @@ def project(config, schema):
                 f"`wave: {node[WAVE]}` orders this scenario among its siblings. Today's Molecule has "
                 "no ordering tier, so it is dropped."))
 
-        if parent is not None:
+        if parent is not None and not shared:
             notices.append(_notice(
                 "lost", name, CHILDREN,
                 f"Nested under `{parent}`, whose instances it shares in the tree. Today's Molecule has "
-                "no parent edge, so this runs as an independent scenario without them."))
+                f"no parent edge, and this tree cannot map onto `{SHARED_STATE}` because {blocker}, "
+                "so this runs as an independent scenario without them."))
 
-        files.append({"path": f"{SCENARIO_ROOT}/{name}/{SCENARIO_FILE}", "content": resolved})
+        files.append({"path": f"{scenarios_dir}/{name}/{SCENARIO_FILE}", "content": resolved})
 
         for child in node.get(CHILDREN) or []:
-            walk(child, name)
+            walk(child, name, resolved.get(PLATFORMS))
 
     for root in roots:
-        walk(root, None)
+        walk(root, None, None)
 
     return {"files": files, "notices": notices}

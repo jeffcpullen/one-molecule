@@ -1,0 +1,18 @@
+---
+- name: Create the instances
+  ansible.builtin.import_playbook: create.yml
+
+- name: Lay out the shared app tree
+  hosts: all
+  gather_facts: false
+  vars:
+    app_root: /opt/app
+  tasks:
+    - name: Create the app tree directories
+      ansible.builtin.file:
+        path: "{{ app_root }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - etc
+        - data

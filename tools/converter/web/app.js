@@ -5,6 +5,7 @@ const SCHEMA_URL = "molecule-config.schema.json";
 const PRESETS_URL = "presets.json";
 const STARTER_URL = "starter.json";
 const BUILD_URL = "build.json";
+const DEFAULT_SCENARIOS_DIR = "extensions/molecule";
 
 const el = (id) => document.getElementById(id);
 let convert = null;
@@ -162,7 +163,7 @@ function run() {
   if (!convert) {
     return;
   }
-  const result = JSON.parse(convert(getSource(), schemaText));
+  const result = JSON.parse(convert(getSource(), schemaText, el("scenarios-dir").value));
   renderResult(result);
 }
 
@@ -184,7 +185,8 @@ async function loadPresets() {
     if (!select.value) {
       return;
     }
-    setDoc(sourceView, presets[select.value]);
+    el("scenarios-dir").value = presets[select.value].scenarios_dir;
+    setDoc(sourceView, presets[select.value].text);
     run();
   });
 }
@@ -194,6 +196,9 @@ async function main() {
   el("share").addEventListener("click", async () => {
     const url = new URL(window.location.href);
     url.hash = "src=" + (await encodeShare(getSource()));
+    if (el("scenarios-dir").value !== DEFAULT_SCENARIOS_DIR) {
+      url.hash += "&dir=" + encodeURIComponent(el("scenarios-dir").value);
+    }
     window.history.replaceState(null, "", url);
     await navigator.clipboard.writeText(url.toString());
     setStatus("Share link copied.");
@@ -205,11 +210,18 @@ async function main() {
   const starter = JSON.parse(await fetchText(STARTER_URL)).text;
   el("starter").addEventListener("click", () => {
     el("preset").value = "";
+    el("scenarios-dir").value = DEFAULT_SCENARIOS_DIR;
     setDoc(sourceView, starter);
     run();
   });
+  el("scenarios-dir").addEventListener("change", run);
   if (window.location.hash.startsWith("#src=")) {
-    setDoc(sourceView, await decodeShare(window.location.hash.slice(5)));
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const dirs = [...el("scenarios-dir").options].map((o) => o.value);
+    if (dirs.includes(params.get("dir"))) {
+      el("scenarios-dir").value = params.get("dir");
+    }
+    setDoc(sourceView, await decodeShare(params.get("src")));
   } else {
     setDoc(sourceView, starter);
   }

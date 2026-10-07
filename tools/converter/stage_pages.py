@@ -14,7 +14,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
-from cli import example_source, load_starter  # noqa: E402
+from cli import example_scenarios_dir, example_source, load_starter  # noqa: E402
 
 SCHEMA = ROOT / "generated" / "molecule-config.schema.json"
 MODULES = ["project.py", "render.py"]
@@ -23,7 +23,8 @@ MODULES = ["project.py", "render.py"]
 def stage(dest):
     """Copy the page, the Python modules and the schema, and write the presets and the starter file.
 
-    The presets are the fixture-covered examples. The starter lists every key the spec declares.
+    The presets are the fixture-covered examples, each with the scenarios directory its
+    fixture is projected under. The starter lists every key the spec declares.
 
     No staged file starts with `---`, so the Jekyll build copies every one unchanged.
 
@@ -38,7 +39,8 @@ def stage(dest):
         shutil.copy2(HERE / name, dest / name)
     shutil.copy2(SCHEMA, dest / SCHEMA.name)
     slugs = sorted(p.name for p in (HERE / "fixtures").iterdir() if p.is_dir())
-    presets = {slug: example_source(slug).read_text() for slug in slugs}
+    presets = {slug: {"text": example_source(slug).read_text(), "scenarios_dir": example_scenarios_dir(slug)}
+               for slug in slugs}
     (dest / "presets.json").write_text(json.dumps(presets, indent=2) + "\n")
     (dest / "starter.json").write_text(json.dumps({"text": load_starter()}, indent=2) + "\n")
     digest = hashlib.sha256()

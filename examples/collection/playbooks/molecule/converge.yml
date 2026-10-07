@@ -5,4 +5,4 @@
   tasks:
     - name: Apply the role named by the scenario
       ansible.builtin.include_role:
-        name: "{{ lookup('env', 'MOLECULE_SCENARIO_NAME') }}"
+        name: "example.collection.{{ lookup('env', 'MOLECULE_SCENARIO_NAME') }}"

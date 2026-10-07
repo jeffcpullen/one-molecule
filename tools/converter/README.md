@@ -1,6 +1,6 @@
 # Converter
 
-Projects a single-config `molecule.yml` into the per-scenario `extensions/molecule/<name>/molecule.yml`
+Projects a single-config `molecule.yml` into the per-scenario `<scenarios directory>/<name>/molecule.yml`
 files today's Molecule reads, and lists what the projection could not carry. It runs as a command
 and as a static web page published with the docs site under `converter/`.
 
@@ -30,6 +30,7 @@ exists in a second language.
 ```text
 python3 tools/converter/cli.py examples/openstack-systemd-service/after/molecule.yml
 python3 tools/converter/cli.py <molecule.yml> --out <dir>
+python3 tools/converter/cli.py <molecule.yml> --scenarios-dir molecule --out <dir>
 python3 tools/converter/cli.py --starter
 python3 -m unittest discover -s tools/converter -p 'test_*.py' -v
 ```
@@ -48,10 +49,23 @@ runs the same check against the deployed site after every deploy.
 
 ## Layout
 
-The projection assumes the content is a collection and places each scenario where the
-ansible-creator collection scaffold does, `extensions/molecule/<name>/molecule.yml`, with shared
-playbooks reached as `../utils/playbooks/`. A standalone role or a playbook project keeps its scenarios
-in a top-level `molecule/` directory instead, and the tool does not offer that layout yet.
+The projection places each scenario under a scenarios directory that `--scenarios-dir` and the page's
+selector choose:
+
+| Scenarios directory | For | Scenario file |
+|---|---|---|
+| `extensions/molecule` (default) | A collection, as the ansible-creator scaffold lays it out | `extensions/molecule/<name>/molecule.yml` |
+| `molecule` | A standalone role or a playbook project | `molecule/<name>/molecule.yml` |
+
+A tree maps onto Molecule's `shared_state` when it has one root named `default`, every other node is
+a direct child of it, the root resolves at least one platform, the root's `scenario.test_sequence`,
+when set, has both `create` and `destroy`, and no child selects platforms or sets its own `create` or
+`destroy` playbook. The projection then writes a base config with `shared_state: true`, gives each
+child the root's resolved platform entries, and reports no `lost` notice for the edges. The base
+config lands where Molecule looks for it: `extensions/molecule/config.yml` for a collection, and
+`.config/molecule/config.yml` at the projection root for the `molecule` layout, which must be the
+project's VCS root. Any other tree with children keeps a `lost` notice per child that names the
+condition that failed.
 
 Paths are copied as written, so a path that names or climbs out of the scenarios directory keeps the
 layout its author wrote it for. The openstack-systemd-service, osism-commons and dev-sec-hardening
@@ -69,9 +83,10 @@ appear as presets on the page.
 
 | Example | Covered | What it shows |
 |---|---|---|
-| collection | yes | Two flat roots sharing `defaults:`, shared stub playbooks reached in `playbooks/molecule/` |
-| collection-shared-state | yes | A root that creates and two children, each child reported `lost` because today's Molecule has no parent edge |
-| playbooks, roles | not yet | Their scenarios live in a top-level `molecule/` directory, a layout the tool does not offer yet |
+| collection | yes | Two flat roots sharing `defaults:` and one catalog platform, shared playbooks reached in `playbooks/molecule/` |
+| collection-shared-state | yes | A `default` root that creates and two direct children, projected with `extensions/molecule/config.yml` setting `shared_state: true`, each child carrying the parent's `default-instance` platform entry, and no `lost` notice |
+| roles | yes | Three flat roots under the `molecule/` layout, one shared converge naming the role by scenario |
+| playbooks | yes | Two flat roots under the `molecule/` layout, one shared converge importing the playbook named by the scenario |
 | openstack-systemd-service | yes | Run `defaults:` merged under one scenario, playbook paths copied as written |
 | osism-commons | yes | Two scenarios sharing one `defaults:` key, playbooks found by default discovery |
 | dev-sec-hardening | yes | Seven scenarios sharing `defaults:`, two overriding only `test_sequence` |

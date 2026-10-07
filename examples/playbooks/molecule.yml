@@ -2,38 +2,28 @@
 # SPDX-License-Identifier: Apache-2.0
 platforms:
   - name: instance
+    image: quay.io/fedora/fedora-toolbox:42
 
 defaults:
   driver:
     name: default
-    options:
-      managed: false
+  playbooks:
+    converge: ../../playbooks/molecule/converge.yml
+    create: ../../playbooks/molecule/create.yml
+    destroy: ../../playbooks/molecule/destroy.yml
   provisioner:
     name: ansible
     inventory:
       group_vars:
         all:
-          ansible_connection: local
-          ansible_python_interpreter: "{{ ansible_playbook_python }}"
+          ansible_connection: containers.podman.podman
   verifier:
     name: ansible
-  scenario:
-    test_sequence:
-      - syntax
-      - converge
-      - idempotence
-      - verify
 
 scenarios:
   - name: motd
-    provisioner:
-      inventory:
-        group_vars:
-          all:
-            motd_path: "{{ molecule_ephemeral_directory }}/motd"
+    playbooks:
+      verify: ../../playbooks/molecule/verify-motd.yml
   - name: hosts
-    provisioner:
-      inventory:
-        group_vars:
-          all:
-            hosts_path: "{{ molecule_ephemeral_directory }}/hosts"
+    playbooks:
+      verify: ../../playbooks/molecule/verify-hosts.yml

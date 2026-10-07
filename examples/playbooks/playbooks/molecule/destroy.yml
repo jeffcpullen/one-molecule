@@ -1,0 +1,26 @@
+---
+- name: Destroy
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Remove each instance container
+      ansible.builtin.command:
+        argv:
+          - podman
+          - rm
+          - --force
+          - --ignore
+          - --time
+          - "0"
+          - "{{ item.name }}"
+      loop: "{{ molecule_yml.platforms }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: instance_removed
+      changed_when: instance_removed.stdout | length > 0
+
+    - name: Write an empty instance config
+      ansible.builtin.copy:
+        dest: "{{ molecule_instance_config }}"
+        content: "{{ [] | to_nice_yaml }}"
+        mode: "0600"

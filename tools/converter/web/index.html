@@ -40,6 +40,10 @@
     <div class="bar">
       <button id="starter" type="button">Starter</button>
       <label>Example <select id="preset"><option value="">(choose)</option></select></label>
+      <label>Scenarios in <select id="scenarios-dir">
+        <option value="extensions/molecule">extensions/molecule/ (collection)</option>
+        <option value="molecule">molecule/ (role or playbook project)</option>
+      </select></label>
       <button id="share" type="button">Copy share link</button>
       <span id="status">Loading Python runtime...</span>
     </div>
@@ -51,7 +55,7 @@
     </section>
     <section class="pane">
       <h2>Projected file tree</h2>
-      <p class="hint">Files are placed as in an ansible-creator collection. Select a file to view it.</p>
+      <p class="hint">Files are placed under the chosen scenarios directory, as in an ansible-creator collection by default. Select a file to view it.</p>
       <ul id="tree" aria-label="Projected files"></ul>
       <p id="file-path" class="file-path"></p>
       <div id="file" class="editor"></div>

@@ -1,0 +1,19 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  vars:
+    app_root: /opt/app
+  tasks:
+    - name: Look for the app tree directories
+      ansible.builtin.stat:
+        path: "{{ app_root }}/{{ item }}"
+      loop:
+        - etc
+        - data
+      register: app_dirs
+
+    - name: Check the app tree is laid out
+      ansible.builtin.assert:
+        that:
+          - app_dirs.results | map(attribute='stat.isdir') | select | list | length == 2

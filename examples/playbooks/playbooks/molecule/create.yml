@@ -1,0 +1,51 @@
+---
+- name: Create
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Look for each instance container
+      ansible.builtin.command:
+        argv:
+          - podman
+          - container
+          - exists
+          - "{{ item.name }}"
+      loop: "{{ molecule_yml.platforms }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: instance_exists
+      changed_when: false
+      failed_when: instance_exists.rc > 1
+
+    - name: Start each missing instance container
+      ansible.builtin.command:
+        argv:
+          - podman
+          - run
+          - --detach
+          - --no-hosts
+          - --name
+          - "{{ item.item.name }}"
+          - --hostname
+          - "{{ item.item.name }}"
+          - "{{ item.item.image }}"
+          - sleep
+          - infinity
+      loop: "{{ instance_exists.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.rc == 1
+      changed_when: true
+
+    - name: Collect the instance config
+      ansible.builtin.set_fact:
+        instance_config: "{{ instance_config | default([]) + [{'instance': item.name, 'address': item.name}] }}"
+      loop: "{{ molecule_yml.platforms }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Write the instance config
+      ansible.builtin.copy:
+        dest: "{{ molecule_instance_config }}"
+        content: "{{ instance_config | default([]) | to_nice_yaml }}"
+        mode: "0600"

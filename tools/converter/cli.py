@@ -1,7 +1,7 @@
 """Command line front end for the converter.
 
 Usage:
-    python3 tools/converter/cli.py <molecule.yml> [--out DIR] [--schema PATH]
+    python3 tools/converter/cli.py <molecule.yml> [--out DIR] [--schema PATH] [--scenarios-dir DIR]
     python3 tools/converter/cli.py --starter
 """
 
@@ -12,6 +12,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
+from project import COLLECTION_SCENARIOS_DIR, PROJECT_SCENARIOS_DIR, SCENARIOS_DIRS  # noqa: E402
 from render import convert_text, dump  # noqa: E402
 from starter import starter_text  # noqa: E402
 
@@ -58,6 +59,22 @@ def example_source(slug):
     return root_file if root_file.is_file() else ROOT / "examples" / slug / "after" / "molecule.yml"
 
 
+def example_scenarios_dir(slug):
+    """Return the scenarios directory an example's projection is placed under.
+
+    Args:
+        slug: the directory name under `examples/`.
+
+    Returns:
+        `molecule` for a synthetic example that is not a collection (no `galaxy.yml`),
+        else `extensions/molecule`.
+    """
+    example = ROOT / "examples" / slug
+    if (example / "molecule.yml").is_file() and not (example / "galaxy.yml").is_file():
+        return PROJECT_SCENARIOS_DIR
+    return COLLECTION_SCENARIOS_DIR
+
+
 def write_tree(result, out):
     """Write projected files and `notices.json` under a directory.
 
@@ -85,13 +102,17 @@ def main(argv=None):
     parser.add_argument("--out")
     parser.add_argument("--schema", default=str(DEFAULT_SCHEMA))
     parser.add_argument("--starter", action="store_true", help="print the starter file and exit")
+    parser.add_argument(
+        "--scenarios-dir", choices=SCENARIOS_DIRS, default=COLLECTION_SCENARIOS_DIR,
+        help="where scenarios are placed: extensions/molecule for a collection (default), "
+             "molecule for a standalone role or playbook project")
     args = parser.parse_args(argv)
     if args.starter:
         print(load_starter(args.schema), end="")
         return 0
     if not args.source:
         parser.error("a source file is required unless --starter is given")
-    result = convert_text(pathlib.Path(args.source).read_text(), load_schema(args.schema))
+    result = convert_text(pathlib.Path(args.source).read_text(), load_schema(args.schema), args.scenarios_dir)
     if args.out:
         write_tree(result, args.out)
     else:

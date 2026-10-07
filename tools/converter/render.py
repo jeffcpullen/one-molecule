@@ -4,7 +4,7 @@ import json
 
 import yaml
 
-from project import project
+from project import COLLECTION_SCENARIOS_DIR, project
 
 
 class _IndentedDumper(yaml.SafeDumper):
@@ -36,12 +36,13 @@ def dump(value):
     return "---\n" + body
 
 
-def convert_text(text, schema):
+def convert_text(text, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
     """Parse a single-config molecule.yml and project it.
 
     Args:
         text: the YAML source.
         schema: the config schema as a dict.
+        scenarios_dir: the scenarios directory the files are placed under.
 
     Returns:
         A dict with `files`, a list of {path, text}, and `notices`.
@@ -51,19 +52,20 @@ def convert_text(text, schema):
     except yaml.YAMLError as exc:
         return {"files": [], "notices": [
             {"kind": "error", "node": None, "key": None, "message": f"YAML parse error: {exc}"}]}
-    result = project(config, schema)
+    result = project(config, schema, scenarios_dir)
     files = [{"path": f["path"], "text": dump(f["content"])} for f in result["files"]]
     return {"files": files, "notices": result["notices"]}
 
 
-def convert_json(text, schema_text):
+def convert_json(text, schema_text, scenarios_dir=COLLECTION_SCENARIOS_DIR):
     """JSON wrapper of `convert_text` for the web page.
 
     Args:
         text: the YAML source.
         schema_text: the config schema as JSON text.
+        scenarios_dir: the scenarios directory the files are placed under.
 
     Returns:
         The `convert_text` result as JSON text.
     """
-    return json.dumps(convert_text(text, json.loads(schema_text)))
+    return json.dumps(convert_text(text, json.loads(schema_text), scenarios_dir))

@@ -5,6 +5,6 @@
   tasks:
     - name: Write the motd file
       ansible.builtin.copy:
-        dest: "{{ motd_path | default('/etc/motd') }}"
+        dest: /etc/motd
         content: "Authorized use only\n"
         mode: "0644"

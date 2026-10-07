@@ -4,17 +4,31 @@ This is a synthetic example, written for this repo. It is a playbook project wit
 `playbooks/motd.yml` and `playbooks/hosts.yml`, each tested by its own Molecule scenario, and every
 scenario declared in one root `molecule.yml`.
 
-The scenarios share config only. Each one targets localhost and writes to its own ephemeral
-directory, so neither needs the other to run. The driver, the platform, the connection settings, the
-verifier and the test sequence therefore sit once under `defaults:`, and the two scenarios stay
-independent roots. Each node carries only the path its playbook writes to, which deep-merges into
-the shared inventory variables.
+There is no scenario folder. A scenario is an entry in the root file, and every playbook it runs
+lives in `playbooks/molecule/`. The two scenarios are independent, so they stay roots and share
+their config through `defaults:`. Three stages are the same for both and are written once:
 
-Nothing moves to `playbooks/molecule/`, because nothing is shared. Each scenario's `converge.yml`
-imports a different playbook and each `verify.yml` checks a different file, so both stay in the
-scenario's own folder under `molecule/`, where Molecule finds them by default discovery.
+- `create.yml` starts one podman container per platform the scenario selects, with the `podman`
+  CLI, and `destroy.yml` removes them. Each scenario gets its own container, `motd-instance` or
+  `hosts-instance`.
+- `converge.yml` is a single `import_playbook` of the playbook named for the scenario, read from
+  `MOLECULE_SCENARIO_NAME`, so the `motd` scenario runs `playbooks/motd.yml`.
 
-Today's layout would carry a full `molecule.yml` in each scenario folder, the two differing only in
-the one path variable. The converter does not project this example yet, because it offers only the
-collection layout (`extensions/molecule/`) and this project keeps its scenarios in a top-level
-`molecule/`.
+`verify` is the only stage that differs, because each playbook writes a different file. Each node
+names its own `verify-<scenario>.yml`, which reads that file inside the container. Molecule's
+built-in test sequence runs, idempotence included.
+
+This example's `create.yml` passes `--no-hosts` to `podman run`. Podman otherwise mounts its own
+`/etc/hosts` into the container, and the `hosts` playbook cannot replace a mounted file. The other
+synthetic examples leave the flag out because nothing they test touches that file.
+
+The platform image is `quay.io/fedora/fedora-toolbox:42` because the plain Fedora images carry no
+Python. The `containers.podman` collection is needed for its connection plugin only. Paths in the
+root file are relative to each scenario's folder, `molecule/<name>/`, which is why they climb two
+levels to reach `playbooks/molecule/`.
+
+The converter projects this file into a top-level `molecule/` layout with `--scenarios-dir
+molecule`. That projection, placed in a copy of this folder, passed `molecule test --all` on
+Molecule 26.9.0, ansible-core 2.21.4 and containers.podman 1.21.0 against rootless podman 5.6.2,
+with each playbook applied, idempotent and verified in its own container. It is a preset on the
+converter page.

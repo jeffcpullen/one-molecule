@@ -1,29 +1,28 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
 platforms:
-  - name: na
+  - name: instance
+    image: quay.io/fedora/fedora-toolbox:42
 
 defaults:
+  driver:
+    name: default
   playbooks:
-    cleanup: ../../../playbooks/molecule/noop.yml
-    prepare: ../../../playbooks/molecule/noop.yml
+    converge: ../../../playbooks/molecule/converge.yml
+    create: ../../../playbooks/molecule/create.yml
+    destroy: ../../../playbooks/molecule/destroy.yml
   provisioner:
     name: ansible
-    config_options:
-      defaults:
-        collections_path: ${ANSIBLE_COLLECTIONS_PATH}
     inventory:
       group_vars:
         all:
-          app_root: "{{ lookup('env', 'TMPDIR') | default('/tmp', true) }}/example-shared-state"
-  scenario:
-    test_sequence:
-      - prepare
-      - converge
-      - verify
+          ansible_connection: containers.podman.podman
 
 scenarios:
   - name: default
+    playbooks:
+      create: ../../../playbooks/molecule/create-default.yml
+      verify: ../../../playbooks/molecule/verify-default.yml
     scenario:
       test_sequence:
         - create
@@ -31,4 +30,8 @@ scenarios:
         - destroy
     children:
       - name: app_config
+        playbooks:
+          verify: ../../../playbooks/molecule/verify-app_config.yml
       - name: app_users
+        playbooks:
+          verify: ../../../playbooks/molecule/verify-app_users.yml
