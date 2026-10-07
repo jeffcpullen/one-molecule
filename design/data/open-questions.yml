@@ -34,6 +34,7 @@ open:
       - "A spec 0.2.0 catalog entry accepts any molecule platform key, and a selected entry reaches the node's platforms as written except for its `name`."
       - "No orchestrator key reaches molecule (`design/data/tree-spec.yml`, rule `handoff-no-orchestrator-keys`)."
       - "Undecided is how `labels:` on a catalog entry is held back while every molecule platform key still passes through."
+      - "A catalog entry's `host_vars:` is translated at the handoff rather than passed through (`design/data/tree-spec.yml`)."
 
   - title: "Spell the label selection flags"
     status: "raised, not started"

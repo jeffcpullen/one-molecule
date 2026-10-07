@@ -37,6 +37,18 @@ sections:
       - name: handoff-molecule-refs-untouched
         description: "A `${MOLECULE_*}` reference crosses the handoff untouched, and molecule fills it in from its own identity."
         check: resolved
+      - name: catalog-host-vars-translated
+        description: "A catalog entry's `host_vars:` reaches molecule as `provisioner.inventory.host_vars`, keyed by the instance name `<scenario name>-<catalog name>`."
+        check: resolved
+      - name: catalog-host-vars-every-selection
+        description: "Every scenario that selects a catalog entry receives that entry's `host_vars:` for its own instance."
+        check: resolved
+      - name: catalog-host-vars-not-platform-key
+        description: "A catalog entry's `host_vars:` never reaches molecule as a platform key."
+        check: resolved
+      - name: catalog-host-vars-in-spec-0-3-0
+        description: "A catalog entry's `host_vars:` enters `spec/molecule-config.schema.yml` in version 0.3.0."
+        check: none
 
   - title: The edge
     description: >-

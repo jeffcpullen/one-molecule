@@ -274,6 +274,8 @@ groups:
         means: "Opaque per-EE and run-level option bags."
       - term: "`labels:`"
         means: "Selection membership on a platform, a scenario, or an EE."
+      - term: "`host_vars:` (on a catalog entry)"
+        means: "Inventory host variables for every instance created from the entry, under each instance's own name (`design/data/tree-spec.yml`)."
       - term: "`platforms:`"
         means: "The run-only catalog and the per-scenario selection."
       - term: "`missing_parent:`"
