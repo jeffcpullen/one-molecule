@@ -94,7 +94,7 @@ todo:
   residual_ephemeral:
     intro: "Marked Proposed in `design/data/ephemeral.yml` rather than open-ended, but not settled."
     items:
-      - "splitting `MOLECULE_EPHEMERAL_DIRECTORY` into a location input and a per-node output, now with the cost of ignoring it entirely written out in `design/data/ephemeral.yml`"
+      - "splitting `MOLECULE_EPHEMERAL_DIRECTORY` into a location input and a per-node output, with ignoring it entirely rejected in `design/data/rejected-ideas.yml`"
       - "giving a run its own identity, which is what the documented tox-parallel recipe is really a workaround for"
       - "the scratch directory variable and how long `prune`'s denylist survives as a fallback"
   documentation_backlog:
