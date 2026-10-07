@@ -110,6 +110,8 @@ open:
     status: "proposed, not settled"
     raised: "2026-10-07"
     owning_doc: "`design/data/lifecycle.yml`"
+    issues:
+      - 14
     framing:
       - "`--destroy` takes `always` (default) or `never`."
       - "`on-success` would destroy only when the whole run is green, and keep everything when anything failed."
@@ -121,6 +123,8 @@ open:
     status: "proposed, not settled"
     raised: "2026-10-07"
     owning_doc: "`design/data/environment.yml`"
+    issues:
+      - 15
     framing:
       - "`--destroy` is reachable today only by typing the flag."
       - "A `MOLECULE_DESTROY` entry in `ENV_VAR_CONFIG_MAPPING` would let a dev box set the policy once and never type the flag."
