@@ -4,52 +4,42 @@
 # Converted by the one-molecule project from the upstream per-scenario Molecule layout to the single top-level layout.
 platforms:
   - name: debian-13-qemu
-    vars:
-      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
-      mp_defaults:
-        qemu:
-          cpus: 2
-          memory: 2048
-          ssh_user: debian
-      mp:
-        qemu:
-          image: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
-          disk_size: 4G
+    groups:
+      - molecule
+    mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
+    mp_defaults:
+      qemu:
+        cpus: 2
+        memory: 2048
+        ssh_user: debian
+    mp:
+      qemu:
+        image: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
+        disk_size: 4G
   - name: ubuntu-2404-podman
-    vars:
-      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('podman', true) }}"
-      mp_defaults:
-        podman:
-          command: sleep 1d
-          privileged: false
-      mp:
-        podman:
-          image: docker.io/geerlingguy/docker-ubuntu2404-ansible:latest
-  - name: armbian-uefi-qemu
-    vars:
-      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
-      mp_defaults:
-        qemu:
-          cpus: 2
-          memory: 2048
-          ssh_user: cloud-user
-          cpu_model: Nehalem
-      mp:
-        qemu:
-          image: https://dl.armbian.com/uefi-x86/Trixie_cloud_minimal-qcow2
-          firmware: uefi
+    groups:
+      - molecule
+    mp_backend: "{{ lookup('env', 'PROVISIONER') | default('podman', true) }}"
+    mp_defaults:
+      podman:
+        command: sleep 1d
+        privileged: false
+    mp:
+      podman:
+        image: docker.io/geerlingguy/docker-ubuntu2404-ansible:latest
   - name: armbian-builder-qemu
-    vars:
-      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
-      mp_defaults:
-        qemu:
-          cpus: 8
-          memory: 16384
-          ssh_user: debian
-      mp:
-        qemu:
-          image: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
-          disk_size: 100G
+    groups:
+      - molecule
+    mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
+    mp_defaults:
+      qemu:
+        cpus: 8
+        memory: 16384
+        ssh_user: debian
+    mp:
+      qemu:
+        image: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
+        disk_size: 100G
 
 defaults:
   dependency:
@@ -83,7 +73,20 @@ scenarios:
       - ubuntu-2404-podman
   - name: bootstrap_armbian
     platforms:
-      - armbian-uefi-qemu
+      - name: instance
+        groups:
+          - molecule
+        mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
+        mp_defaults:
+          qemu:
+            cpus: 2
+            memory: 2048
+            ssh_user: cloud-user
+            cpu_model: Nehalem
+        mp:
+          qemu:
+            image: https://dl.armbian.com/uefi-x86/Trixie_cloud_minimal-qcow2
+            firmware: uefi
   - name: disk_image
     platforms:
       - debian-13-qemu
@@ -113,13 +116,23 @@ scenarios:
       - ubuntu-2404-podman
   - name: pxelinux_render
     platforms:
-      - ubuntu-2404-podman
+      - name: instance
+        groups:
+          - molecule
+        mp_backend: "{{ lookup('env', 'PROVISIONER') | default('podman', true) }}"
+        mp_defaults:
+          podman:
+            command: sleep 1d
+            privileged: false
+        mp:
+          podman:
+            image: docker.io/geerlingguy/docker-ubuntu2404-ansible:latest
   - name: rootfs_provision
     platforms:
       - debian-13-qemu
     provisioner:
       inventory:
         host_vars:
-          instance:
+          rootfs_provision-debian-13-qemu:
             armbian_nfs_rootfs_path: /var/lib/armbian/test-nfs
             armbian_image_cache: /var/lib/armbian/test-cache

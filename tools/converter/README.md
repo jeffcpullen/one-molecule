@@ -68,8 +68,9 @@ choice the example's own `after/molecule.yml` makes, never to the tool:
 - armbian's `ansible.playbooks` entries are absent, because each names `<stage>.yml` in the
   scenario's own directory, which Molecule finds by default discovery.
 - armbian's static `--inventory=inventory/` argument is replaced by the catalog.
-- armbian's projected platform entries carry the example's catalog `vars:` mapping as written,
-  which Molecule accepts as an ordinary platform key.
+- armbian's platform entries stand in for upstream's per-scenario `inventory/hosts.yml`. A catalog
+  selection's instance is named `<scenario>-<catalog name>`, so only `bootstrap_armbian` and
+  `pxelinux_render`, which declare inline platforms, keep upstream's host name `instance`.
 
 A playbook path in the root file is relative to the node's scenario directory, as in Molecule
 today, so the projection copies it as written.

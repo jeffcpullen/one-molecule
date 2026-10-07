@@ -4,60 +4,61 @@
 # Converted by the one-molecule project from the upstream per-scenario Molecule layout to the single top-level layout.
 platforms:
   - name: chr-1
-    vars:
-      mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
-      mp_defaults:
-        qemu:
-          cpus: 1
-          memory: 512
-          ssh_user: admin
-      mp:
-        qemu:
-          image: "https://download.mikrotik.com/routeros/7.23.7/chr-7.23.7.img.zip"
-          ssh_user: admin
-          cpus: 1
-          memory: 512
-          extra_args:
-            - -netdev
-            - "user,id=apinet,net=10.0.3.0/24,hostfwd=tcp::8728-10.0.3.15:8728,hostfwd=tcp::2223-10.0.3.15:22"
-            - -device
-            - "virtio-net-pci,netdev=apinet,mac=52:54:00:00:01:02"
-            - -netdev
-            - "user,id=net2"
-            - -device
-            - "virtio-net-pci,netdev=net2,mac=52:54:00:00:01:03"
-            - -netdev
-            - "user,id=net3"
-            - -device
-            - "virtio-net-pci,netdev=net3,mac=52:54:00:00:01:04"
-            - -netdev
-            - "user,id=net4"
-            - -device
-            - "virtio-net-pci,netdev=net4,mac=52:54:00:00:01:05"
-            - -netdev
-            - "user,id=net5"
-            - -device
-            - "virtio-net-pci,netdev=net5,mac=52:54:00:00:01:06"
-            - -netdev
-            - "user,id=net6"
-            - -device
-            - "virtio-net-pci,netdev=net6,mac=52:54:00:00:01:07"
-            - -netdev
-            - "user,id=net7"
-            - -device
-            - "virtio-net-pci,netdev=net7,mac=52:54:00:00:01:08"
-            - -netdev
-            - "user,id=net8"
-            - -device
-            - "virtio-net-pci,netdev=net8,mac=52:54:00:00:01:09"
-            - -netdev
-            - "user,id=net9"
-            - -device
-            - "virtio-net-pci,netdev=net9,mac=52:54:00:00:01:0a"
-            - -netdev
-            - "user,id=net10"
-            - -device
-            - "virtio-net-pci,netdev=net10,mac=52:54:00:00:01:0b"
+    groups:
+      - molecule
+    mp_backend: "{{ lookup('env', 'PROVISIONER') | default('qemu', true) }}"
+    mp_defaults:
+      qemu:
+        cpus: 1
+        memory: 512
+        ssh_user: admin
+    mp:
+      qemu:
+        image: "https://download.mikrotik.com/routeros/7.23.7/chr-7.23.7.img.zip"
+        ssh_user: admin
+        cpus: 1
+        memory: 512
+        extra_args:
+          - -netdev
+          - "user,id=apinet,net=10.0.3.0/24,hostfwd=tcp::8728-10.0.3.15:8728,hostfwd=tcp::2223-10.0.3.15:22"
+          - -device
+          - "virtio-net-pci,netdev=apinet,mac=52:54:00:00:01:02"
+          - -netdev
+          - "user,id=net2"
+          - -device
+          - "virtio-net-pci,netdev=net2,mac=52:54:00:00:01:03"
+          - -netdev
+          - "user,id=net3"
+          - -device
+          - "virtio-net-pci,netdev=net3,mac=52:54:00:00:01:04"
+          - -netdev
+          - "user,id=net4"
+          - -device
+          - "virtio-net-pci,netdev=net4,mac=52:54:00:00:01:05"
+          - -netdev
+          - "user,id=net5"
+          - -device
+          - "virtio-net-pci,netdev=net5,mac=52:54:00:00:01:06"
+          - -netdev
+          - "user,id=net6"
+          - -device
+          - "virtio-net-pci,netdev=net6,mac=52:54:00:00:01:07"
+          - -netdev
+          - "user,id=net7"
+          - -device
+          - "virtio-net-pci,netdev=net7,mac=52:54:00:00:01:08"
+          - -netdev
+          - "user,id=net8"
+          - -device
+          - "virtio-net-pci,netdev=net8,mac=52:54:00:00:01:09"
+          - -netdev
+          - "user,id=net9"
+          - -device
+          - "virtio-net-pci,netdev=net9,mac=52:54:00:00:01:0a"
+          - -netdev
+          - "user,id=net10"
+          - -device
+          - "virtio-net-pci,netdev=net10,mac=52:54:00:00:01:0b"
 
 defaults:
   dependency:

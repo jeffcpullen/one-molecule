@@ -1,18 +1,19 @@
 ---
 platforms:
-  - name: bootstrap_armbian-armbian-uefi-qemu
-    vars:
-      mp_backend: '{{ lookup(''env'', ''PROVISIONER'') | default(''qemu'', true) }}'
-      mp_defaults:
-        qemu:
-          cpus: 2
-          memory: 2048
-          ssh_user: cloud-user
-          cpu_model: Nehalem
-      mp:
-        qemu:
-          image: https://dl.armbian.com/uefi-x86/Trixie_cloud_minimal-qcow2
-          firmware: uefi
+  - name: instance
+    groups:
+      - molecule
+    mp_backend: '{{ lookup(''env'', ''PROVISIONER'') | default(''qemu'', true) }}'
+    mp_defaults:
+      qemu:
+        cpus: 2
+        memory: 2048
+        ssh_user: cloud-user
+        cpu_model: Nehalem
+    mp:
+      qemu:
+        image: https://dl.armbian.com/uefi-x86/Trixie_cloud_minimal-qcow2
+        firmware: uefi
 verifier:
   name: ansible
 dependency:

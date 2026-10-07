@@ -12,7 +12,7 @@ credential has an added inline `# notsecret` comment, which adds no lines.
 |---|---|---|
 | Config and orchestration files | 25 | 1 |
 | Scenario folders | 22 | 22 |
-| Total lines | 331 | 192 |
+| Total lines | 331 | 193 |
 
 This example is evidence for translating `shared_state`, not for nesting. `extensions/molecule/config.yml`
 sets `shared_state: true` for the whole suite, `default` boots one MikroTik CHR and owns create,
@@ -22,10 +22,18 @@ the key is gone. Molecule runs this shape today. The tree is one level deep, and
 parent below a parent or any relationship `shared_state` cannot already express. `lifecycle` sets
 `shared_state: false` upstream and boots its own CHR, so here it is a second root. Both roots boot the
 same machine definition, which upstream keeps as one static `utils/inventory/` tree and which becomes
-a `platforms:` catalog of one entry.
+a `platforms:` catalog of one entry. Each root selects it, so the two instances are `default-chr-1`
+and `lifecycle-chr-1`, and no upstream playbook names the host.
+
+The catalog entry does not reach upstream's create step as it stands. Upstream's create playbook,
+from `david_igou.molecule_provisioners`, reads `mp_backend`, `mp_defaults` and `mp` from the
+inventory hostvars of the `molecule` group. Molecule v26.6.0 builds its inventory from each
+platform's `name`, `groups` and `children` only, so the entry's `groups:` puts the instance in that
+group, but its other keys reach a playbook only as `molecule_yml.platforms`, which that playbook does
+not read.
 
 The line drop is comments, not structure. Not counting blank lines, comments and `---` markers, the 25
-files hold 175 lines and the single file holds 185, so on content the single file is 10 lines longer.
+files hold 175 lines and the single file holds 186, so on content the single file is 11 lines longer.
 The ordering below adds 19 `wave:` lines.
 
 The scenario folders stay. Each still holds its stage playbooks where upstream keeps them, and

@@ -1,17 +1,18 @@
 ---
 platforms:
   - name: image_build-armbian-builder-qemu
-    vars:
-      mp_backend: '{{ lookup(''env'', ''PROVISIONER'') | default(''qemu'', true) }}'
-      mp_defaults:
-        qemu:
-          cpus: 8
-          memory: 16384
-          ssh_user: debian
-      mp:
-        qemu:
-          image: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
-          disk_size: 100G
+    groups:
+      - molecule
+    mp_backend: '{{ lookup(''env'', ''PROVISIONER'') | default(''qemu'', true) }}'
+    mp_defaults:
+      qemu:
+        cpus: 8
+        memory: 16384
+        ssh_user: debian
+    mp:
+      qemu:
+        image: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
+        disk_size: 100G
 provisioner:
   inventory:
     group_vars:

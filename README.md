@@ -46,8 +46,8 @@ scenario's own folder, so a scenario folder is counted after wherever it still h
 | Project | Config files | Scenario folders | Lines |
 |---|---|---|---|
 | aristanetworks/avd | 32 → 1 | 30 → 29 | 914 → 285 |
-| david-igou/ansible-collection-armbian | 41 → 1 | 10 → 10 | 328 → 125 |
-| david-igou/ansible-collection-routeros_configuration | 25 → 1 | 22 → 22 | 331 → 192 |
+| david-igou/ansible-collection-armbian | 41 → 1 | 10 → 10 | 328 → 138 |
+| david-igou/ansible-collection-routeros_configuration | 25 → 1 | 22 → 22 | 331 → 193 |
 | nginxinc/ansible-role-nginx | 15 → 1 | 14 → 14 | 3042 → 809 |
 | dev-sec/ansible-collection-hardening | 11 → 1 | 7 → 7 | 451 → 158 |
 | prometheus-community/ansible | 11 → 1 | 9 → 9 | 249 → 274 |
@@ -55,7 +55,7 @@ scenario's own folder, so a scenario folder is counted after wherever it still h
 | openstack/ansible-role-systemd_service | 4 → 1 | 1 → 0 | 151 → 44 |
 | linux-system-roles/network | 5 → 1 | 0 | 622 → 213 |
 | linux-system-roles/storage | 8 → 1 | 0 | 1029 → 267 |
-| Total, the Molecule projects | 143 → 8 | 95 → 92 | 5987 → 1939 |
+| Total, the Molecule projects | 143 → 8 | 95 → 92 | 5987 → 1953 |
 
 prometheus-community/ansible is counted over a representative three-role subset, and it is the one
 project here whose single file is not shorter than what it replaces, because its scenarios already
