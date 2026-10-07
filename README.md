@@ -1,72 +1,142 @@
-# one-molecule: one layout for scenario testing
+# one-molecule: one molecule.yml for every scenario
 
-Real Ansible projects, refactored to a single top-level `molecule.yml`. This repository is a
-proof of concept for that idea.
+Molecule spreads a project's test config across many files: a `molecule.yml` in every scenario
+directory, a base `config.yml`, and `shared_state` when scenarios test against one environment.
+This repository defines a single `molecule.yml` at the project root that carries all of it.
+
+It is fully backwards compatible. Everything an existing project writes today has a place in the
+one file, and the converter writes the one file back out as the per-scenario files today's
+Molecule reads.
 
 - [Documentation](https://jeffcpullen.github.io/one-molecule/): getting started, migrating, the explanation, and the full reference.
-- [Converter](https://jeffcpullen.github.io/one-molecule/converter/): paste a single-config `molecule.yml` and see the per-scenario files today's Molecule needs.
+- [Converter](https://jeffcpullen.github.io/one-molecule/converter/): paste a single-file `molecule.yml` and see the per-scenario files today's Molecule needs.
+- [Spec](spec/molecule-config.schema.yml): the single-file format, version 0.3.0.
 
 This is a personal project. It is not a Molecule project proposal and does not represent the
 position of the author's employer.
 
 ## The problem
 
-Molecule has no scope larger than a single scenario. Anything shared across scenarios,
-whether config, playbooks, or provisioning, has nowhere to live, so every project invents
-its own way to avoid copying that shared material into each scenario directory. Each
-project lands somewhere different.
+Molecule has no scope larger than a single scenario. Anything shared across scenarios, whether
+config, playbooks, platforms or an environment several scenarios test against, has nowhere to
+live. So each scenario directory repeats most of the next one, shared settings go in a separate
+base config, and shared setup needs `shared_state` and a scenario that must be named `default`.
 
-This repo collects recognizable, community-backed projects and shows how differently they
-wire Molecule today:
+## Many files become one
 
-| Project | Community | License | Molecule layout today |
-|---|---|---|---|
-| linux-system-roles (network, storage) | linux-system-roles | BSD-3-Clause / MIT | No Molecule. Its own `tests/` playbooks, run by tox-lsr and Testing Farm |
-| dev-sec/ansible-collection-hardening | dev-sec | Apache-2.0 | Top-level `molecule/`, a project-local `../shared/` |
-| prometheus-community/ansible | prometheus-community | Apache-2.0 | Per-role `roles/*/molecule/`, a `_common` role |
-| aristanetworks/avd | Arista | Apache-2.0 | `extensions/molecule/`, 30 scenarios, Makefile-managed |
-| nginxinc/ansible-role-nginx | NGINX / F5 | Apache-2.0 | Top-level `molecule/`, a `common/` Dockerfile shim |
-| openstack/ansible-role-systemd_service | OpenStack | Apache-2.0 | Single `molecule/default`, playbooks pulled from `tests/` |
-| osism/ansible-collection-commons | OSISM | Apache-2.0 | Top-level `molecule/`, a large delegated `prepare/` tree |
-| david-igou/ansible-collection-armbian | David Igou | MIT | `extensions/molecule/`, 10 scenarios, a shared `config.yml`, a per-scenario `inventory/` tree |
-| david-igou/ansible-collection-routeros_configuration | David Igou | MIT | `extensions/molecule/`, 22 scenarios, `shared_state: true` in a shared `config.yml`, a `Makefile`-ordered run |
+The `collection-shared-state` example is a collection with two roles that both write into one
+application tree on one host. A `default` scenario builds the host and the tree, and each role
+has a scenario that tests against it. Today's Molecule needs four files for that:
 
-That is at least seven distinct layouts across these projects. The variation is the symptom.
+```text
+extensions/molecule/
+  config.yml                 shared_state: true
+  default/molecule.yml
+  app_config/molecule.yml
+  app_users/molecule.yml
+```
 
-## The proposal
+The single file says the same thing once:
 
-One `molecule.yml` at the project root carries the run config, the scenario declarations,
-and the parent and child edges. Shared playbooks live once under `playbooks/molecule/` and
-are referenced by name. See `design/docs/the-pattern.md`.
+```yaml
+# molecule.yml  (project root)
+---
+platforms:
+  - name: instance
+    image: quay.io/fedora/fedora-toolbox:42
 
-## The result
+defaults:
+  driver:
+    name: default
+  playbooks:
+    converge: playbooks/molecule/converge.yml
+    create: playbooks/molecule/create.yml
+    destroy: playbooks/molecule/destroy.yml
+  provisioner:
+    name: ansible
+    inventory:
+      group_vars:
+        all:
+          ansible_connection: containers.podman.podman
 
-Each project's per-scenario config collapses into one root `molecule.yml`. The playbooks and fixture
-data are unchanged and still referenced, and the stage playbooks stay where upstream keeps them, in
-each scenario's own folder. Each example's README says what its single file absorbs, what stays, and
-what the conversion costs.
+scenarios:
+  - name: default
+    playbooks:
+      create: playbooks/molecule/create-default.yml
+      verify: playbooks/molecule/verify-default.yml
+    scenario:
+      test_sequence:
+        - create
+        - verify
+        - destroy
+    children:
+      - name: app_config
+        playbooks:
+          verify: playbooks/molecule/verify-app_config.yml
+      - name: app_users
+        playbooks:
+          verify: playbooks/molecule/verify-app_users.yml
+```
 
-prometheus-community/ansible is converted over a representative three-role subset, and its single file
-is not shorter than what it replaces, because its scenarios already share one config. The two
-linux-system-roles projects use no Molecule today. Their test config is spread across several
-separate systems, and the single-config layout gathers it into one file.
+Shared config sits once under `defaults:`, the platform sits once in the top-level catalog, and
+each scenario names only what is its own. Nesting `app_config` and `app_users` under
+`default`'s `children:` says what `shared_state: true` said. The converter writes this file back
+as the four files above.
+
+## Backwards compatible
+
+Every part of today's layout has a place in the single file.
+
+| Today | In the single file |
+|---|---|
+| A scenario directory's `molecule.yml` | An entry under `scenarios:`, with the same keys |
+| A base `config.yml` | The top-level `defaults:` block |
+| An inline platform list | The same list, or names from the catalog |
+| `provisioner.playbooks` | `playbooks:`, a shorthand for it |
+| A stage playbook in the scenario directory | Left unset, found by Molecule's default discovery |
+| `shared_state: true` with a `default` scenario | A `default` root with the other scenarios as its children |
+| The `--workers` flag | The flag, or a `workers` key in the file |
+
+The keys on a scenario are Molecule's own, each validated by Molecule's own schema. A project
+that keeps its scenario directories runs unchanged, `shared_state` included.
+
+The single file also adds a few things today's layout has no place for: a platform defined once
+and selected by name, inventory `host_vars` on that platform, and the `workers` cap committed
+in the file. The converter turns each into ordinary scenario config, or names the flag to pass.
+
+## The spec
+
+`spec/molecule-config.schema.yml` is the authored source of the format, version 0.3.0, written
+against Molecule v26.6.0. `tools/build.py` emits it as `generated/molecule-config.schema.json`,
+published at its `$id`:
+
+```text
+https://raw.githubusercontent.com/jeffcpullen/one-molecule/v0.3.0/generated/molecule-config.schema.json
+```
+
+Each spec version is tagged `v<version>`. The [reference](design/docs/reference.md) states every
+key in it.
+
+## Examples
+
+Four synthetic examples, written for this repository, each show one common layout on its own.
+Each is the project itself in the single-file form, with its root file at
+`examples/<name>/molecule.yml`, and each is a preset on the converter page.
+
+| Example | Shape |
+|---|---|
+| `playbooks` | A playbook project with two independent scenarios |
+| `roles` | Three standalone roles, one scenario each |
+| `collection` | A collection with two roles, one scenario each |
+| `collection-shared-state` | A collection whose scenarios test against one shared environment |
+
+`examples/` also keeps upstream projects, each with its testing files copied from a pinned
+upstream commit in `before/` and a converted root file in `after/`. `NOTICES.md` maps each one to
+its source, commit and license.
 
 ## What is in here
 
-For each upstream project, `examples/<project>/` holds:
-
-- `before/`: the real testing files, copied from a pinned upstream commit, licenses intact.
-- `after/`: the same run expressed in the single top-level layout.
-- `README.md`: the specific duplication that project carried, and what the refactor removes.
-
-Four synthetic examples, written for this repo, show each common layout on its own:
-`playbooks` (two playbooks), `roles` (three standalone roles), `collection` (an ansible-creator
-collection with two roles) and `collection-shared-state` (a collection whose scenarios test against
-one shared environment). Each is the project itself in the single top-level layout: a `README.md`,
-the root `molecule.yml`, the content under test, and any shared playbooks under
-`playbooks/molecule/`. Its per-scenario form is what the converter produces from that one file.
-
-The rest of the repo says what may be edited by hand:
+The top-level folder says what may be edited by hand:
 
 | Folder | |
 |---|---|
