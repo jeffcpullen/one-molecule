@@ -52,9 +52,6 @@ sections:
       - name: catalog-host-vars-not-platform-key
         description: "A catalog entry's `host_vars:` never reaches molecule as a platform key."
         check: resolved
-      - name: catalog-host-vars-in-spec-0-3-0
-        description: "A catalog entry's `host_vars:` enters `spec/molecule-config.schema.yml` in version 0.3.0."
-        check: none
 
   - title: The edge
     description: >-

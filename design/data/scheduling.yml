@@ -40,7 +40,6 @@ sections:
       - "The `workers` key applies to `test`, `destroy`, and `check` only, the commands that take `--workers`."
       - "The `workers` key carries every restriction `--workers` carries."
       - "The collection-mode restriction is checked at run time, because the schema cannot see a `galaxy.yml`."
-      - "The `workers` key enters `spec/molecule-config.schema.yml` in version 0.3.0."
 
   - title: The scheduler
     intro: Submit-what-is-ready, refill on completion.

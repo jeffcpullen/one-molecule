@@ -114,8 +114,6 @@ sections:
       - "Molecule fills in `MOLECULE_PROJECT_DIRECTORY` in each scenario's own read of its `molecule.yml`."
       - "Molecule sets `MOLECULE_PROJECT_DIRECTORY` to the directory it runs from unless a caller sets it."
       - "A per-scenario file written this way runs from the project root, or from anywhere with `MOLECULE_PROJECT_DIRECTORY` exported."
-      - "This resolution enters `spec/molecule-config.schema.yml` in version 0.3.0."
-      - "Spec 0.2.0 resolves a relative `playbooks` path against the node's scenario directory."
 
   - title: The anchors
     intro: Content root is the anchor to reach for, because the same expression resolves in every supported layout.
