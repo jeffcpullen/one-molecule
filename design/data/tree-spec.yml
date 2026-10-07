@@ -43,6 +43,12 @@ sections:
       - name: catalog-host-vars-every-selection
         description: "Every scenario that selects a catalog entry receives that entry's `host_vars:` for its own instance."
         check: resolved
+      - name: catalog-host-vars-merge
+        description: "A scenario's own `provisioner.inventory.host_vars` for its catalog instance merges with the entry's `host_vars:` the way mappings merge across precedence layers (`spec/molecule-config.schema.yml`)."
+        check: resolved
+      - name: explicit-host-vars-win
+        description: "Where both set the same variable, the scenario's own `provisioner.inventory.host_vars` wins over the entry's `host_vars:`."
+        check: resolved
       - name: catalog-host-vars-not-platform-key
         description: "A catalog entry's `host_vars:` never reaches molecule as a platform key."
         check: resolved
