@@ -14,10 +14,10 @@ MAX_ENUM_VALUES = 5
 MAX_LINE = 100
 LIVE_DEFAULTS = {
     "playbooks": {
-        "cleanup": "../utils/playbooks/noop.yml",
-        "converge": "../utils/playbooks/converge.yml",
-        "destroy": "../utils/playbooks/noop.yml",
-        "prepare": "../utils/playbooks/noop.yml",
+        "cleanup": "extensions/molecule/utils/playbooks/noop.yml",
+        "converge": "extensions/molecule/utils/playbooks/converge.yml",
+        "destroy": "extensions/molecule/utils/playbooks/noop.yml",
+        "prepare": "extensions/molecule/utils/playbooks/noop.yml",
     },
     "platforms": [{"name": "na"}],
     "provisioner": {

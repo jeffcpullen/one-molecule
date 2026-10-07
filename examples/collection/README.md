@@ -25,8 +25,9 @@ built-in test sequence runs, idempotence included.
 
 The platform image is `quay.io/fedora/fedora-toolbox:42` because the plain Fedora images carry no
 Python, which Ansible needs on the target. The `containers.podman` collection is needed for its
-connection plugin only. Paths in the root file are relative to each scenario's folder,
-`extensions/molecule/<name>/`, which is why they climb three levels to reach `playbooks/molecule/`.
+connection plugin only. Paths in the root file are relative to the project root, the folder the
+file sits in, and each reaches a projected scenario file as
+`${MOLECULE_PROJECT_DIRECTORY}/playbooks/molecule/...`.
 
 The converter projects this file into the scaffold's per-scenario layout. That projection, placed
 in a copy of this folder at `ansible_collections/example/collection/`, passed `molecule test --all`

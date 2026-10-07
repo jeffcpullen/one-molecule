@@ -8,9 +8,9 @@ defaults:
   driver:
     name: default
   playbooks:
-    converge: ../../playbooks/molecule/converge.yml
-    create: ../../playbooks/molecule/create.yml
-    destroy: ../../playbooks/molecule/destroy.yml
+    converge: playbooks/molecule/converge.yml
+    create: playbooks/molecule/create.yml
+    destroy: playbooks/molecule/destroy.yml
   provisioner:
     name: ansible
     env:
@@ -25,10 +25,10 @@ defaults:
 scenarios:
   - name: motd
     playbooks:
-      verify: ../../playbooks/molecule/verify-motd.yml
+      verify: playbooks/molecule/verify-motd.yml
   - name: issue
     playbooks:
-      verify: ../../playbooks/molecule/verify-issue.yml
+      verify: playbooks/molecule/verify-issue.yml
   - name: profile
     playbooks:
-      verify: ../../playbooks/molecule/verify-profile.yml
+      verify: playbooks/molecule/verify-profile.yml

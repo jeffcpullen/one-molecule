@@ -8,9 +8,9 @@ defaults:
   driver:
     name: default
   playbooks:
-    converge: ../../../playbooks/molecule/converge.yml
-    create: ../../../playbooks/molecule/create.yml
-    destroy: ../../../playbooks/molecule/destroy.yml
+    converge: playbooks/molecule/converge.yml
+    create: playbooks/molecule/create.yml
+    destroy: playbooks/molecule/destroy.yml
   provisioner:
     name: ansible
     inventory:
@@ -21,8 +21,8 @@ defaults:
 scenarios:
   - name: default
     playbooks:
-      create: ../../../playbooks/molecule/create-default.yml
-      verify: ../../../playbooks/molecule/verify-default.yml
+      create: playbooks/molecule/create-default.yml
+      verify: playbooks/molecule/verify-default.yml
     scenario:
       test_sequence:
         - create
@@ -31,7 +31,7 @@ scenarios:
     children:
       - name: app_config
         playbooks:
-          verify: ../../../playbooks/molecule/verify-app_config.yml
+          verify: playbooks/molecule/verify-app_config.yml
       - name: app_users
         playbooks:
-          verify: ../../../playbooks/molecule/verify-app_users.yml
+          verify: playbooks/molecule/verify-app_users.yml

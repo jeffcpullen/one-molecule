@@ -69,7 +69,7 @@ def convert_text(text, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR, workers=N
     return {
         "files": files,
         "notices": result["notices"] + workers_notices(cap["workers"], scenarios_dir, destroy),
-        "playbooks": referenced_playbooks(config, scenarios_dir),
+        "playbooks": referenced_playbooks(config),
         "order": {**start_steps(config, cap["workers"]), **cap},
     }
 

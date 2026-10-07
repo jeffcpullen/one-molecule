@@ -63,17 +63,17 @@ class Starter(unittest.TestCase):
         self.assertEqual([f["path"] for f in result["files"]], ["extensions/molecule/integration_sample_filter/molecule.yml"])
         self.assertEqual([n for n in result["notices"] if n["kind"] == "error"], [])
 
-    def test_live_scenario_matches_the_creator_scaffold(self):
+    def test_live_scenario_names_the_creator_scaffold_playbooks(self):
         result = convert_text(load_starter(), SCHEMA)
         self.assertEqual(yaml.safe_load(result["files"][0]["text"]), {
             "platforms": [{"name": "na"}],
             "provisioner": {
                 "name": "ansible",
                 "playbooks": {
-                    "cleanup": "../utils/playbooks/noop.yml",
-                    "converge": "../utils/playbooks/converge.yml",
-                    "destroy": "../utils/playbooks/noop.yml",
-                    "prepare": "../utils/playbooks/noop.yml",
+                    "cleanup": "${MOLECULE_PROJECT_DIRECTORY}/extensions/molecule/utils/playbooks/noop.yml",
+                    "converge": "${MOLECULE_PROJECT_DIRECTORY}/extensions/molecule/utils/playbooks/converge.yml",
+                    "destroy": "${MOLECULE_PROJECT_DIRECTORY}/extensions/molecule/utils/playbooks/noop.yml",
+                    "prepare": "${MOLECULE_PROJECT_DIRECTORY}/extensions/molecule/utils/playbooks/noop.yml",
                 },
                 "config_options": {"defaults": {"collections_path": "${ANSIBLE_COLLECTIONS_PATH}"}},
             },
@@ -309,12 +309,34 @@ class Rules(unittest.TestCase):
                          SCHEMA)
         self.assertIn(("error", "a", "platforms"), {(n["kind"], n["node"], n["key"]) for n in result["notices"]})
 
-    def test_playbook_paths_copied_as_written(self):
-        config = {"scenarios": [{"name": "a", "playbooks": {"verify": "../../tests/verify.yml"}}]}
-        result = project(config, SCHEMA)
+    def test_relative_playbook_paths_start_from_the_project_root(self):
+        config = {
+            "defaults": {"provisioner": {"playbooks": {"converge": "playbooks/molecule/converge.yml"}}},
+            "scenarios": [{"name": "a", "playbooks": {"verify": "tests/verify.yml", "prepare": "../up.yml"}},
+                          {"name": "b"}],
+        }
+        result = project(config, SCHEMA, "molecule")
         self.assertEqual(result["notices"], [])
-        playbooks = result["files"][0]["content"]["provisioner"]["playbooks"]
-        self.assertEqual(playbooks, {"verify": "../../tests/verify.yml"})
+        files = {f["path"]: f["content"]["provisioner"]["playbooks"] for f in result["files"]}
+        self.assertEqual(files["molecule/a/molecule.yml"], {
+            "converge": "${MOLECULE_PROJECT_DIRECTORY}/playbooks/molecule/converge.yml",
+            "verify": "${MOLECULE_PROJECT_DIRECTORY}/tests/verify.yml",
+            "prepare": "${MOLECULE_PROJECT_DIRECTORY}/../up.yml",
+        })
+        self.assertEqual(files["molecule/b/molecule.yml"],
+                         {"converge": "${MOLECULE_PROJECT_DIRECTORY}/playbooks/molecule/converge.yml"})
+        self.assertEqual(config["defaults"]["provisioner"]["playbooks"]["converge"], "playbooks/molecule/converge.yml")
+
+    def test_absolute_and_variable_paths_copied_as_written(self):
+        written = {
+            "create": "/opt/playbooks/create.yml",
+            "verify": "${MOLECULE_PROJECT_DIRECTORY}/tests/verify.yml",
+            "prepare": "$MOLECULE_PROJECT_DIRECTORY/tests/prepare.yml",
+            "converge": "${MOLECULE_SCENARIO_DIRECTORY}/converge.yml",
+        }
+        result = project({"scenarios": [{"name": "a", "playbooks": written}]}, SCHEMA)
+        self.assertEqual(result["notices"], [])
+        self.assertEqual(result["files"][0]["content"]["provisioner"]["playbooks"], written)
 
     def test_unknown_key_is_error(self):
         result = project({"scenarios": [{"name": "a", "parent": "x"}]}, SCHEMA)
@@ -328,11 +350,11 @@ class Rules(unittest.TestCase):
 
 
 class Playbooks(unittest.TestCase):
-    """Referenced playbooks resolve from each scenario directory to project paths."""
+    """Referenced playbooks resolve from the project root, whatever the scenarios directory."""
 
     def test_collection_shared_state_example(self):
         config = yaml.safe_load(example_source("collection-shared-state").read_text())
-        self.assertEqual(referenced_playbooks(config, example_scenarios_dir("collection-shared-state")), [
+        self.assertEqual(referenced_playbooks(config), [
             "playbooks/molecule/converge.yml",
             "playbooks/molecule/create-default.yml",
             "playbooks/molecule/create.yml",
@@ -344,22 +366,28 @@ class Playbooks(unittest.TestCase):
 
     def test_both_keys_defaults_and_nested_children(self):
         config = {
-            "defaults": {"provisioner": {"playbooks": {"prepare": "../../p.yml"}}},
+            "defaults": {"provisioner": {"playbooks": {"prepare": "p.yml"}}},
             "scenarios": [{
                 "name": "a",
-                "playbooks": {"converge": "converge.yml"},
-                "children": [{"name": "b", "children": [{"name": "c", "playbooks": {"verify": "../../v.yml"}}]}],
+                "playbooks": {"converge": "molecule/a/converge.yml"},
+                "children": [{"name": "b", "children": [{"name": "c", "playbooks": {"verify": "./t/../v.yml"}}]}],
             }],
         }
-        self.assertEqual(referenced_playbooks(config, "molecule"), [
+        self.assertEqual(referenced_playbooks(config), [
             "molecule/a/converge.yml",
             "p.yml",
             "v.yml",
         ])
 
     def test_paths_outside_the_project_stay_visible(self):
-        config = {"scenarios": [{"name": "a", "playbooks": {"verify": "../../../../t.yml", "create": "/abs/c.yml"}}]}
-        self.assertEqual(referenced_playbooks(config), ["../t.yml", "/abs/c.yml"])
+        config = {"scenarios": [{"name": "a", "playbooks": {
+            "verify": "../t.yml",
+            "create": "/abs/c.yml",
+            "prepare": "${MOLECULE_PROJECT_DIRECTORY}/x/../p.yml",
+            "cleanup": "$MOLECULE_PROJECT_DIRECTORY/c.yml",
+            "converge": "${HOME}/converge.yml",
+        }}]}
+        self.assertEqual(referenced_playbooks(config), ["${HOME}/converge.yml", "../t.yml", "/abs/c.yml", "c.yml", "p.yml"])
 
     def test_no_scenarios_no_playbooks(self):
         self.assertEqual(referenced_playbooks(None), [])
@@ -368,32 +396,32 @@ class Playbooks(unittest.TestCase):
     def test_example_playbooks_are_the_existing_files(self):
         found = example_playbooks("collection-shared-state")
         self.assertEqual(sorted(found), referenced_playbooks(
-            yaml.safe_load(example_source("collection-shared-state").read_text()), "extensions/molecule"))
+            yaml.safe_load(example_source("collection-shared-state").read_text())))
         root = example_source("collection-shared-state").parent
         self.assertEqual(found["playbooks/molecule/create.yml"],
                          (root / "playbooks" / "molecule" / "create.yml").read_text())
 
     def test_node_stage_hides_the_defaults_path(self):
         config = {
-            "defaults": {"playbooks": {"converge": "../../shared.yml", "verify": "../../verify.yml"}},
+            "defaults": {"playbooks": {"converge": "shared.yml", "verify": "verify.yml"}},
             "scenarios": [
-                {"name": "a", "playbooks": {"converge": "../../own.yml"}},
-                {"name": "b", "provisioner": {"playbooks": {"verify": "../../b-verify.yml"}}},
+                {"name": "a", "playbooks": {"converge": "own.yml"}},
+                {"name": "b", "provisioner": {"playbooks": {"verify": "b-verify.yml"}}},
             ],
         }
-        self.assertEqual(referenced_playbooks(config, "molecule"), [
+        self.assertEqual(referenced_playbooks(config), [
             "b-verify.yml",
             "own.yml",
             "shared.yml",
             "verify.yml",
         ])
-        config["scenarios"][1]["playbooks"] = {"converge": "../../own.yml"}
-        self.assertEqual(referenced_playbooks(config, "molecule"), ["b-verify.yml", "own.yml", "verify.yml"])
+        config["scenarios"][1]["playbooks"] = {"converge": "own.yml"}
+        self.assertEqual(referenced_playbooks(config), ["b-verify.yml", "own.yml", "verify.yml"])
 
     def test_alias_and_provisioner_in_one_layer_follow_project(self):
         config = {"scenarios": [{"name": "a", "playbooks": {"verify": "x.yml"},
                                  "provisioner": {"playbooks": {"verify": "y.yml"}}}]}
-        self.assertEqual(referenced_playbooks(config, "molecule"), ["molecule/a/y.yml"])
+        self.assertEqual(referenced_playbooks(config), ["y.yml"])
 
     def test_duplicate_names_and_empty_children(self):
         config = {"scenarios": [
@@ -401,7 +429,7 @@ class Playbooks(unittest.TestCase):
             {"name": "a", "playbooks": {"verify": "dup.yml"}},
             {"name": "b", "children": None},
         ]}
-        self.assertEqual(referenced_playbooks(config, "molecule"), ["molecule/a/a.yml"])
+        self.assertEqual(referenced_playbooks(config), ["a.yml"])
         self.assertEqual(_steps(start_steps(config, 2)), {"a": 1, "b": 1})
 
     def test_playbooks_in_stays_inside_the_root(self):
@@ -414,15 +442,16 @@ class Playbooks(unittest.TestCase):
             (root / "playbooks" / "link.yml").symlink_to(base / "outside.yml")
             config = {"scenarios": [
                 {"name": "a", "playbooks": {
-                    "converge": "../../playbooks/ok.yml",
-                    "verify": "../../../outside.yml",
+                    "converge": "playbooks/ok.yml",
+                    "verify": "../outside.yml",
                     "create": str(base / "outside.yml"),
-                    "destroy": "../../playbooks/link.yml",
+                    "destroy": "playbooks/link.yml",
+                    "prepare": "playbooks/../../outside.yml",
+                    "cleanup": "${HOME}/outside.yml",
                 }},
-                {"name": "../../..", "playbooks": {"verify": "outside.yml"}},
-                {"name": str(base), "playbooks": {"verify": "outside.yml"}},
+                {"name": "b", "playbooks": {"verify": "${MOLECULE_PROJECT_DIRECTORY}/playbooks/ok.yml"}},
             ]}
-            self.assertEqual(playbooks_in(root, config, "molecule"), {"playbooks/ok.yml": "ok\n"})
+            self.assertEqual(playbooks_in(root, config), {"playbooks/ok.yml": "ok\n"})
 
     def test_convert_text_lists_them(self):
         result = convert_text(example_source("roles").read_text(), SCHEMA, "molecule")

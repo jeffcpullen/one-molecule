@@ -26,8 +26,8 @@ test sequence runs, idempotence included.
 
 The platform image is `quay.io/fedora/fedora-toolbox:42` because the plain Fedora images carry no
 Python. The `containers.podman` collection is needed for its connection plugin only. Paths in the
-root file are relative to each scenario's folder, `molecule/<name>/`, which is why they climb two
-levels to reach `playbooks/molecule/`.
+root file are relative to the project root, the folder the file sits in, and each reaches a
+projected scenario file as `${MOLECULE_PROJECT_DIRECTORY}/playbooks/molecule/...`.
 
 The converter projects this file into a top-level `molecule/` layout with `--scenarios-dir
 molecule`. That projection, placed in a copy of this folder, passed `molecule test --all` on

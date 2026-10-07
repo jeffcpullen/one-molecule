@@ -28,6 +28,8 @@ INSTANCE_STAGES = ("create", "destroy")
 WORKERS = "workers"
 CPU_OFFSETS = {"cpus": 0, "cpus-1": -1}
 DESTROY_VALUES = ("always", "never")
+PROJECT_DIR_VAR = "MOLECULE_PROJECT_DIRECTORY"
+PROJECT_DIR_PREFIXES = (f"${{{PROJECT_DIR_VAR}}}/", f"${PROJECT_DIR_VAR}/")
 
 
 class KeyClasses:
@@ -334,6 +336,11 @@ def project(config, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
             merged[PLATFORMS] = select_platforms(merged[PLATFORMS], catalog, name, notices)
         if shared and parent is not None and parent_platforms is not None:
             merged[PLATFORMS] = _copy(parent_platforms)
+        provisioner = merged.get(PROVISIONER)
+        if isinstance(provisioner, dict) and isinstance(provisioner.get("playbooks"), dict):
+            merged[PROVISIONER] = {**provisioner, "playbooks": {
+                stage: scenario_path(value) if isinstance(value, str) else value
+                for stage, value in provisioner["playbooks"].items()}}
         resolved = _ordered(merged, classes)
 
         wave, wave_ok = node_wave(node)
@@ -445,32 +452,55 @@ def _strings(value):
     return []
 
 
-def resolve_path(value, scenarios_dir, name):
-    """Resolve a playbook path from a scenario's directory to a project-relative path.
+def _is_relative(value):
+    return not value.startswith("/") and not value.startswith("$")
+
+
+def scenario_path(value):
+    """Return a root-file playbook path as a per-scenario molecule.yml carries it.
+
+    A relative path resolves against the project root, so it is written after
+    `${MOLECULE_PROJECT_DIRECTORY}/`, which molecule fills in on each scenario's own read.
+    An absolute path, and a path that starts with a molecule `$` variable, is copied as written.
 
     Args:
-        value: the path as written.
-        scenarios_dir: the scenarios directory.
-        name: the scenario name.
+        value: the path as written in the root file.
 
     Returns:
-        The normalised POSIX path. An absolute path stays absolute, and a path that
-        climbs above the project root keeps its leading `..`.
+        The path for the per-scenario file.
     """
-    return posixpath.normpath(posixpath.join(scenarios_dir, name, value))
+    return f"${{{PROJECT_DIR_VAR}}}/{value}" if _is_relative(value) else value
 
 
-def referenced_playbooks(config, scenarios_dir=COLLECTION_SCENARIOS_DIR):
+def resolve_path(value):
+    """Resolve a root-file playbook path to a project-relative path.
+
+    Args:
+        value: the path as written in the root file.
+
+    Returns:
+        The normalised POSIX path from the project root. A path under
+        `${MOLECULE_PROJECT_DIRECTORY}/` loses that prefix, an absolute path stays absolute,
+        a path that starts with any other `$` variable is returned as written, and a path
+        that climbs above the project root keeps its leading `..`.
+    """
+    for prefix in PROJECT_DIR_PREFIXES:
+        if value.startswith(prefix):
+            return posixpath.normpath(value[len(prefix):])
+    if value.startswith("$"):
+        return value
+    return posixpath.normpath(value)
+
+
+def referenced_playbooks(config):
     """List every playbook the file references, as project-relative paths.
 
     Each node's playbooks are its `playbooks` and `provisioner.playbooks` merged over
     those under `defaults:`, as `project` merges them, so a stage the node sets itself
-    hides the defaults path for that stage. Each value is resolved from the node's
-    scenario directory.
+    hides the defaults path for that stage. Each value is resolved by `resolve_path`.
 
     Args:
         config: the parsed single-config molecule.yml.
-        scenarios_dir: the scenarios directory.
 
     Returns:
         The sorted, deduplicated list of paths.
@@ -481,7 +511,7 @@ def referenced_playbooks(config, scenarios_dir=COLLECTION_SCENARIOS_DIR):
     for entry in nodes:
         merged = deep_merge(defaults, _playbook_layer(entry["node"]))
         for value in _strings(merged.get(PROVISIONER, {}).get("playbooks")):
-            paths.add(resolve_path(value, scenarios_dir, entry["name"]))
+            paths.add(resolve_path(value))
     return sorted(paths)
 
 

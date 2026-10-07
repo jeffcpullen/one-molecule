@@ -87,27 +87,26 @@ def example_playbooks(slug):
         that names a file inside the example root.
     """
     config = yaml.safe_load(example_source(slug).read_text())
-    return playbooks_in(example_root(slug), config, example_scenarios_dir(slug))
+    return playbooks_in(example_root(slug), config)
 
 
-def playbooks_in(root, config, scenarios_dir):
+def playbooks_in(root, config):
     """Return the referenced playbooks that name a file inside a project root.
 
-    A path that is absolute, climbs above the root, or resolves outside it through a
-    symlink is left out.
+    A path that is absolute, starts with an unresolved `$` variable, climbs above the
+    root, or resolves outside it through a symlink is left out.
 
     Args:
         root: the project root directory.
         config: the parsed single-config molecule.yml.
-        scenarios_dir: the scenarios directory.
 
     Returns:
         {project-relative path: file text}.
     """
     root = pathlib.Path(root).resolve()
     found = {}
-    for path in referenced_playbooks(config, scenarios_dir):
-        if path.startswith("/") or path == ".." or path.startswith("../"):
+    for path in referenced_playbooks(config):
+        if path.startswith(("/", "$")) or path == ".." or path.startswith("../"):
             continue
         target = (root / path).resolve()
         if target.is_relative_to(root) and target.is_file():

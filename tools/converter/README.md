@@ -17,7 +17,7 @@ parent-versus-defaults judgment in `design/docs/migrating.md`, which no tool mak
 |---|---|
 | `project.py` | The projection, the referenced playbook paths and the start order. Standard library only. Key classes come from the schema's `x-class` annotations |
 | `render.py` | YAML in and out, through PyYAML |
-| `starter.py` | The starter file the page opens on: a live `defaults:` block and one live `integration_sample_filter` scenario that together project to the `molecule.yml` the ansible-creator collection scaffold generates, with every other key the spec declares commented out. Keys and notes come from the schema, and the sub-keys of Molecule's sections from Molecule's own schema |
+| `starter.py` | The starter file the page opens on: a live `defaults:` block and one live `integration_sample_filter` scenario that together project to the `molecule.yml` the ansible-creator collection scaffold generates, its playbook paths written from the project root, with every other key the spec declares commented out. Keys and notes come from the schema, and the sub-keys of Molecule's sections from Molecule's own schema |
 | `cli.py` | Command line front end, and the example helpers the staging and the browser check share |
 | `web/` | The page. Its JavaScript is interface only and holds no conversion rule. Both panes are CodeMirror 6 editors with YAML highlighting, loaded from esm.sh at the exact versions the import map in `index.html` pins |
 | `stage_pages.py` | Copies the page, the two modules, the generated schema, the presets and the starter file into a directory, with a content-hash `build.json` the page loads every file under. Each preset carries the text of every referenced playbook that exists in its example |
@@ -61,8 +61,9 @@ above the code. A shared directory is shown once as a heading over its files.
 
 A node's referenced playbooks are its `playbooks` and `provisioner.playbooks` values merged over
 those under `defaults:`, the way the projection merges them, so a stage the node sets itself hides
-the `defaults:` path for that stage. Each is resolved from `<scenarios directory>/<node name>/` to a
-path from the project root, for every node, children included. A playbook opens read-only.
+the `defaults:` path for that stage. Each is resolved from the project root, the folder the root
+file sits in, for every node, children included, so the paths are the same in both layouts. A
+playbook opens read-only.
 
 A referenced path is available only when the loaded preset ships it. A preset ships every
 referenced file that exists under `examples/<slug>/`. Any other path, such as one named in typed
@@ -126,8 +127,13 @@ config lands where Molecule looks for it: `extensions/molecule/config.yml` for a
 project's VCS root. Any other tree with children keeps a `lost` notice per child that names the
 condition that failed.
 
-Paths are copied as written, so a path that names or climbs out of the scenarios directory keeps the
-layout its author wrote it for.
+A relative `playbooks` path in the root file resolves against the project root, as spec 0.3.0
+states, so the projection writes it into each scenario file as
+`${MOLECULE_PROJECT_DIRECTORY}/<path>`, which Molecule fills in on each scenario's own read. The
+path after the prefix is kept as written, a climb above the root included. An absolute path, and a
+path that already starts with a `$` variable such as `${MOLECULE_PROJECT_DIRECTORY}`, is copied as
+written, because the orchestrator passes Molecule's `${VAR}` through untouched. The projected files
+therefore run from the project root, or from anywhere with `MOLECULE_PROJECT_DIRECTORY` exported.
 
 ## Coverage
 
@@ -145,8 +151,9 @@ synthetic examples are covered. Every fixture-covered example appears as a prese
 A synthetic example has no `before/`, because its fixture is its per-scenario form. The upstream
 examples under `examples/` are not converter fixtures or presets.
 
-A playbook path in the root file is relative to the node's scenario directory, as in Molecule
-today, so the projection copies it as written.
+A playbook path in the root file is relative to the project root, so a stage playbook particular to
+one scenario is reached as `extensions/molecule/<name>/<stage>.yml` or `molecule/<name>/<stage>.yml`,
+or left unset for Molecule's default discovery to find in the scenario directory.
 
 Molecule v26.6.0 moves `provisioner.playbooks` into `ansible.playbooks` on load, so the
 projection's `provisioner.playbooks` is equivalent to an `ansible.playbooks` block.
@@ -155,5 +162,6 @@ projection's `provisioner.playbooks` is equivalent to an `ansible.playbooks` blo
 
 The tool checks run, node and `defaults:` keys against the spec's own key lists. It does not validate values against
 Molecule's per-key schema. The `check-jsonschema-examples` hook does that for the examples only.
-Paths are copied as written and never checked against the tree. A null or empty-string value is
+A referenced path is never checked against the tree, beyond showing whether the loaded preset ships
+it. Only `playbooks` paths are rewritten, because the spec's resolution rule names `playbooks` only. A null or empty-string value is
 projected as written, and a list replaces the lower layer's list whole.

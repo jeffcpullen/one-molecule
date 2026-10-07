@@ -255,7 +255,7 @@ def check_typed_missing(page, schema):
     """A playbook named in typed input is listed on both sides and marked not available."""
     page.click("#starter")
     text = ("---\nscenarios:\n  - name: typed\n    playbooks:\n"
-            "      verify: ../../../playbooks/molecule/verify-typed.yml\n")
+            "      verify: playbooks/molecule/verify-typed.yml\n")
     page.fill(EDITOR, text)
     path = "playbooks/molecule/verify-typed.yml"
     assert convert_text(text, schema)["playbooks"] == [path]
