@@ -12,7 +12,7 @@
       "commit": "de548442a6e43ff33bc72ea928feb0af21854362",
       "schema": "vendor/molecule.json"
     },
-    "grammar": "platforms:                              # run-only: the CATALOG, define each platform once\n  - name: <string>                      # catalog identity, selected by name\n    vars: {<key>: <value>, ...}         # opaque, passed to the create step\ndefaults: {<config-key>: ...}           # cascades to every node\nscenarios:                              # list of ROOT nodes, wave order then list order\n  - name: <string>                      # required, unique across the run\n    <config-key>: ...                   # BARE: this node only\n    platforms: [<catalog-name>, ...]    # SELECTION of catalog names (or inline objects)\n    playbooks: {create|destroy|converge|verify|prepare|cleanup|side_effect: <path>}\n    wave: <int>                         # default 0, order among siblings and roots\n    children: [ <node>, ... ]           # recursive, nesting IS the edge (single-file)",
+    "grammar": "platforms:                              # run-only: the CATALOG, define each platform once\n  - name: <string>                      # catalog identity, selected by name\n    <platform-key>: ...                 # molecule's own platform keys, as in an inline entry\ndefaults: {<config-key>: ...}           # cascades to every node\nscenarios:                              # list of ROOT nodes, wave order then list order\n  - name: <string>                      # required, unique across the run\n    <config-key>: ...                   # BARE: this node only\n    platforms: [<catalog-name>, ...]    # SELECTION of catalog names (or inline objects)\n    playbooks: {create|destroy|converge|verify|prepare|cleanup|side_effect: <path>}\n    wave: <int>                         # default 0, order among siblings and roots\n    children: [ <node>, ... ]           # recursive, nesting IS the edge (single-file)",
     "precedence": "N.bare[K] ▸ run.defaults[K] ▸ molecule built-in",
     "chain": "CLI ▸ env ▸ ( bare ▸ run defaults ) ▸ built-in",
     "rules": [
@@ -32,12 +32,13 @@
       "A stage the node leaves unset is found in the node's scenario directory by molecule's default discovery.",
       "The FQCN playbook form (`design/data/layout.yml`) depends on molecule#4244, which is unmerged, so it is outside this version.",
       "`platforms` is permissive: absent/empty is valid. Consumed only by a creating node, ignored otherwise.",
-      "The top-level `platforms:` is the catalog, and each entry defines one platform once by `name` with opaque `vars`.",
+      "The top-level `platforms:` is the catalog, and each entry is a molecule platform entry, defined once and identified by `name`.",
       "A scenario's `platforms:` is a selection of catalog names, or inline platform objects for backward compatibility.",
       "A root scenario with no `platforms:` selects the whole catalog. A child selects none of its own and inherits the parent's shared inventory.",
-      "Creation stays on the node, whose `playbooks.create` stands up the selected platforms and consumes their `vars`. The catalog dedups definition, not creation.",
+      "A selected catalog entry reaches the node's platforms as written, except for its `name`.",
+      "Creation stays on the node, whose `playbooks.create` stands up the selected platforms. The catalog dedups definition, not creation.",
       "An inline platform object keeps its `name` exactly as written, as in molecule today.",
-      "A catalog selection's instance name is derived from the catalog name plus the scenario and run identity (`design/data/open-questions.yml`).",
+      "A catalog selection's instance name is `<scenario name>-<catalog name>`, where the scenario is the node that selects it.",
       "A catalog name and an inline platform name that match in one run is an error.",
       "A child shares its parent's instances, beginning from the parent's inventory (`design/data/tree-spec.yml`).",
       "A child whose parent is not standing has the parent created first (`design/data/tree-spec.yml`).",
@@ -55,7 +56,7 @@
     "platforms": {
       "x-class": "run-only",
       "type": "array",
-      "description": "The platform catalog. Each entry defines one platform once by name, with opaque creation vars. A scenario selects catalog entries by name.",
+      "description": "The platform catalog. Each entry is a molecule platform entry defined once by name. A scenario selects catalog entries by name.",
       "items": {
         "$ref": "#/definitions/catalogPlatform"
       }
@@ -77,23 +78,18 @@
   },
   "definitions": {
     "catalogPlatform": {
-      "description": "A catalog platform definition. Names a platform once so scenarios select it by name, with opaque creation vars. Creation stays on the node in this surface, so no create playbook lives here.",
+      "description": "A catalog platform definition, a molecule platform entry named once so scenarios select it by name. Creation stays on the node in this surface, so no create playbook lives here.",
       "type": "object",
       "required": [
         "name"
       ],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "name": {
           "x-class": "node-intrinsic",
           "type": "string",
-          "description": "Catalog identity, referenced by a scenario's `platforms` list. Unique across the catalog."
-        },
-        "vars": {
-          "x-class": "config",
-          "type": "object",
-          "description": "Opaque creation vars passed through to the create step. Molecule holds no knowledge of them.",
-          "additionalProperties": true
+          "minLength": 1,
+          "description": "Catalog identity, referenced by a scenario's `platforms` list. Unique across the catalog. The instance name a selection gets is `<scenario name>-<name>`."
         }
       }
     },

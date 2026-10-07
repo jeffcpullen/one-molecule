@@ -200,7 +200,7 @@ groups:
       - term: "Name inference"
         means: "A cell's name inferred as image_tag, or image plus the last 6 of the digest."
       - term: "Platform catalog"
-        means: "The run-level `platforms:` defining each platform once by name, which scenarios select by name."
+        means: "The run-level `platforms:`, molecule platform entries each defined once by name, which scenarios select by name."
       - term: "Platform selection"
         means: "A scenario's selection of catalog names (or inline objects)."
       - term: "Selection / label selection"

@@ -42,15 +42,14 @@ open:
       - "Undecided is how the orchestrator handles its own cancel signal so teardown runs within a CI engine's grace period."
       - "Undecided is what the orchestrator reports as left standing when that grace period runs out."
 
-  - title: "Derive instance names for catalog selections"
-    status: "waiting on run identity"
+  - title: "Keep concurrent runs' instance names apart"
+    status: "deferred to a future spec version"
     raised: "2026-09-21"
     owning_doc: "`spec/molecule-config.schema.yml`"
     framing:
-      - "Only a catalog selection gets a derived instance name, and an inline platform keeps its `name` as written."
-      - "Undecided is the spelling, a name molecule derives with no author input or a templated `name:` the author writes."
-      - "Undecided is whether the inventory hostname stays the catalog name while the derived name goes to the create step as the backing object's name."
-      - "The derived name needs run identity, which is a residual ephemeral item below."
+      - "A catalog selection's instance name is `<scenario name>-<catalog name>`, unique within one run."
+      - "Two concurrent runs of one project on one host still collide on that name."
+      - "Separating them needs run identity, which is a residual ephemeral item below."
 
   - title: "The per-node run report"
     status: "raised, not started"
