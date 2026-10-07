@@ -176,6 +176,8 @@ async function main() {
   });
 
   version = JSON.parse(await fetchText(BUILD_URL, { cache: "no-store" })).version;
+  schemaText = await fetchText(SCHEMA_URL);
+  el("spec-version").textContent = JSON.parse(schemaText)["x-spec"].version;
   const starter = JSON.parse(await fetchText(STARTER_URL)).text;
   el("starter").addEventListener("click", () => {
     el("preset").value = "";
@@ -194,7 +196,6 @@ async function main() {
   for (const name of PY_MODULES) {
     pyodide.FS.writeFile(name, await fetchText(name));
   }
-  schemaText = await fetchText(SCHEMA_URL);
   pyodide.runPython("import sys\nsys.path.insert(0, '.')");
   convert = pyodide.pyimport("render").convert_json;
   setStatus(`Ready. Python ${pyodide.runPython("import sys; sys.version.split()[0]")} via Pyodide.`);

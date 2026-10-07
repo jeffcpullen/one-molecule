@@ -119,6 +119,9 @@ def main(url):
         page.goto(url)
         page.wait_for_selector("#status:has-text('Ready')", timeout=READY_TIMEOUT_MS)
         print("status:", page.text_content("#status"))
+        shown_version = page.text_content("#spec-version")
+        assert shown_version == schema["x-spec"]["version"], shown_version
+        print(f"ok the page names spec {shown_version}")
         check_starter(page, schema)
         slugs = page.locator("#preset option").evaluate_all("o => o.map(x => x.value).filter(v => v)")
         assert slugs, "no presets"

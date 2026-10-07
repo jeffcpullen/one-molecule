@@ -11,7 +11,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from cli import ROOT, load_schema, load_starter, notices_json  # noqa: E402
-from project import KeyClasses, deep_merge, drop_empty, project  # noqa: E402
+from project import KeyClasses, deep_merge, project  # noqa: E402
 from render import convert_text  # noqa: E402
 
 FIXTURES = HERE / "fixtures"
@@ -99,7 +99,7 @@ class Starter(unittest.TestCase):
 
 
 class Rules(unittest.TestCase):
-    """The resolution rules from the 0.1.0 spec."""
+    """The resolution rules from the latest released spec."""
 
     def test_key_classes_come_from_schema(self):
         classes = KeyClasses(SCHEMA)
@@ -112,9 +112,21 @@ class Rules(unittest.TestCase):
         merged = deep_merge({"a": {"x": 1, "y": [1, 2]}}, {"a": {"y": [3]}})
         self.assertEqual(merged, {"a": {"x": 1, "y": [3]}})
 
-    def test_empty_value_clears(self):
-        merged = drop_empty(deep_merge({"a": {"x": 1, "y": 2}}, {"a": {"x": None, "y": ""}}))
-        self.assertEqual(merged, {"a": {}})
+    def test_list_replaces_the_defaults_list(self):
+        config = {
+            "defaults": {"scenario": {"test_sequence": ["prepare", "converge", "verify"]}},
+            "scenarios": [{"name": "a", "scenario": {"test_sequence": ["converge"]}}],
+        }
+        content = project(config, SCHEMA)["files"][0]["content"]
+        self.assertEqual(content["scenario"]["test_sequence"], ["converge"])
+
+    def test_empty_values_project_as_written(self):
+        config = {
+            "defaults": {"provisioner": {"inventory": {"group_vars": {"all": {"x": 1, "y": 2}}}}},
+            "scenarios": [{"name": "a", "provisioner": {"inventory": {"group_vars": {"all": {"x": None, "y": ""}}}}}],
+        }
+        content = project(config, SCHEMA)["files"][0]["content"]
+        self.assertEqual(content["provisioner"]["inventory"]["group_vars"]["all"], {"x": None, "y": ""})
 
     def test_bare_does_not_cascade(self):
         config = {
@@ -135,12 +147,39 @@ class Rules(unittest.TestCase):
         lost = {(n["node"], n["key"]) for n in project(config, SCHEMA)["notices"] if n["kind"] == "lost"}
         self.assertEqual(lost, {("c", "children"), ("c", "wave")})
 
-    def test_catalog_selection_unresolved(self):
-        config = {"platforms": [{"name": "vm"}], "scenarios": [{"name": "a"}, {"name": "b", "platforms": ["vm"]}]}
+    def test_catalog_selection_is_named_for_the_scenario(self):
+        config = {
+            "platforms": [{"name": "vm", "image": "debian:13"}, {"name": "ct"}],
+            "scenarios": [
+                {"name": "a", "children": [{"name": "c"}]},
+                {"name": "b", "platforms": ["vm", {"name": "local"}]},
+            ],
+        }
         result = project(config, SCHEMA)
-        unresolved = {n["node"] for n in result["notices"] if n["key"] == "platforms"}
-        self.assertEqual(unresolved, {"a", "b"})
-        self.assertTrue(all("platforms" not in f["content"] for f in result["files"]))
+        self.assertEqual(result["notices"], [
+            {"kind": "lost", "node": "c", "key": "children", "message": result["notices"][0]["message"]},
+        ])
+        files = {f["path"]: f["content"] for f in result["files"]}
+        self.assertEqual(files["molecule/a/molecule.yml"]["platforms"], [
+            {"name": "a-vm", "image": "debian:13"},
+            {"name": "a-ct"},
+        ])
+        self.assertNotIn("platforms", files["molecule/c/molecule.yml"])
+        self.assertEqual(files["molecule/b/molecule.yml"]["platforms"], [
+            {"name": "b-vm", "image": "debian:13"},
+            {"name": "local"},
+        ])
+        self.assertEqual(config["platforms"][0]["name"], "vm")
+
+    def test_unknown_catalog_name_is_error(self):
+        result = project({"platforms": [{"name": "vm"}], "scenarios": [{"name": "a", "platforms": ["nope"]}]}, SCHEMA)
+        self.assertIn(("error", "a", "platforms"), {(n["kind"], n["node"], n["key"]) for n in result["notices"]})
+        self.assertEqual(result["files"][0]["content"]["platforms"], [])
+
+    def test_inline_name_matching_catalog_is_error(self):
+        result = project({"platforms": [{"name": "vm"}], "scenarios": [{"name": "a", "platforms": [{"name": "vm"}]}]},
+                         SCHEMA)
+        self.assertIn(("error", "a", "platforms"), {(n["kind"], n["node"], n["key"]) for n in result["notices"]})
 
     def test_playbook_paths_copied_as_written(self):
         config = {"scenarios": [{"name": "a", "playbooks": {"verify": "../../tests/verify.yml"}}]}

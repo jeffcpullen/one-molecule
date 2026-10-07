@@ -38,10 +38,6 @@ def _notice(kind, node, key, message):
     return {"kind": kind, "node": node, "key": key, "message": message}
 
 
-def _is_empty(value):
-    return value is None or value == ""
-
-
 def deep_merge(lower, higher):
     """Merge `higher` over `lower`. Mappings merge by key, anything else replaces.
 
@@ -68,18 +64,52 @@ def _copy(value):
     return value
 
 
-def drop_empty(value):
-    """Remove every mapping key whose value is empty (null or the empty string).
+def select_platforms(selection, catalog, node_name, notices):
+    """Turn a platform selection into molecule platform entries.
+
+    A catalog name becomes a copy of that catalog entry named `<node>-<catalog name>`.
+    An inline platform object is copied as written.
 
     Args:
-        value: a resolved config value.
+        selection: the node's resolved `platforms` list.
+        catalog: {catalog name: catalog entry}.
+        node_name: the scenario that selects them.
+        notices: list that receives an error notice for an unknown catalog name.
 
     Returns:
-        The value with empty mapping entries removed, recursively through mappings.
+        The list of platform entries.
     """
-    if isinstance(value, dict):
-        return {k: drop_empty(v) for k, v in value.items() if not _is_empty(v)}
-    return value
+    out = []
+    for item in selection:
+        if not isinstance(item, str):
+            out.append(_copy(item))
+            continue
+        entry = catalog.get(item)
+        if entry is None:
+            notices.append(_notice(
+                "error", node_name, PLATFORMS, f"`{item}` is not a name in the platform catalog."))
+            continue
+        entry = _copy(entry)
+        entry[NAME] = f"{node_name}-{item}"
+        out.append(entry)
+    return out
+
+
+def _read_catalog(entries, notices):
+    catalog = {}
+    if not isinstance(entries, list):
+        notices.append(_notice("error", None, PLATFORMS, "The platform catalog is not a list."))
+        return catalog
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get(NAME), str) or not entry[NAME]:
+            notices.append(_notice("error", None, PLATFORMS, "A catalog entry needs a string `name`."))
+            continue
+        if entry[NAME] in catalog:
+            notices.append(_notice(
+                "error", None, PLATFORMS, f"Catalog name `{entry[NAME]}` is defined twice."))
+            continue
+        catalog[entry[NAME]] = entry
+    return catalog
 
 
 def fold_playbooks_alias(layer, node_name, notices):
@@ -155,7 +185,7 @@ def project(config, schema):
         return {"files": files, "notices": notices}
     _check_keys(config, classes.run, None, notices)
 
-    catalog = config.get(PLATFORMS) or []
+    catalog = _read_catalog(config.get(PLATFORMS) or [], notices)
     run_defaults = config.get(DEFAULTS) or {}
     if not isinstance(run_defaults, dict):
         notices.append(_notice("error", None, DEFAULTS, "`defaults` is not a mapping."))
@@ -182,22 +212,17 @@ def project(config, schema):
         _check_keys(node, classes.node, name, notices)
 
         bare = fold_playbooks_alias(_config_layer(node, classes), name, notices)
-        resolved = _ordered(drop_empty(deep_merge(run_defaults, bare)), classes)
-
-        if PLATFORMS in resolved:
-            selection = resolved[PLATFORMS]
-            if any(isinstance(item, str) for item in selection or []):
-                resolved.pop(PLATFORMS)
-                notices.append(_notice(
-                    "unresolved", name, PLATFORMS,
-                    "Catalog selections have no projection yet. The instance name a selection gets "
-                    "is an open question in the design, and the catalog's `vars` are opaque to Molecule. "
-                    "Platforms are left out of this file."))
-        elif parent is None and catalog:
-            notices.append(_notice(
-                "unresolved", name, PLATFORMS,
-                "A root with no `platforms` selects the whole catalog, and catalog selections have no "
-                "projection yet. Platforms are left out of this file."))
+        merged = deep_merge(run_defaults, bare)
+        if PLATFORMS not in merged and parent is None and catalog:
+            merged[PLATFORMS] = list(catalog)
+        if isinstance(merged.get(PLATFORMS), list):
+            for item in merged[PLATFORMS]:
+                if isinstance(item, dict) and item.get(NAME) in catalog:
+                    notices.append(_notice(
+                        "error", name, PLATFORMS,
+                        f"Inline platform `{item[NAME]}` has the same name as a catalog entry."))
+            merged[PLATFORMS] = select_platforms(merged[PLATFORMS], catalog, name, notices)
+        resolved = _ordered(merged, classes)
 
         if node.get(WAVE, 0) not in (0, None):
             notices.append(_notice(

@@ -1,4 +1,15 @@
 ---
+platforms:
+  - name: persist_uboot_env-ubuntu-2404-podman
+    vars:
+      mp_backend: '{{ lookup(''env'', ''PROVISIONER'') | default(''podman'', true) }}'
+      mp_defaults:
+        podman:
+          command: sleep 1d
+          privileged: false
+      mp:
+        podman:
+          image: docker.io/geerlingguy/docker-ubuntu2404-ansible:latest
 verifier:
   name: ansible
 dependency:

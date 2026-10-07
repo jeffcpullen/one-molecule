@@ -1,8 +1,12 @@
 # Converter
 
-Projects a single-config `molecule.yml` (spec 0.1.0) into the per-scenario `molecule/<name>/molecule.yml`
+Projects a single-config `molecule.yml` into the per-scenario `molecule/<name>/molecule.yml`
 files today's Molecule reads, and lists what the projection could not carry. It runs as a command
 and as a static web page published with the docs site under `converter/`.
+
+It implements the latest released spec only, the version in `generated/molecule-config.schema.json`.
+The page reads the version it names from that schema. Earlier versions are not selectable, because
+their resolution rules differ and the examples it offers are written against the latest.
 
 It converts in one direction only. Going from today's layout to the single file is the
 parent-versus-defaults judgment in `design/docs/migrating.md`, which no tool makes.
@@ -52,7 +56,7 @@ compared byte for byte. Only fixture-covered examples appear as presets on the p
 | openstack-systemd-service | yes | Run `defaults:` merged under one scenario, playbook paths copied as written |
 | osism-commons | yes | Two scenarios sharing one `defaults:` key, playbooks found by default discovery |
 | dev-sec-hardening | yes | Seven scenarios sharing `defaults:`, two overriding only `test_sequence` |
-| david-igou-armbian | yes | Catalog platform selections `unresolved` |
+| david-igou-armbian | yes | Catalog selections projected as `<scenario>-<catalog name>` platform entries |
 | david-igou-routeros-configuration | no | The projection drops YAML comments, so the throwaway `chr_admin_password` would lose its inline `# notsecret` marker in every fixture file |
 | the other five | not yet | |
 
@@ -64,6 +68,8 @@ choice the example's own `after/molecule.yml` makes, never to the tool:
 - armbian's `ansible.playbooks` entries are absent, because each names `<stage>.yml` in the
   scenario's own directory, which Molecule finds by default discovery.
 - armbian's static `--inventory=inventory/` argument is replaced by the catalog.
+- armbian's projected platform entries carry the example's catalog `vars:` mapping as written,
+  which Molecule accepts as an ordinary platform key.
 
 A playbook path in the root file is relative to the node's scenario directory, as in Molecule
 today, so the projection copies it as written.
@@ -75,7 +81,5 @@ projection's `provisioner.playbooks` is equivalent to upstream's `ansible.playbo
 
 The tool checks run, node and `defaults:` keys against the spec's own key lists. It does not validate values against
 Molecule's per-key schema. The `check-jsonschema-examples` hook does that for the examples only.
-Catalog platform selections have no projection yet, because the instance name a selection gets is an
-open question in the design. Paths are copied as written and never checked against the tree. The
-starter file lists no stage names under `playbooks`, because neither the spec's schema nor Molecule's
-declares them as keys.
+Paths are copied as written and never checked against the tree. A null or empty-string value is
+projected as written, and a list replaces the lower layer's list whole.

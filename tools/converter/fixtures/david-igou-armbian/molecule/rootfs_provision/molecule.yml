@@ -1,4 +1,17 @@
 ---
+platforms:
+  - name: rootfs_provision-debian-13-qemu
+    vars:
+      mp_backend: '{{ lookup(''env'', ''PROVISIONER'') | default(''qemu'', true) }}'
+      mp_defaults:
+        qemu:
+          cpus: 2
+          memory: 2048
+          ssh_user: debian
+      mp:
+        qemu:
+          image: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
+          disk_size: 4G
 provisioner:
   inventory:
     host_vars:
