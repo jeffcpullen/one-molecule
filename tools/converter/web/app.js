@@ -6,6 +6,7 @@ const PRESETS_URL = "presets.json";
 const STARTER_URL = "starter.json";
 const BUILD_URL = "build.json";
 const DEFAULT_SCENARIOS_DIR = "extensions/molecule";
+const DEFAULT_PRESET = "collection";
 const SOURCE_NAME = "molecule.yml";
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -13,7 +14,7 @@ const el = (id) => document.getElementById(id);
 let convert = null;
 let schemaText = null;
 let selected = null;
-let sourceSelected = SOURCE_NAME;
+let sharedSelected = null;
 let available = new Map();
 let workers = null;
 let readyStatus = "";
@@ -21,7 +22,7 @@ let lastResult = null;
 let timer = null;
 let version = "";
 let sourceView = null;
-let sourceFileView = null;
+let sharedFileView = null;
 let fileView = null;
 
 function getSource() {
@@ -67,11 +68,11 @@ async function makeEditors() {
       }),
     ],
   });
-  sourceFileView = readOnlyView(el("source-file"), "Referenced playbook");
+  sharedFileView = readOnlyView(el("shared-file"), "Shared playbook");
   fileView = readOnlyView(el("file"), "Projected file");
   window.converter = {
     source: getSource,
-    sourceFile: () => sourceFileView.state.doc.toString(),
+    sharedFile: () => sharedFileView.state.doc.toString(),
     file: () => fileView.state.doc.toString(),
   };
 }
@@ -183,71 +184,60 @@ function renderFiles(list, groups, current, onSelect) {
   }
 }
 
-function showMissing(note, path) {
-  note.textContent = `${path} is not part of this input.`;
-  note.hidden = false;
+function renderSource() {
+  const groups = [{ heading: "", entries: [{ path: SOURCE_NAME, label: SOURCE_NAME, kind: "source", available: true }] }];
+  renderFiles(el("source-files"), groups, SOURCE_NAME, () => sourceView.focus());
 }
 
-function renderSource(result) {
+function renderShared(result) {
   const paths = result.playbooks;
-  if (sourceSelected !== SOURCE_NAME && !paths.includes(sourceSelected)) {
-    sourceSelected = SOURCE_NAME;
+  const empty = !paths.length;
+  el("shared-empty").hidden = !empty;
+  el("shared-workspace").hidden = empty;
+  if (empty) {
+    sharedSelected = null;
+    el("shared-files").replaceChildren();
+    return;
   }
-  const groups = [{ heading: "", entries: [{ path: SOURCE_NAME, label: SOURCE_NAME, kind: "source", available: true }] }];
-  renderFiles(el("source-files"), groups.concat(playbookGroups(paths)), sourceSelected, (path) => {
-    sourceSelected = path;
-    renderSource(lastResult);
+  if (!paths.includes(sharedSelected)) {
+    sharedSelected = paths[0];
+  }
+  renderFiles(el("shared-files"), playbookGroups(paths), sharedSelected, (path) => {
+    sharedSelected = path;
+    renderShared(lastResult);
   });
-  el("source-path").textContent = sourceSelected;
-  const editing = sourceSelected === SOURCE_NAME;
-  const present = !editing && available.has(sourceSelected);
-  el("source").hidden = !editing;
-  el("source-file").hidden = !present;
-  el("source-missing").hidden = true;
+  el("shared-path").textContent = sharedSelected;
+  const present = available.has(sharedSelected);
+  el("shared-file").hidden = !present;
+  el("shared-missing").hidden = present;
   if (present) {
-    if (sourceFileView.state.doc.toString() !== available.get(sourceSelected)) {
-      setDoc(sourceFileView, available.get(sourceSelected));
+    if (sharedFileView.state.doc.toString() !== available.get(sharedSelected)) {
+      setDoc(sharedFileView, available.get(sharedSelected));
     }
-    sourceFileView.requestMeasure();
-  } else if (!editing) {
-    showMissing(el("source-missing"), sourceSelected);
+    sharedFileView.requestMeasure();
   } else {
-    sourceView.requestMeasure();
+    el("shared-missing").textContent = `${sharedSelected} is not part of this input.`;
   }
 }
 
 function renderTree(result) {
   const projected = result.files.map((f) => f.path);
-  const extra = result.playbooks.filter((p) => !projected.includes(p));
-  const all = projected.concat(extra);
-  if (!all.includes(selected)) {
-    selected = all[0] || null;
+  if (!projected.includes(selected)) {
+    selected = projected[0] || null;
   }
   const root = commonDir(projected);
   const groups = [{
     heading: root,
     entries: result.files.map((f) => ({ path: f.path, label: f.path.slice(root.length), kind: "projected", available: true })),
-  }].concat(playbookGroups(extra));
+  }];
   renderFiles(el("tree"), groups, selected, (path) => {
     selected = path;
     renderTree(lastResult);
   });
   el("file-path").textContent = selected || "";
   const current = result.files.find((f) => f.path === selected);
-  let text = "";
-  let missing = false;
-  if (current) {
-    text = current.text;
-  } else if (selected && available.has(selected)) {
-    text = available.get(selected);
-  } else if (selected) {
-    missing = true;
-  }
-  el("file").hidden = missing;
-  el("file-missing").hidden = true;
-  if (missing) {
-    showMissing(el("file-missing"), selected);
-  } else if (fileView.state.doc.toString() !== text) {
+  const text = current ? current.text : "";
+  if (fileView.state.doc.toString() !== text) {
     setDoc(fileView, text);
   }
 }
@@ -354,7 +344,8 @@ function run() {
     setStatus(readyStatus);
   }
   lastResult = result;
-  renderSource(result);
+  renderSource();
+  renderShared(result);
   renderTree(result);
   renderOrder(result.order);
   renderWorkers(result.order);
@@ -383,7 +374,7 @@ function schedule() {
 function loadInput(text, scenariosDir, files) {
   el("scenarios-dir").value = scenariosDir;
   available = new Map(Object.entries(files));
-  sourceSelected = SOURCE_NAME;
+  sharedSelected = null;
   workers = null;
   el("workers").value = "";
   el("workers").setCustomValidity("");
@@ -408,6 +399,7 @@ async function loadPresets() {
     const preset = presets[select.value];
     loadInput(preset.text, preset.scenarios_dir, preset.playbooks || {});
   });
+  return presets;
 }
 
 async function main() {
@@ -451,6 +443,7 @@ async function main() {
   });
   el("scenarios-dir").addEventListener("change", run);
   el("destroy").addEventListener("change", run);
+  const presets = await loadPresets();
   if (window.location.hash.startsWith("#src=")) {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const dirs = [...el("scenarios-dir").options].map((o) => o.value);
@@ -458,10 +451,13 @@ async function main() {
       el("scenarios-dir").value = params.get("dir");
     }
     setDoc(sourceView, await decodeShare(params.get("src")));
+  } else if (presets[DEFAULT_PRESET]) {
+    const preset = presets[DEFAULT_PRESET];
+    el("preset").value = DEFAULT_PRESET;
+    loadInput(preset.text, preset.scenarios_dir, preset.playbooks || {});
   } else {
-    setDoc(sourceView, starter);
+    loadInput(starter, DEFAULT_SCENARIOS_DIR, {});
   }
-  await loadPresets();
 
   const pyodide = await loadPyodide();
   await pyodide.loadPackage("pyyaml");

@@ -33,44 +33,69 @@
 <body>
   <header>
     <h1>one-molecule converter</h1>
-    <p>Edit a single-config <code>molecule.yml</code> (spec <span id="spec-version">latest</span>, the latest released) on the left. It opens on a starter
-      file shaped like the ansible-creator collection scaffold, with every other key the spec declares commented out. The right side
-      shows the per-scenario files today's Molecule would need, and what the projection could not carry.
-      The conversion runs in your browser, in Python, from the same module the repository tests.</p>
-    <div class="bar">
-      <button id="starter" type="button">Starter</button>
-      <label>Example <select id="preset"><option value="">(choose)</option></select></label>
-      <label>Scenarios in <select id="scenarios-dir">
-        <option value="extensions/molecule">extensions/molecule/ (collection)</option>
-        <option value="molecule">molecule/ (role or playbook project)</option>
-      </select></label>
-      <button id="share" type="button">Copy share link</button>
-      <span id="status">Loading Python runtime...</span>
-    </div>
+    <p>Edit a single-config <code>molecule.yml</code> (spec <span id="spec-version">latest</span>, the latest released) in the
+      proposed layout. It opens on the collection example. Today's layout shows the per-scenario files today's Molecule would
+      need, and what the projection could not carry. The conversion runs in your browser, in Python, from the same module the
+      repository tests.</p>
   </header>
   <main>
+    <section class="controls" aria-label="Controls">
+      <div class="control">
+        <button id="starter" type="button">Starter</button>
+        <p class="hint">Loads a starter file shaped like the ansible-creator collection scaffold, with every other key the spec declares commented out.</p>
+      </div>
+      <div class="control">
+        <label>Example <select id="preset"><option value="">(choose)</option></select></label>
+        <p class="hint">Loads one of the repository's synthetic examples together with the playbooks it references.</p>
+      </div>
+      <div class="control">
+        <label>Scenarios in <select id="scenarios-dir">
+          <option value="extensions/molecule">extensions/molecule/ (collection)</option>
+          <option value="molecule">molecule/ (role or playbook project)</option>
+        </select></label>
+        <p class="hint">Chooses where the projected scenario files go, a collection's extensions/molecule/ or a project's top-level molecule/.</p>
+      </div>
+      <div class="control">
+        <button id="share" type="button">Copy share link</button>
+        <p class="hint">Copies a link that opens this page on the current file and scenarios directory instead of the example.</p>
+      </div>
+      <div class="control">
+        <span id="status">Loading Python runtime...</span>
+        <p class="hint">Says whether the Python runtime is ready and what the last action did.</p>
+      </div>
+    </section>
+    <section class="pane shared">
+      <h2>Shared playbooks</h2>
+      <p class="hint">Every playbook the file references, listed once, because each path is the same in both layouts. Select one to view it.</p>
+      <p id="shared-empty" class="missing-note" hidden>The file references no playbooks. Molecule finds each stage in the scenario directory by default discovery.</p>
+      <div id="shared-workspace" class="workspace">
+        <ul id="shared-files" class="files" aria-label="Shared playbooks"></ul>
+        <div class="viewer">
+          <p id="shared-path" class="file-path"></p>
+          <div id="shared-file" class="editor"></div>
+          <p id="shared-missing" class="missing-note" hidden></p>
+        </div>
+      </div>
+    </section>
     <section class="pane">
       <h2>Proposed layout</h2>
-      <p class="hint">The single file and every playbook it references. Select a playbook to view it, and <code>molecule.yml</code> to edit again.</p>
+      <p class="hint">The single file. Edit it here, and the other panes follow.</p>
       <div class="workspace">
         <ul id="source-files" class="files" aria-label="Input files"></ul>
         <div class="viewer">
           <p id="source-path" class="file-path">molecule.yml</p>
           <div id="source" class="editor"></div>
-          <div id="source-file" class="editor" hidden></div>
-          <p id="source-missing" class="missing-note" hidden></p>
         </div>
       </div>
     </section>
     <section class="pane">
       <h2>Today's layout</h2>
-      <p class="hint">Files are placed under the chosen scenarios directory, as in an ansible-creator collection by default. Select a file to view it.</p>
+      <p class="hint">The projected files, placed under the chosen scenarios directory. Select a file to view it.</p>
       <div class="workspace">
         <ul id="tree" class="files" aria-label="Projected files"></ul>
         <div class="viewer">
           <p id="file-path" class="file-path"></p>
           <div id="file" class="editor"></div>
-          <p id="file-missing" class="missing-note" hidden></p>
         </div>
       </div>
       <div class="order-head">

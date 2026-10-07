@@ -77,35 +77,27 @@ def notice_lines(result):
     return lines or ["None."]
 
 
-def check_playbooks(page, slug, expected, present):
-    """Both file columns list the referenced playbooks, open each one, and mark the missing ones."""
+def check_shared(page, slug, expected, present):
+    """Only the shared pane lists the referenced playbooks, once each, opens each one and marks the missing ones."""
     source_buttons = buttons(page, "#source-files")
-    want = [[SOURCE_NAME, "source", True]] + [[p, "playbook", p in present] for p in expected["playbooks"]]
-    assert source_buttons == want, (slug, source_buttons)
-    projected = [f["path"] for f in expected["files"]]
+    assert source_buttons == [[SOURCE_NAME, "source", True]], (slug, source_buttons)
     tree = buttons(page, "#tree")
-    want = [[p, "projected", True] for p in projected]
-    want += [[p, "playbook", p in present] for p in expected["playbooks"] if p not in projected]
-    assert tree == want, (slug, tree)
+    assert tree == [[f["path"], "projected", True] for f in expected["files"]], (slug, tree)
+    shared = buttons(page, "#shared-files")
+    assert shared == [[p, "playbook", p in present] for p in expected["playbooks"]], (slug, shared)
+    assert len({p for p, _, _ in shared}) == len(shared), (slug, shared)
+    assert page.is_hidden("#shared-empty"), slug
     source = page.evaluate("converter.source()")
     for path in expected["playbooks"]:
-        page.click(f'#source-files button.file[data-path="{path}"]')
-        assert page.text_content("#source-path") == path, (slug, path)
-        assert page.is_hidden("#source"), (slug, path)
+        page.click(f'#shared-files button.file[data-path="{path}"]')
+        assert page.text_content("#shared-path") == path, (slug, path)
         if path in present:
-            assert page.evaluate("converter.sourceFile()") == present[path], (slug, path)
-            editable = page.get_attribute("#source-file .cm-content", "contenteditable")
+            assert page.evaluate("converter.sharedFile()") == present[path], (slug, path)
+            editable = page.get_attribute("#shared-file .cm-content", "contenteditable")
             assert editable == "false", (slug, path, editable)
         else:
-            assert page.is_visible("#source-missing"), (slug, path)
-            assert "is not part of this input" in page.text_content("#source-missing"), (slug, path)
-        page.click(f'#tree button.file[data-path="{path}"]')
-        assert page.text_content("#file-path") == path, (slug, path)
-        if path in present:
-            assert page.evaluate("converter.file()") == present[path], (slug, path)
-        else:
-            assert page.is_visible("#file-missing"), (slug, path)
-    page.click(f'#source-files button.file[data-path="{SOURCE_NAME}"]')
+            assert page.is_visible("#shared-missing"), (slug, path)
+            assert "is not part of this input" in page.text_content("#shared-missing"), (slug, path)
     assert page.is_visible("#source"), slug
     assert page.evaluate("converter.source()") == source, slug
 
@@ -130,7 +122,7 @@ def check_preset(page, slug, schema):
         assert selected == item["path"], (slug, selected)
     shown_notices = page.locator("#notices li").all_text_contents()
     assert shown_notices == notice_lines(expected), (slug, shown_notices)
-    check_playbooks(page, slug, expected, present)
+    check_shared(page, slug, expected, present)
     steps = expected_steps(expected["order"])
     shown_steps = {name: step for name, (step, _) in blocks(page).items()}
     assert shown_steps == steps, (slug, shown_steps)
@@ -138,37 +130,51 @@ def check_preset(page, slug, schema):
     assert page.input_value("#workers") == "", (slug, page.input_value("#workers"))
     assert page.get_attribute("#workers", "placeholder") == "1", slug
     missing = sum(1 for p in expected["playbooks"] if p not in present)
-    print(f"ok {slug}: {len(paths)} file(s), {len(expected['playbooks'])} playbook(s) ({missing} not available), "
+    print(f"ok {slug}: {len(paths)} file(s), {len(expected['playbooks'])} shared playbook(s) ({missing} not available), "
           f"{len(expected['notices'])} notice(s), {len(steps)} start step(s) match CPython")
 
 
 def check_layout(page):
-    """Both file lists are vertical columns to the left of their code areas."""
-    for listing, viewer in (("#source-files", "#source"), ("#tree", "#file")):
+    """Controls left of the shared pane in row 1, Proposed left of Today's in row 2, each control on its own line."""
+    box = {name: page.locator(sel).bounding_box() for name, sel in (
+        ("controls", ".controls"), ("shared", "section.shared"),
+        ("proposed", "section.pane:has(#source)"), ("today", "section.pane:has(#tree)"))}
+    assert box["controls"]["x"] + box["controls"]["width"] <= box["shared"]["x"], box
+    assert box["proposed"]["x"] + box["proposed"]["width"] <= box["today"]["x"], box
+    assert abs(box["controls"]["x"] - box["proposed"]["x"]) < 1, box
+    assert abs(box["shared"]["x"] - box["today"]["x"]) < 1, box
+    for upper, lower in (("controls", "proposed"), ("shared", "today"), ("controls", "today"), ("shared", "proposed")):
+        assert box[upper]["y"] + box[upper]["height"] <= box[lower]["y"], (upper, lower, box)
+    controls = [c.bounding_box() for c in page.locator(".controls .control").all()]
+    assert len(controls) == 5, controls
+    for upper, lower in zip(controls, controls[1:]):
+        assert lower["y"] >= upper["y"] + upper["height"], (upper, lower)
+    for selector in ("#starter", "#preset", "#scenarios-dir", "#share", "#status"):
+        hint = page.locator(f".control:has({selector}) .hint")
+        assert hint.count() == 1 and hint.text_content().strip().endswith("."), selector
+    for listing, viewer in (("#shared-files", "#shared-file"), ("#source-files", "#source"), ("#tree", "#file")):
         column = page.locator(listing).bounding_box()
         code = page.locator(viewer).bounding_box()
         assert column["x"] + column["width"] <= code["x"], (listing, column, code)
         assert column["y"] <= code["y"], (listing, column, code)
         boxes = [b.bounding_box() for b in page.locator(f"{listing} button.file").all()]
-        assert len(boxes) > 1, listing
+        assert boxes, listing
         for upper, lower in zip(boxes, boxes[1:]):
             assert lower["y"] >= upper["y"] + upper["height"], (listing, upper, lower)
             assert lower["x"] < code["x"], (listing, lower)
-    print("ok both file lists are vertical columns left of the code area")
+    print("ok controls | shared playbooks above proposed | today's, one control per line, file lists left of code")
 
 
 def check_edit_survives(page):
-    """An edit to molecule.yml survives viewing a referenced playbook."""
+    """An edit to molecule.yml survives viewing a shared playbook."""
     page.select_option("#preset", "collection")
-    page.wait_for_selector("#source-files button.file[data-kind=playbook]")
+    page.wait_for_selector("#shared-files button.file[data-kind=playbook]")
     text = page.evaluate("converter.source()") + "# edited\n"
     page.fill(EDITOR, text)
-    first = page.locator("#source-files button.file[data-kind=playbook]").first
-    first.click()
-    assert page.is_hidden("#source")
-    page.click(f'#source-files button.file[data-path="{SOURCE_NAME}"]')
+    page.locator("#shared-files button.file[data-kind=playbook]").last.click()
+    assert page.is_visible("#source")
     assert page.evaluate("converter.source()") == text, "the edit did not survive viewing a playbook"
-    print("ok an edit to molecule.yml survives viewing a referenced playbook")
+    print("ok an edit to molecule.yml survives viewing a shared playbook")
 
 
 def check_workers(page, schema, shots):
@@ -252,40 +258,56 @@ def check_workers(page, schema, shots):
 
 
 def check_typed_missing(page, schema):
-    """A playbook named in typed input is listed on both sides and marked not available."""
+    """A playbook named in typed input is listed once in the shared pane and marked not available."""
     page.click("#starter")
     text = ("---\nscenarios:\n  - name: typed\n    playbooks:\n"
             "      verify: playbooks/molecule/verify-typed.yml\n")
     page.fill(EDITOR, text)
     path = "playbooks/molecule/verify-typed.yml"
     assert convert_text(text, schema)["playbooks"] == [path]
-    page.wait_for_selector(f'#tree button.file[data-path="{path}"]')
-    for side, note in (("#source-files", "#source-missing"), ("#tree", "#file-missing")):
-        button = page.locator(f'{side} button.file[data-path="{path}"]')
-        assert button.get_attribute("data-available") == "false", side
-        assert "missing" in button.get_attribute("class"), side
-        assert "not available" in button.text_content(), side
-        button.click()
-        assert page.is_visible(note), side
-        assert page.text_content(note) == f"{path} is not part of this input.", side
-    page.click(f'#source-files button.file[data-path="{SOURCE_NAME}"]')
+    page.wait_for_selector(f'#shared-files button.file[data-path="{path}"]')
+    button = page.locator(f'#shared-files button.file[data-path="{path}"]')
+    assert button.get_attribute("data-available") == "false"
+    assert "missing" in button.get_attribute("class")
+    assert "not available" in button.text_content()
+    button.click()
+    assert page.is_visible("#shared-missing")
+    assert page.text_content("#shared-missing") == f"{path} is not part of this input."
+    assert page.locator(f'#source-files button.file[data-path="{path}"]').count() == 0
+    assert page.locator(f'#tree button.file[data-path="{path}"]').count() == 0
     assert page.evaluate("converter.source()") == text
-    print("ok a playbook named in typed input is marked not available on both sides")
+    print("ok a playbook named in typed input is listed once in the shared pane and marked not available")
+    bare = "---\nscenarios:\n  - name: bare\n"
+    page.fill(EDITOR, bare)
+    page.wait_for_selector("#shared-empty", state="visible")
+    assert page.is_hidden("#shared-workspace")
+    assert page.locator("#shared-files button.file").count() == 0
+    assert "references no playbooks" in page.text_content("#shared-empty")
+    print("ok a file that references no playbooks shows a note in the shared pane")
 
 
-def check_starter(page, schema):
-    """A fresh page opens on the starter file and shows its projection."""
-    text = load_starter()
-    assert page.evaluate("converter.source()") == text, "page did not open on the starter file"
-    expected = convert_text(text, schema)
-    page.wait_for_function(f"document.querySelectorAll('{PROJECTED}').length > 0")
-    paths = shown_paths(page)
-    assert paths == [f["path"] for f in expected["files"]], paths
-    page.select_option("#preset", "")
+def check_landing(page, schema):
+    """A fresh page opens on the collection example, and the Starter button loads the starter file."""
+    slug = "collection"
+    text = example_source(slug).read_text()
+    assert page.evaluate("converter.source()") == text, "page did not open on the collection example"
+    assert page.input_value("#preset") == slug, page.input_value("#preset")
+    assert page.input_value("#scenarios-dir") == "extensions/molecule", page.input_value("#scenarios-dir")
+    expected = convert_text(text, schema, "extensions/molecule")
+    page.wait_for_function(f"{SHOWN_PATHS}.join() === {json.dumps(','.join(f['path'] for f in expected['files']))}")
+    shared = buttons(page, "#shared-files")
+    assert [p for p, _, _ in shared] == expected["playbooks"], shared
+    assert all(a for _, _, a in shared), shared
+    assert page.input_value("#workers") == "" and page.get_attribute("#workers", "placeholder") == "1"
+    print(f"ok the page opens on the {slug} example in extensions/molecule with {len(shared)} shared playbook(s)")
+    starter = load_starter()
     page.fill(EDITOR, "")
     page.click("#starter")
-    assert page.evaluate("converter.source()") == text, "the Starter button did not restore the starter file"
-    print(f"ok the page opens on the starter file: {len(paths)} file(s)")
+    assert page.evaluate("converter.source()") == starter, "the Starter button did not load the starter file"
+    assert page.input_value("#preset") == ""
+    paths = [f["path"] for f in convert_text(starter, schema)["files"]]
+    page.wait_for_function(f"{SHOWN_PATHS}.join() === {json.dumps(','.join(paths))}")
+    print(f"ok the Starter button loads the starter file: {len(paths)} file(s)")
 
 
 def check_share(browser, url):
@@ -307,7 +329,8 @@ def check_share(browser, url):
     other.wait_for_selector("#status:has-text('Ready')", timeout=READY_TIMEOUT_MS)
     assert other.evaluate("converter.source()") == text
     assert shown_paths(other) == ["extensions/molecule/shared-link/molecule.yml"]
-    print("ok share link round-trips the source")
+    assert other.input_value("#preset") == "", other.input_value("#preset")
+    print("ok share link round-trips the source and overrides the default landing")
     page.select_option("#scenarios-dir", "molecule")
     page.wait_for_function(f"{SHOWN_PATHS}.join() === 'molecule/shared-link/molecule.yml'")
     page.click("#share")
@@ -357,9 +380,9 @@ def main(url, shots=None):
         shown_version = page.text_content("#spec-version")
         assert shown_version == schema["x-spec"]["version"], shown_version
         print(f"ok the page names spec {shown_version}")
-        check_starter(page, schema)
+        check_landing(page, schema)
         slugs = page.locator("#preset option").evaluate_all("o => o.map(x => x.value).filter(v => v)")
-        assert slugs, "no presets"
+        assert slugs == ["collection", "collection-shared-state", "playbooks", "roles"], slugs
         for slug in slugs:
             check_preset(page, slug, schema)
         page.select_option("#preset", "collection-shared-state")

@@ -19,11 +19,22 @@ h2 {
   margin: 0.75rem 0 0.5rem;
 }
 
-.bar {
+.controls {
   display: flex;
-  gap: 1rem;
-  align-items: center;
-  margin: 0.5rem 0;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 0.75rem;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.control .hint {
+  margin: 0;
 }
 
 #status {
@@ -32,7 +43,7 @@ h2 {
 
 main {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1rem;
   padding: 0 1.5rem 1.5rem;
 }
@@ -80,11 +91,11 @@ main {
 }
 
 #source .cm-editor {
-  height: 75vh;
+  height: 70vh;
 }
 
-#source-file .cm-editor {
-  height: 75vh;
+#shared-file .cm-editor {
+  max-height: 32vh;
   background: #f6f8fa;
 }
 

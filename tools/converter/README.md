@@ -17,9 +17,9 @@ parent-versus-defaults judgment in `design/docs/migrating.md`, which no tool mak
 |---|---|
 | `project.py` | The projection, the referenced playbook paths and the start order. Standard library only. Key classes come from the schema's `x-class` annotations |
 | `render.py` | YAML in and out, through PyYAML |
-| `starter.py` | The starter file the page opens on: a live `defaults:` block and one live `integration_sample_filter` scenario that together project to the `molecule.yml` the ansible-creator collection scaffold generates, its playbook paths written from the project root, with every other key the spec declares commented out. Keys and notes come from the schema, and the sub-keys of Molecule's sections from Molecule's own schema |
+| `starter.py` | The starter file the Starter button loads: a live `defaults:` block and one live `integration_sample_filter` scenario that together project to the `molecule.yml` the ansible-creator collection scaffold generates, its playbook paths written from the project root, with every other key the spec declares commented out. Keys and notes come from the schema, and the sub-keys of Molecule's sections from Molecule's own schema |
 | `cli.py` | Command line front end, and the example helpers the staging and the browser check share |
-| `web/` | The page. Its JavaScript is interface only and holds no conversion rule. Both panes are CodeMirror 6 editors with YAML highlighting, loaded from esm.sh at the exact versions the import map in `index.html` pins |
+| `web/` | The page. Its JavaScript is interface only and holds no conversion rule. Every code area is a CodeMirror 6 editor with YAML highlighting, loaded from esm.sh at the exact versions the import map in `index.html` pins |
 | `stage_pages.py` | Copies the page, the two modules, the generated schema, the presets and the starter file into a directory, with a content-hash `build.json` the page loads every file under. Each preset carries the text of every referenced playbook that exists in its example |
 
 The page loads `project.py` and `render.py` into Pyodide and calls them. No conversion rule
@@ -51,24 +51,33 @@ full-page screenshots of the collection-shared-state preset and of the roles pre
 
 ## The page
 
-Each side has a column of file buttons to the left of its code area, with the selected file's path
+The page opens on the `collection` example with the `extensions/molecule` scenarios directory,
+unless a share link names a file, which then wins. It is a grid of two rows:
+
+| Row | Left | Right |
+|---|---|---|
+| 1 | The controls, one per line, each with a one-sentence description: the Starter button, the Example selector, the Scenarios in selector, Copy share link, and the status line | Shared playbooks |
+| 2 | Proposed layout | Today's layout, with the start order and the notices below it |
+
+Each pane has a column of file buttons to the left of its code area, with the selected file's path
 above the code. A shared directory is shown once as a heading over its files.
 
-| Side | Lists |
+| Pane | Lists |
 |---|---|
-| Proposed layout | `molecule.yml`, selected by default and editable, then every playbook it references |
-| Today's layout | The projected files, then the same referenced playbooks |
+| Shared playbooks | Every playbook the file references, once each, read-only. A file that references none shows a short note instead |
+| Proposed layout | `molecule.yml` only, editable |
+| Today's layout | The projected files only |
 
 A node's referenced playbooks are its `playbooks` and `provisioner.playbooks` values merged over
 those under `defaults:`, the way the projection merges them, so a stage the node sets itself hides
 the `defaults:` path for that stage. Each is resolved from the project root, the folder the root
-file sits in, for every node, children included, so the paths are the same in both layouts. A
-playbook opens read-only.
+file sits in, for every node, children included, so one path serves both layouts and the playbooks
+get one pane of their own.
 
 A referenced path is available only when the loaded preset ships it. A preset ships every
 referenced file that exists under `examples/<slug>/`. Any other path, such as one named in typed
-input, is marked not available, and selecting it says the file is not part of this input. Selecting `molecule.yml` again returns to the editor with
-any edits kept.
+input, is marked not available, and selecting it says the file is not part of this input. Viewing
+a playbook leaves the editor and any edits in place.
 
 ## Start order
 
@@ -169,5 +178,6 @@ projection's `provisioner.playbooks` is equivalent to an `ansible.playbooks` blo
 The tool checks run, node and `defaults:` keys against the spec's own key lists. It does not validate values against
 Molecule's per-key schema. The `check-jsonschema-examples` hook does that for the examples only.
 A referenced path is never checked against the tree, beyond showing whether the loaded preset ships
-it. Only `playbooks` paths are rewritten, because the spec's resolution rule names `playbooks` only. A null or empty-string value is
-projected as written, and a list replaces the lower layer's list whole.
+it. Only `playbooks` paths are rewritten, because the spec's resolution rule names `playbooks`
+only. A null or empty-string value is projected as written, and a list replaces the lower layer's
+list whole.
