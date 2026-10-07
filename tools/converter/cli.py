@@ -2,12 +2,13 @@
 
 Usage:
     python3 tools/converter/cli.py <molecule.yml> [--out DIR] [--schema PATH] [--scenarios-dir DIR]
-    python3 tools/converter/cli.py <molecule.yml> --order [--workers N] [--scenarios-dir DIR]
+    python3 tools/converter/cli.py <molecule.yml> --order [--workers N] [--destroy never] [--scenarios-dir DIR]
     python3 tools/converter/cli.py --starter
 """
 
 import argparse
 import json
+import os
 import pathlib
 import sys
 
@@ -16,7 +17,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import yaml  # noqa: E402
 
 from project import (  # noqa: E402
-    COLLECTION_SCENARIOS_DIR, PROJECT_SCENARIOS_DIR, SCENARIOS_DIRS, referenced_playbooks)
+    COLLECTION_SCENARIOS_DIR, DESTROY_VALUES, PROJECT_SCENARIOS_DIR, SCENARIOS_DIRS, referenced_playbooks,
+    workers_valid)
 from render import convert_text, dump  # noqa: E402
 from starter import starter_text  # noqa: E402
 
@@ -120,9 +122,14 @@ def order_text(order):
         order: the `start_steps` result.
 
     Returns:
-        The text, starting with the workers line.
+        The text, starting with the workers line, which names where a cap other than the
+        default came from.
     """
-    lines = ["workers: " + ("no limit" if order["workers"] is None else str(order["workers"]))]
+    where = {"flag": "--workers", "file": "molecule.yml"}.get(order.get("source"))
+    note = ""
+    if where:
+        note = f" ({where}" + ("" if order["requested"] == order["workers"] else f": {order['requested']}") + ")"
+    lines = [f"workers: {order['workers']}{note}"]
     steps = {}
     for item in order["scenarios"]:
         steps.setdefault(item["step"], []).append(item["name"])
@@ -131,14 +138,18 @@ def order_text(order):
     return "\n".join(lines) + "\n"
 
 
-def _workers(value):
-    try:
-        number = int(value)
-    except ValueError:
-        number = 0
-    if number < 1:
-        raise argparse.ArgumentTypeError("must be an integer of at least 1")
-    return number
+def _workers_type(schema_path):
+    schema = load_schema(schema_path)
+
+    def parse(value):
+        try:
+            value = int(value)
+        except ValueError:
+            pass
+        if not workers_valid(value, schema):
+            raise argparse.ArgumentTypeError("must be an integer of at least 1, cpus or cpus-1")
+        return value
+    return parse
 
 
 def example_scenarios_dir(slug):
@@ -189,18 +200,25 @@ def main(argv=None):
              "molecule for a standalone role or playbook project")
     parser.add_argument("--order", action="store_true", help="print the step each scenario starts at and exit")
     parser.add_argument(
-        "--workers", type=_workers,
-        help="with --order, the most scenarios that start per step (default: no limit)")
+        "--workers",
+        help="the cap on scenarios in flight, as molecule's --workers, overriding the file's workers key "
+             "(default: the file's value, else 1)")
+    parser.add_argument(
+        "--destroy", choices=DESTROY_VALUES, default=DESTROY_VALUES[0],
+        help="molecule's --destroy, which the workers check reads (default: always)")
     args = parser.parse_args(argv)
-    if args.workers is not None and not args.order:
-        parser.error("--workers needs --order")
+    if args.workers is not None:
+        try:
+            args.workers = _workers_type(args.schema)(args.workers)
+        except argparse.ArgumentTypeError as exc:
+            parser.error(f"argument --workers: {exc}")
     if args.starter:
         print(load_starter(args.schema), end="")
         return 0
     if not args.source:
         parser.error("a source file is required unless --starter is given")
     result = convert_text(pathlib.Path(args.source).read_text(), load_schema(args.schema), args.scenarios_dir,
-                          args.workers)
+                          args.workers, os.cpu_count(), args.destroy)
     if args.order:
         print(order_text(result["order"]), end="")
     elif args.out:

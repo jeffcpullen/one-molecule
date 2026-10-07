@@ -5,7 +5,7 @@ Usage:
 
 Needs Playwright with Chromium. Exits non-zero on any mismatch. With `--shots`, saves
 full-page PNGs of the collection-shared-state preset and of the roles preset at the
-default of no limit and at workers 1.
+default of 1 worker and at workers 3.
 """
 
 import argparse
@@ -134,8 +134,9 @@ def check_preset(page, slug, schema):
     steps = expected_steps(expected["order"])
     shown_steps = {name: step for name, (step, _) in blocks(page).items()}
     assert shown_steps == steps, (slug, shown_steps)
-    assert expected["order"]["workers"] is None, slug
+    assert expected["order"]["workers"] == 1, slug
     assert page.input_value("#workers") == "", (slug, page.input_value("#workers"))
+    assert page.get_attribute("#workers", "placeholder") == "1", slug
     missing = sum(1 for p in expected["playbooks"] if p not in present)
     print(f"ok {slug}: {len(paths)} file(s), {len(expected['playbooks'])} playbook(s) ({missing} not available), "
           f"{len(expected['notices'])} notice(s), {len(steps)} start step(s) match CPython")
@@ -171,30 +172,34 @@ def check_edit_survives(page):
 
 
 def check_workers(page, schema, shots):
-    """Workers is empty and unlimited by default, a typed value caps at once, and clearing it restores no limit."""
+    """Workers defaults to 1, a typed value overrides at once, clearing returns to the file's value or 1."""
     slug = "roles"
     text = example_source(slug).read_text()
     page.select_option("#preset", slug)
-    default = expected_steps(convert_text(text, schema, "molecule")["order"])
-    wait_for_steps(page, default)
+    one = expected_steps(convert_text(text, schema, "molecule")["order"])
+    wait_for_steps(page, one)
     assert page.input_value("#workers") == "", page.input_value("#workers")
-    assert page.get_attribute("#workers", "placeholder") == "no limit"
-    assert set(default.values()) == {1}, default
+    assert page.get_attribute("#workers", "placeholder") == "1"
+    assert page.text_content("#workers-note") == "default", page.text_content("#workers-note")
+    assert len(set(one.values())) == len(one), one
     before = blocks(page)
     if shots:
         page.screenshot(path=str(shots / "roles-workers-default.png"), full_page=True)
-    one = expected_steps(convert_text(text, schema, "molecule", 1)["order"])
-    assert one != default, (one, default)
-    page.fill("#workers", "1")
-    page.wait_for_timeout(100)
-    shown = {name: step for name, (step, _) in blocks(page).items()}
-    assert shown == one, shown
+    three = convert_text(text, schema, "molecule", 3)
+    steps = expected_steps(three["order"])
+    assert steps != one, (steps, one)
+    page.fill("#workers", "3")
+    wait_for_steps(page, steps)
     after = blocks(page)
     moved = [n for n in before if before[n][1] != after[n][1]]
     assert moved, (before, after)
+    assert page.text_content("#workers-note") == "set here"
+    shown_notices = page.locator("#notices li").all_text_contents()
+    assert shown_notices == notice_lines(three), shown_notices
+    assert any(n["kind"] == "unsupported" for n in three["notices"]), three["notices"]
     if shots:
-        page.screenshot(path=str(shots / "roles-workers-1.png"), full_page=True)
-    print(f"ok workers 1 redraws at once and moves {len(moved)} block(s): {one}")
+        page.screenshot(path=str(shots / "roles-workers-3.png"), full_page=True)
+    print(f"ok workers 3 redraws at once, moves {len(moved)} block(s) and is unsupported outside a collection")
     for bad in ("0", "-2", "1.5"):
         page.fill("#workers", bad)
         page.wait_for_timeout(100)
@@ -208,22 +213,42 @@ def check_workers(page, schema, shots):
     assert blocks(page) == after, blocks(page)
     print("ok an invalid workers entry is marked invalid and keeps the last graphic")
     page.fill("#workers", "10")
-    wait_for_steps(page, default)
+    wait_for_steps(page, steps)
     assert page.input_value("#workers") == "10", page.input_value("#workers")
     assert not page.evaluate("document.getElementById('workers').matches(':invalid')")
     print("ok workers above the scenario count stays as typed and binds nothing")
+    page.fill("#workers", "")
+    wait_for_steps(page, one)
+    assert page.get_attribute("#workers", "placeholder") == "1"
+    assert not page.evaluate("document.getElementById('workers').matches(':invalid')")
+    print("ok clearing workers returns to 1")
+    two_text = text.replace("---\n", "---\nworkers: 2\n", 1)
+    page.fill(EDITOR, two_text)
+    two = expected_steps(convert_text(two_text, schema, "molecule")["order"])
+    wait_for_steps(page, two)
+    assert page.get_attribute("#workers", "placeholder") == "2"
+    assert page.text_content("#workers-note") == "from molecule.yml"
     page.fill("#workers", "1")
     wait_for_steps(page, one)
     page.fill("#workers", "")
-    wait_for_steps(page, default)
-    assert page.input_value("#workers") == ""
-    assert not page.evaluate("document.getElementById('workers').matches(':invalid')")
-    print("ok clearing workers restores no limit")
-    page.fill("#workers", "2")
-    wait_for_steps(page, expected_steps(convert_text(text, schema, "molecule", 2)["order"]))
+    wait_for_steps(page, two)
+    print("ok the file's workers applies when the field is empty, and the field overrides it")
     page.select_option("#preset", "collection")
     page.wait_for_function("document.getElementById('workers').value === ''")
-    print("ok loading a preset clears workers")
+    page.fill("#workers", "2")
+    page.select_option("#destroy", "never")
+    collection = example_source("collection").read_text()
+    never = convert_text(collection, schema, "extensions/molecule", 2, None, "never")
+    lines = notice_lines(never)
+    page.wait_for_function(
+        f"JSON.stringify([...document.querySelectorAll('#notices li')].map(l => l.textContent)) === "
+        f"{json.dumps(json.dumps(lines, separators=(',', ':')))}")
+    assert any("--destroy=never" in line for line in lines), lines
+    print("ok workers above 1 with destroy never is unsupported")
+    page.select_option("#preset", "roles")
+    page.wait_for_function(
+        "document.getElementById('workers').value === '' && document.getElementById('destroy').value === 'always'")
+    print("ok loading a preset clears workers and destroy")
 
 
 def check_typed_missing(page, schema):

@@ -326,13 +326,26 @@ function workersValue() {
   return workers === null ? undefined : workers;
 }
 
+function renderWorkers(order) {
+  const input = el("workers");
+  input.placeholder = String(order.workers);
+  let note = "default";
+  if (order.source === "file") {
+    note = order.requested === order.workers ? "from molecule.yml" : `from molecule.yml: ${order.requested}`;
+  } else if (order.source === "flag") {
+    note = "set here";
+  }
+  el("workers-note").textContent = note;
+}
+
 function run() {
   if (!convert) {
     return;
   }
   let result;
   try {
-    result = JSON.parse(convert(getSource(), schemaText, el("scenarios-dir").value, workersValue()));
+    result = JSON.parse(convert(getSource(), schemaText, el("scenarios-dir").value, workersValue(),
+      navigator.hardwareConcurrency || undefined, el("destroy").value));
   } catch (err) {
     setStatus("Conversion failed: " + err.message);
     return;
@@ -344,6 +357,7 @@ function run() {
   renderSource(result);
   renderTree(result);
   renderOrder(result.order);
+  renderWorkers(result.order);
 
   const notices = el("notices");
   notices.replaceChildren();
@@ -373,6 +387,7 @@ function loadInput(text, scenariosDir, files) {
   workers = null;
   el("workers").value = "";
   el("workers").setCustomValidity("");
+  el("destroy").value = "always";
   setDoc(sourceView, text);
   run();
 }
@@ -418,7 +433,7 @@ async function main() {
       return;
     }
     if (!/^[0-9]+$/.test(text) || !Number.isSafeInteger(value) || value < 1) {
-      input.setCustomValidity("Enter a whole number of at least 1, or leave it empty for no limit.");
+      input.setCustomValidity("Enter a whole number of at least 1, or leave it empty for the file's value or 1.");
       return;
     }
     input.setCustomValidity("");
@@ -435,6 +450,7 @@ async function main() {
     loadInput(starter, DEFAULT_SCENARIOS_DIR, {});
   });
   el("scenarios-dir").addEventListener("change", run);
+  el("destroy").addEventListener("change", run);
   if (window.location.hash.startsWith("#src=")) {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const dirs = [...el("scenarios-dir").options].map((o) => o.value);

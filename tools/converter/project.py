@@ -25,6 +25,9 @@ BASE_CONFIG_PATHS = {
 SHARED_ROOT = "default"
 SHARED_STATE = "shared_state"
 INSTANCE_STAGES = ("create", "destroy")
+WORKERS = "workers"
+CPU_OFFSETS = {"cpus": 0, "cpus-1": -1}
+DESTROY_VALUES = ("always", "never")
 
 
 class KeyClasses:
@@ -273,8 +276,20 @@ def project(config, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
         notices.append(_notice("error", None, None, "The file is not a mapping."))
         return {"files": files, "notices": notices}
     _check_keys(config, classes.run, None, notices)
+    if WORKERS in config:
+        value = config[WORKERS]
+        if workers_valid(value, schema):
+            notices.append(_notice(
+                "lost", None, WORKERS,
+                f"`workers: {value}` caps the scenarios in flight. Today's Molecule reads the cap only from "
+                f"the command line, so pass `--workers {value}` to `molecule test`, `destroy` or `check`."))
+        else:
+            notices.append(_notice(
+                "error", None, WORKERS,
+                f"`workers: {json.dumps(value, default=str)}` is not an integer of at least 1 or one of: "
+                + ", ".join(workers_words(schema)) + "."))
 
-    catalog = _read_catalog(config.get(PLATFORMS) or [], notices)
+    catalog =_read_catalog(config.get(PLATFORMS) or [], notices)
     run_defaults = config.get(DEFAULTS) or {}
     if not isinstance(run_defaults, dict):
         notices.append(_notice("error", None, DEFAULTS, "`defaults` is not a mapping."))
@@ -470,31 +485,108 @@ def referenced_playbooks(config, scenarios_dir=COLLECTION_SCENARIOS_DIR):
     return sorted(paths)
 
 
-def start_steps(config, workers=None):
+def workers_words(schema):
+    """Return the word values the schema's `workers` key accepts, such as `cpus`."""
+    variants = schema["properties"][WORKERS].get("anyOf", [])
+    return [word for variant in variants for word in variant.get("enum", [])]
+
+
+def workers_valid(value, schema):
+    """Return True when `value` is a `workers` value the schema accepts."""
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return value >= 1
+    return isinstance(value, str) and value in workers_words(schema)
+
+
+def run_workers(config, schema, override=None, cpus=None):
+    """Resolve the run's cap on scenarios in flight.
+
+    The override, as `--workers` gives it, wins over the file's `workers` key, which wins
+    over the schema's default. A word value counts the CPUs, floored at 1.
+
+    Args:
+        config: the parsed single-config molecule.yml.
+        schema: the config schema as a dict (generated JSON form).
+        override: the `--workers` value, or None.
+        cpus: the CPU count a word value counts, or None for 1.
+
+    Returns:
+        A dict with `workers`, the cap as an integer, `requested`, the value as written,
+        and `source`, one of `flag`, `file` or `default`.
+
+    Raises:
+        ValueError: when `override` is not a value the schema accepts.
+    """
+    if override is not None:
+        if not workers_valid(override, schema):
+            raise ValueError("workers must be an integer of at least 1 or one of: " + ", ".join(workers_words(schema)))
+        requested, source = override, "flag"
+    elif isinstance(config, dict) and WORKERS in config and workers_valid(config[WORKERS], schema):
+        requested, source = config[WORKERS], "file"
+    else:
+        requested, source = schema["properties"][WORKERS]["default"], "default"
+    if isinstance(requested, int):
+        count = requested
+    else:
+        count = max(1, (cpus or 1) + CPU_OFFSETS[requested])
+    return {"workers": count, "requested": requested, "source": source}
+
+
+def workers_notices(workers, scenarios_dir, destroy="always"):
+    """Report a workers cap that today's Molecule rejects.
+
+    Args:
+        workers: the cap, an integer.
+        scenarios_dir: the scenarios directory. `molecule` stands for a project without a
+            `galaxy.yml`.
+        destroy: the `--destroy` value, `always` or `never`.
+
+    Returns:
+        A list of `unsupported` notices.
+    """
+    notices = []
+    if workers <= 1:
+        return notices
+    if scenarios_dir == PROJECT_SCENARIOS_DIR:
+        notices.append(_notice(
+            "unsupported", None, WORKERS,
+            f"Workers {workers} needs collection mode. Today's Molecule rejects `--workers` above 1 without a "
+            f"`galaxy.yml`, and the `{PROJECT_SCENARIOS_DIR}` scenarios directory is a project without one."))
+    if destroy == "never":
+        notices.append(_notice(
+            "unsupported", None, WORKERS,
+            f"Workers {workers} with `--destroy=never`. Today's Molecule rejects `--workers` above 1 together "
+            "with `--destroy=never`."))
+    return notices
+
+
+def start_steps(config, workers=1):
     """Return the step at which each scenario starts.
 
     Each scenario takes one step. A child is ready once its parent has completed. Among
     nodes that share a parent, roots sharing the run, the lowest wave is ready first, and
     a node is ready only once every sibling in a lower wave has completed its whole
-    subtree. With a cap, at most `workers` scenarios start per step. Ready scenarios beyond the cap
+    subtree. At most `workers` scenarios start per step. Ready scenarios beyond the cap
     wait, the earliest ready first, ties in pre-order. A wave that `project` reports as
     an error is ordered as wave 0.
 
     Args:
         config: the parsed single-config molecule.yml.
-        workers: the cap, an integer of at least 1, or None for no cap.
+        workers: the cap, an integer of at least 1.
 
     Returns:
-        A dict with `workers`, the cap as given or None, and `scenarios`, a pre-order list of
+        A dict with `workers`, the cap, and `scenarios`, a pre-order list of
         {name, parent, step} where `parent` is a name or None and `step` counts from 1.
 
     Raises:
-        ValueError: when `workers` is below 1.
+        ValueError: when `workers` is not an integer of at least 1.
     """
     nodes = scenario_nodes(config)
-    if workers is not None and (not isinstance(workers, int) or isinstance(workers, bool) or workers < 1):
+    if not isinstance(workers, int) or isinstance(workers, bool) or workers < 1:
         raise ValueError("workers must be an integer of at least 1")
-    cap = len(nodes) if workers is None else workers
+    cap = workers
     roots = [i for i, n in enumerate(nodes) if n["parent"] is None]
     started = {}
     ready_since = {}

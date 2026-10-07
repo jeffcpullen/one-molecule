@@ -17,7 +17,8 @@ from cli import (  # noqa: E402
     example_playbooks, example_scenarios_dir, example_source, load_schema, load_starter, notices_json, order_text,
     playbooks_in)
 from cli import main as cli_main  # noqa: E402
-from project import KeyClasses, deep_merge, project, referenced_playbooks, start_steps  # noqa: E402
+from project import (  # noqa: E402
+    CPU_OFFSETS, KeyClasses, deep_merge, project, referenced_playbooks, run_workers, start_steps, workers_words)
 from render import convert_text  # noqa: E402
 
 FIXTURES = HERE / "fixtures"
@@ -99,7 +100,8 @@ class Starter(unittest.TestCase):
         key_line = re.compile(r"^( *)# ((- )?[a-z_]+:.*)$")
         lines = [key_line.sub(r"\1\2", line) for line in load_starter().splitlines()]
         data = yaml.safe_load("\n".join(lines))
-        self.assertEqual(list(data), ["platforms", "defaults", "scenarios"])
+        self.assertEqual(list(data), ["workers", "platforms", "defaults", "scenarios"])
+        self.assertEqual(data["workers"], 1)
         node = data["scenarios"][0]
         self.assertEqual(set(node), set(SCHEMA["definitions"]["node"]["properties"]))
         self.assertEqual(set(data["defaults"]), set(SCHEMA["definitions"]["config"]["properties"]))
@@ -400,7 +402,7 @@ class Playbooks(unittest.TestCase):
             {"name": "b", "children": None},
         ]}
         self.assertEqual(referenced_playbooks(config, "molecule"), ["molecule/a/a.yml"])
-        self.assertEqual(_steps(start_steps(config)), {"a": 1, "b": 1})
+        self.assertEqual(_steps(start_steps(config, 2)), {"a": 1, "b": 1})
 
     def test_playbooks_in_stays_inside_the_root(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -437,11 +439,11 @@ class StartOrder(unittest.TestCase):
     def test_collection_shared_state_example(self):
         config = yaml.safe_load(example_source("collection-shared-state").read_text())
         order = start_steps(config)
-        self.assertIsNone(order["workers"])
+        self.assertEqual(order["workers"], 1)
         self.assertEqual(order["scenarios"], [
             {"name": "default", "parent": None, "step": 1},
             {"name": "app_config", "parent": "default", "step": 2},
-            {"name": "app_users", "parent": "default", "step": 2},
+            {"name": "app_users", "parent": "default", "step": 3},
         ])
 
     def test_waves_wait_for_the_lower_wave_subtree(self):
@@ -453,7 +455,7 @@ class StartOrder(unittest.TestCase):
             {"name": "b"},
             {"name": "late", "wave": 1, "children": [{"name": "late1"}]},
         ]}
-        self.assertEqual(_steps(start_steps(config)), {
+        self.assertEqual(_steps(start_steps(config, 9)), {
             "a": 1, "b": 1, "a1": 2, "a1x": 3, "a2": 4, "late": 5, "late1": 6,
         })
 
@@ -472,19 +474,19 @@ class StartOrder(unittest.TestCase):
         config = {"scenarios": [{"name": "a"}, {"name": "b"}]}
         order = start_steps(config, 9)
         self.assertEqual(order["workers"], 9)
-        self.assertEqual(order["scenarios"], start_steps(config)["scenarios"])
+        self.assertEqual(order["scenarios"], start_steps(config, 2)["scenarios"])
 
-    def test_no_cap_by_default(self):
-        config = {"scenarios": [{"name": n} for n in "abcdefgh"]}
+    def test_one_worker_by_default(self):
+        config = {"scenarios": [{"name": n} for n in "abc"]}
         order = start_steps(config)
-        self.assertIsNone(order["workers"])
-        self.assertEqual(set(_steps(order).values()), {1})
+        self.assertEqual(order["workers"], 1)
+        self.assertEqual(_steps(order), {"a": 1, "b": 2, "c": 3})
 
     def test_wave_values(self):
         def run(wave):
             config = {"scenarios": [{"name": "a", "wave": wave}, {"name": "b"}]}
             notices = [(n["kind"], n["node"], n["key"]) for n in project(config, SCHEMA)["notices"]]
-            return notices, _steps(start_steps(config))
+            return notices, _steps(start_steps(config, 2))
         self.assertEqual(run(1.0), ([("lost", "a", "wave")], {"a": 2, "b": 1}))
         self.assertEqual(run(-1), ([("lost", "a", "wave")], {"a": 1, "b": 2}))
         for bad in ("1", True, 1.5, None):
@@ -495,8 +497,12 @@ class StartOrder(unittest.TestCase):
         with self.assertRaises(ValueError):
             start_steps({"scenarios": [{"name": "a"}]}, 0)
 
+        for bad in (None, True, 1.5, "cpus"):
+            with self.subTest(workers=bad), self.assertRaises(ValueError):
+                start_steps({"scenarios": [{"name": "a"}]}, bad)
+
     def test_invalid_input_has_no_scenarios(self):
-        self.assertEqual(start_steps(None), {"workers": None, "scenarios": []})
+        self.assertEqual(start_steps(None), {"workers": 1, "scenarios": []})
 
     def test_cli_prints_the_order(self):
         source = str(example_source("collection-shared-state"))
@@ -504,18 +510,35 @@ class StartOrder(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             code = cli_main([source, "--order", "--workers", "1"])
         self.assertEqual(code, 0)
-        self.assertEqual(out.getvalue(), "workers: 1\nstep 1: default\nstep 2: app_config\nstep 3: app_users\n")
+        self.assertEqual(out.getvalue(),
+                         "workers: 1 (--workers)\nstep 1: default\nstep 2: app_config\nstep 3: app_users\n")
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             cli_main([source, "--order"])
-        self.assertEqual(out.getvalue(), "workers: no limit\nstep 1: default\nstep 2: app_config, app_users\n")
+        self.assertEqual(out.getvalue(), "workers: 1\nstep 1: default\nstep 2: app_config\nstep 3: app_users\n")
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             cli_main([source, "--order", "--workers", "7"])
-        self.assertTrue(out.getvalue().startswith("workers: 7\n"), out.getvalue())
-        for argv, message in (([source, "--workers", "2"], "--workers needs --order"),
-                              ([source, "--order", "--workers", "abc"], "must be an integer of at least 1"),
-                              ([source, "--order", "--workers", "0"], "must be an integer of at least 1")):
+        self.assertEqual(out.getvalue(), "workers: 7 (--workers)\nstep 1: default\nstep 2: app_config, app_users\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "molecule.yml"
+            path.write_text("---\nworkers: 2\nscenarios:\n  - name: a\n  - name: b\n  - name: c\n")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                cli_main([str(path), "--order"])
+            self.assertEqual(out.getvalue(), "workers: 2 (molecule.yml)\nstep 1: a, b\nstep 2: c\n")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                cli_main([str(path), "--order", "--workers", "1"])
+            self.assertEqual(out.getvalue(), "workers: 1 (--workers)\nstep 1: a\nstep 2: b\nstep 3: c\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            cli_main([source, "--order", "--workers", "cpus"])
+        self.assertTrue(out.getvalue().startswith("workers: "), out.getvalue())
+        self.assertIn("(--workers", out.getvalue())
+        for argv, message in (([source, "--order", "--workers", "abc"], "must be an integer of at least 1"),
+                              ([source, "--order", "--workers", "0"], "must be an integer of at least 1"),
+                              ([source, "--order", "--destroy", "sometimes"], "invalid choice")):
             with self.subTest(argv=argv):
                 err = io.StringIO()
                 with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as raised:
@@ -524,6 +547,71 @@ class StartOrder(unittest.TestCase):
                 self.assertIn(message, err.getvalue())
         self.assertEqual(order_text(start_steps({"scenarios": [{"name": n} for n in "abcde"]}, 2)),
                          "workers: 2\nstep 1: a, b\nstep 2: c, d\nstep 3: e\n")
+
+
+class Workers(unittest.TestCase):
+    """The run-level `workers` key, the `--workers` override and the checks today's Molecule makes."""
+
+    def test_words_come_from_the_schema(self):
+        self.assertEqual(sorted(workers_words(SCHEMA)), sorted(CPU_OFFSETS))
+        self.assertEqual(SCHEMA["properties"]["workers"]["default"], 1)
+
+    def test_precedence(self):
+        config = {"workers": 3, "scenarios": [{"name": "a"}]}
+        self.assertEqual(run_workers(config, SCHEMA), {"workers": 3, "requested": 3, "source": "file"})
+        self.assertEqual(run_workers(config, SCHEMA, 2), {"workers": 2, "requested": 2, "source": "flag"})
+        self.assertEqual(run_workers({"scenarios": []}, SCHEMA), {"workers": 1, "requested": 1, "source": "default"})
+        self.assertEqual(run_workers(None, SCHEMA)["workers"], 1)
+
+    def test_cpu_words_are_floored_at_one(self):
+        self.assertEqual(run_workers({"workers": "cpus"}, SCHEMA, cpus=8)["workers"], 8)
+        self.assertEqual(run_workers({"workers": "cpus-1"}, SCHEMA, cpus=8)["workers"], 7)
+        self.assertEqual(run_workers({"workers": "cpus-1"}, SCHEMA, cpus=1)["workers"], 1)
+        self.assertEqual(run_workers({"workers": "cpus"}, SCHEMA)["workers"], 1)
+
+    def test_invalid_file_value_is_error_and_orders_at_the_default(self):
+        for bad in (0, -1, True, 1.5, "all", None):
+            with self.subTest(workers=bad):
+                text = yaml.safe_dump({"workers": bad, "scenarios": [{"name": "a"}, {"name": "b"}]})
+                result = convert_text(text, SCHEMA)
+                self.assertIn(("error", None, "workers"),
+                              {(n["kind"], n["node"], n["key"]) for n in result["notices"]})
+                self.assertEqual(result["order"]["workers"], 1)
+                self.assertEqual(result["order"]["source"], "default")
+
+    def test_invalid_override_raises(self):
+        with self.assertRaises(ValueError):
+            convert_text("---\nscenarios:\n  - name: a\n", SCHEMA, workers=0)
+
+    def test_file_value_is_lost_with_the_flag_to_pass(self):
+        result = project({"workers": 4, "scenarios": [{"name": "a"}]}, SCHEMA)
+        self.assertEqual([(n["kind"], n["key"]) for n in result["notices"]], [("lost", "workers")])
+        self.assertIn("`--workers 4`", result["notices"][0]["message"])
+        self.assertEqual(result["files"][0]["content"], {})
+
+    def test_above_one_outside_a_collection_is_unsupported(self):
+        text = "---\nworkers: 2\nscenarios:\n  - name: a\n"
+        kinds = [(n["kind"], n["key"]) for n in convert_text(text, SCHEMA, "molecule")["notices"]]
+        self.assertEqual(kinds, [("lost", "workers"), ("unsupported", "workers")])
+        kinds = [(n["kind"], n["key"]) for n in convert_text(text, SCHEMA)["notices"]]
+        self.assertEqual(kinds, [("lost", "workers")])
+        kinds = [n["kind"] for n in convert_text(text, SCHEMA, "molecule", workers=1)["notices"]]
+        self.assertEqual(kinds, ["lost"])
+
+    def test_above_one_with_destroy_never_is_unsupported(self):
+        text = "---\nscenarios:\n  - name: a\n"
+        self.assertEqual(convert_text(text, SCHEMA, workers=1, destroy="never")["notices"], [])
+        notices = convert_text(text, SCHEMA, workers=2, destroy="never")["notices"]
+        self.assertEqual([n["kind"] for n in notices], ["unsupported"])
+        self.assertIn("--destroy=never", notices[0]["message"])
+        self.assertEqual(convert_text(text, SCHEMA, workers=2)["notices"], [])
+
+    def test_cpus_above_one_counts(self):
+        text = "---\nworkers: cpus\nscenarios:\n  - name: a\n"
+        notices = convert_text(text, SCHEMA, "molecule", cpus=4)["notices"]
+        self.assertEqual([n["kind"] for n in notices], ["lost", "unsupported"])
+        notices = convert_text(text, SCHEMA, "molecule", cpus=1)["notices"]
+        self.assertEqual([n["kind"] for n in notices], ["lost"])
 
 
 if __name__ == "__main__":

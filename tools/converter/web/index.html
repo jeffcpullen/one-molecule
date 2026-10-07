@@ -75,7 +75,12 @@
       </div>
       <div class="order-head">
         <h2>Start order</h2>
-        <label>Workers <input id="workers" type="number" min="1" step="1" inputmode="numeric" placeholder="no limit"></label>
+        <label>Workers <input id="workers" type="number" min="1" step="1" inputmode="numeric" placeholder="1"></label>
+        <span id="workers-note" class="workers-note">default</span>
+        <label>Destroy <select id="destroy">
+          <option value="always">always</option>
+          <option value="never">never</option>
+        </select></label>
       </div>
       <div id="order" class="order"></div>
       <h2>Notices</h2>

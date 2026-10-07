@@ -222,6 +222,11 @@ button.file .tag {
   width: 4.5rem;
 }
 
+.workers-note {
+  color: #57606a;
+  font-size: 0.85rem;
+}
+
 #workers:invalid {
   border: 2px solid #cf222e;
   outline-color: #cf222e;
@@ -278,4 +283,8 @@ button.file .tag {
 
 .notice.lost {
   border-color: #8250df;
+}
+
+.notice.unsupported {
+  border-color: #bc4c00;
 }

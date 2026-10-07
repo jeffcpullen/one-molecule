@@ -4,11 +4,14 @@ Standard library only. Keys and notes come from the config schema, and the sub-k
 Molecule's own sections from Molecule's schema, resolved through the spec's `$ref`s.
 """
 
+import textwrap
+
 from project import KeyClasses
 
 MOLECULE_REF = "../vendor/molecule.json#"
 LIVE_NAME = "integration_sample_filter"
 MAX_ENUM_VALUES = 5
+MAX_LINE = 100
 LIVE_DEFAULTS = {
     "playbooks": {
         "cleanup": "../utils/playbooks/noop.yml",
@@ -122,8 +125,14 @@ class _Schemas:
 
 
 def _line(indent, text, note, commented=True):
-    body = f"{text}  # {note}" if note else text
-    return " " * indent + ("# " if commented else "") + body
+    """Render one key line with its note, moving the note to the line above when it would run past `MAX_LINE`."""
+    lead = " " * indent + ("# " if commented else "")
+    line = f"{lead}{text}  # {note}" if note else lead + text
+    if len(line) <= MAX_LINE:
+        return line
+    prefix = " " * indent + "# "
+    wrapped = textwrap.wrap(note, width=MAX_LINE - len(prefix))
+    return "\n".join([prefix + part for part in wrapped] + [lead + text])
 
 
 def _value_lines(value, indent):
@@ -165,6 +174,11 @@ def starter_text(schema, molecule):
     node = schema["definitions"]["node"]["properties"]
     version = schema.get("x-spec", {}).get("version", "")
     lines = [h.format(version=version) for h in HEADER]
+
+    if "workers" in run:
+        lines.append("")
+        lines.append(_line(0, f"workers: {run['workers'].get('default', '')}".rstrip(),
+                           schemas.note(run["workers"], schema)))
 
     catalog = schemas.properties(run["platforms"]["items"], schema)
     lines.append("")
