@@ -55,6 +55,12 @@ class Starter(unittest.TestCase):
         self.assertEqual([f["path"] for f in result["files"]], ["molecule/default/molecule.yml"])
         self.assertEqual([n for n in result["notices"] if n["kind"] == "error"], [])
 
+    def test_live_scenario_is_a_minimal_config(self):
+        result = convert_text(load_starter(), SCHEMA)
+        self.assertEqual(yaml.safe_load(result["files"][0]["text"]),
+                         {"driver": {"name": "default"}, "platforms": [{"name": "instance"}]})
+        self.assertEqual(result["notices"], [])
+
     def test_names_every_declared_key(self):
         text = load_starter()
         definitions = SCHEMA["definitions"]

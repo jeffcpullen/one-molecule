@@ -8,9 +8,14 @@ from project import KeyClasses
 
 MOLECULE_REF = "../vendor/molecule.json#"
 LIVE_NAME = "default"
+LIVE_KEYS = {
+    "driver": {"name": "default"},
+    "platforms": [{"name": "instance"}],
+}
 HEADER = [
     "---",
     "# Starter molecule.yml for spec {version}, generated from the config schema.",
+    "# The live lines are a minimal scenario: the default driver and one platform.",
     "# Uncomment a key to use it. Molecule's own sections list their keys one level deep.",
     "# Every config key shown under the scenario also works under defaults:, for every scenario.",
 ]
@@ -104,7 +109,8 @@ def starter_text(schema, molecule):
         molecule: Molecule's own schema as a dict (vendored molecule.json).
 
     Returns:
-        YAML text with one live scenario and every other declared key commented out.
+        YAML text with one minimal live scenario, holding the `LIVE_KEYS` values, and every
+        other declared key commented out.
     """
     schemas = _Schemas(schema, molecule)
     classes = KeyClasses(schema)
@@ -130,12 +136,20 @@ def starter_text(schema, molecule):
     for key, sub in node.items():
         if key in ("name", "children"):
             continue
+        live = LIVE_KEYS.get(key)
         default = sub.get("default")
         text = f"{key}: {default}" if default is not None else f"{key}:"
-        lines.append(_line(4, text, schemas.note(sub, schema)))
+        lines.append(_line(4, text, schemas.note(sub, schema), commented=live is None))
+        if isinstance(live, list):
+            for item in live:
+                for i, (subkey, value) in enumerate(item.items()):
+                    lines.append(_line(6, ("- " if i == 0 else "  ") + f"{subkey}: {value}", None,
+                                       commented=False))
         if classes.is_config(key) and schemas.kind(sub, schema) != "list":
             for subkey, (child, cdoc) in schemas.properties(sub, schema).items():
-                lines.append(_line(6, f"{subkey}:", schemas.note(child, cdoc)))
+                value = live.get(subkey) if isinstance(live, dict) else None
+                text = f"{subkey}: {value}" if value is not None else f"{subkey}:"
+                lines.append(_line(6, text, schemas.note(child, cdoc), commented=value is None))
     if "children" in node:
         lines.append(_line(4, "children:", schemas.note(node["children"], schema)))
         lines.append(_line(6, "- name:", "A child takes every key a scenario takes."))

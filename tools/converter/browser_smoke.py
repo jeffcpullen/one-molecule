@@ -18,6 +18,7 @@ from cli import ROOT, load_schema, load_starter  # noqa: E402
 from render import convert_text  # noqa: E402
 
 READY_TIMEOUT_MS = 120000
+EDITOR = "#source .cm-content"
 
 
 def notice_lines(result):
@@ -45,7 +46,7 @@ def check_preset(page, slug, schema):
     assert paths == [f["path"] for f in expected["files"]], (slug, paths)
     for item in expected["files"]:
         page.locator("#tree button", has_text=item["path"]).click()
-        shown = page.locator("#file").text_content()
+        shown = page.evaluate("converter.file()")
         assert shown == item["text"], (slug, item["path"], shown)
     shown_notices = page.locator("#notices li").all_text_contents()
     assert shown_notices == notice_lines(expected), (slug, shown_notices)
@@ -55,15 +56,15 @@ def check_preset(page, slug, schema):
 def check_starter(page, schema):
     """A fresh page opens on the starter file and shows its projection."""
     text = load_starter()
-    assert page.input_value("#source") == text, "page did not open on the starter file"
+    assert page.evaluate("converter.source()") == text, "page did not open on the starter file"
     expected = convert_text(text, schema)
     page.wait_for_function("document.querySelectorAll('#tree button').length > 0")
     paths = page.locator("#tree button").all_inner_texts()
     assert paths == [f["path"] for f in expected["files"]], paths
     page.select_option("#preset", "")
-    page.fill("#source", "")
+    page.fill(EDITOR, "")
     page.click("#starter")
-    assert page.input_value("#source") == text, "the Starter button did not restore the starter file"
+    assert page.evaluate("converter.source()") == text, "the Starter button did not restore the starter file"
     print(f"ok the page opens on the starter file: {len(paths)} file(s)")
 
 
@@ -74,14 +75,20 @@ def check_share(browser, url):
     page.goto(url)
     page.wait_for_selector("#status:has-text('Ready')", timeout=READY_TIMEOUT_MS)
     text = "---\nscenarios:\n  - name: shared-link\n"
-    page.fill("#source", text)
+    page.fill(EDITOR, text)
+    assert page.evaluate("converter.source()") == text, "the editor changed the typed text"
+    page.wait_for_function(
+        "[...document.querySelectorAll('#tree button')].map(b => b.textContent).join() "
+        "=== 'molecule/shared-link/molecule.yml'"
+    )
+    print("ok typing in the editor reruns the conversion")
     page.click("#share")
     page.wait_for_function("window.location.hash.startsWith('#src=')")
     link = page.url
     other = context.new_page()
     other.goto(link)
     other.wait_for_selector("#status:has-text('Ready')", timeout=READY_TIMEOUT_MS)
-    assert other.input_value("#source") == text
+    assert other.evaluate("converter.source()") == text
     assert other.locator("#tree button").all_inner_texts() == ["molecule/shared-link/molecule.yml"]
     print("ok share link round-trips the source")
     context.close()

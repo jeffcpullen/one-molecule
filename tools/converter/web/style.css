@@ -41,27 +41,30 @@ main {
   min-width: 0;
 }
 
-textarea,
-pre {
-  font-family: ui-monospace, monospace;
-  font-size: 0.85rem;
-  width: 100%;
-  box-sizing: border-box;
+.editor .cm-editor {
   border: 1px solid #d0d7de;
   border-radius: 6px;
-  padding: 0.5rem;
+  overflow: hidden;
 }
 
-textarea {
-  height: 75vh;
-  resize: vertical;
+.editor .cm-editor.cm-focused {
+  outline: 2px solid #0969da;
+  outline-offset: -1px;
 }
 
-pre {
-  background: #f6f8fa;
+.editor .cm-scroller {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
   overflow: auto;
+}
+
+#source .cm-editor {
+  height: 75vh;
+}
+
+#file .cm-editor {
   max-height: 45vh;
-  margin: 0;
+  background: #f6f8fa;
 }
 
 ul {

@@ -1,5 +1,4 @@
 // User interface only. Every conversion rule lives in project.py.
-"use strict";
 
 const PY_MODULES = ["project.py", "render.py"];
 const SCHEMA_URL = "molecule-config.schema.json";
@@ -13,6 +12,57 @@ let schemaText = null;
 let selected = null;
 let timer = null;
 let version = "";
+let sourceView = null;
+let fileView = null;
+
+function getSource() {
+  return sourceView.state.doc.toString();
+}
+
+function setDoc(view, text) {
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: text },
+    selection: { anchor: 0 },
+    scrollIntoView: true,
+  });
+}
+
+async function makeEditors() {
+  const { basicSetup, minimalSetup, EditorView } = await import("codemirror");
+  const { EditorState } = await import("@codemirror/state");
+  const { keymap, lineNumbers } = await import("@codemirror/view");
+  const { indentWithTab } = await import("@codemirror/commands");
+  const { yaml } = await import("@codemirror/lang-yaml");
+  sourceView = new EditorView({
+    parent: el("source"),
+    extensions: [
+      basicSetup,
+      keymap.of([indentWithTab]),
+      yaml(),
+      EditorView.contentAttributes.of({ "aria-label": "Single-config molecule.yml" }),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          schedule();
+        }
+      }),
+    ],
+  });
+  fileView = new EditorView({
+    parent: el("file"),
+    extensions: [
+      minimalSetup,
+      lineNumbers(),
+      yaml(),
+      EditorState.readOnly.of(true),
+      EditorView.editable.of(false),
+      EditorView.contentAttributes.of({ "aria-label": "Projected file" }),
+    ],
+  });
+  window.converter = {
+    source: getSource,
+    file: () => fileView.state.doc.toString(),
+  };
+}
 
 async function fetchText(url, options) {
   const res = await fetch(version ? `${url}?v=${version}` : url, options);
@@ -63,7 +113,10 @@ function renderResult(result) {
     tree.appendChild(li);
   }
   const current = result.files.find((f) => f.path === selected);
-  el("file").textContent = current ? current.text : "";
+  const text = current ? current.text : "";
+  if (fileView.state.doc.toString() !== text) {
+    setDoc(fileView, text);
+  }
 
   const notices = el("notices");
   notices.replaceChildren();
@@ -85,7 +138,7 @@ function run() {
   if (!convert) {
     return;
   }
-  const result = JSON.parse(convert(el("source").value, schemaText));
+  const result = JSON.parse(convert(getSource(), schemaText));
   renderResult(result);
 }
 
@@ -107,16 +160,16 @@ async function loadPresets() {
     if (!select.value) {
       return;
     }
-    el("source").value = presets[select.value];
+    setDoc(sourceView, presets[select.value]);
     run();
   });
 }
 
 async function main() {
-  el("source").addEventListener("input", schedule);
+  await makeEditors();
   el("share").addEventListener("click", async () => {
     const url = new URL(window.location.href);
-    url.hash = "src=" + (await encodeShare(el("source").value));
+    url.hash = "src=" + (await encodeShare(getSource()));
     window.history.replaceState(null, "", url);
     await navigator.clipboard.writeText(url.toString());
     setStatus("Share link copied.");
@@ -126,13 +179,13 @@ async function main() {
   const starter = JSON.parse(await fetchText(STARTER_URL)).text;
   el("starter").addEventListener("click", () => {
     el("preset").value = "";
-    el("source").value = starter;
+    setDoc(sourceView, starter);
     run();
   });
   if (window.location.hash.startsWith("#src=")) {
-    el("source").value = await decodeShare(window.location.hash.slice(5));
+    setDoc(sourceView, await decodeShare(window.location.hash.slice(5)));
   } else {
-    el("source").value = starter;
+    setDoc(sourceView, starter);
   }
   await loadPresets();
 
