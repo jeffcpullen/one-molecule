@@ -1,5 +1,6 @@
 ---
 $schema: http://json-schema.org/draft-07/schema#
+$id: https://raw.githubusercontent.com/jeffcpullen/one-molecule/v0.1.0/generated/molecule-config.schema.json
 title: molecule.yml (single-file)
 description: 'The single-file molecule.yml, version 0.1.0: run defaults, a platform catalog, and a tree of scenarios. It describes how existing molecule scenario files appear in single-file form. Node config is molecule''s own scenario schema (molecule.json), referenced rather than restated.'
 x-spec:
