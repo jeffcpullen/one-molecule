@@ -4,7 +4,7 @@ import json
 
 import yaml
 
-from project import COLLECTION_SCENARIOS_DIR, project
+from project import COLLECTION_SCENARIOS_DIR, project, referenced_playbooks, start_steps
 
 
 class _IndentedDumper(yaml.SafeDumper):
@@ -36,36 +36,45 @@ def dump(value):
     return "---\n" + body
 
 
-def convert_text(text, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
+def convert_text(text, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR, workers=None):
     """Parse a single-config molecule.yml and project it.
 
     Args:
         text: the YAML source.
         schema: the config schema as a dict.
         scenarios_dir: the scenarios directory the files are placed under.
+        workers: the start-order cap, or None for the number of scenarios.
 
     Returns:
-        A dict with `files`, a list of {path, text}, and `notices`.
+        A dict with `files`, a list of {path, text}, `notices`, `playbooks`, the
+        `referenced_playbooks` paths, and `order`, the `start_steps` result.
     """
     try:
         config = yaml.safe_load(text)
     except yaml.YAMLError as exc:
         return {"files": [], "notices": [
-            {"kind": "error", "node": None, "key": None, "message": f"YAML parse error: {exc}"}]}
+            {"kind": "error", "node": None, "key": None, "message": f"YAML parse error: {exc}"}],
+            "playbooks": [], "order": start_steps(None, workers)}
     result = project(config, schema, scenarios_dir)
     files = [{"path": f["path"], "text": dump(f["content"])} for f in result["files"]]
-    return {"files": files, "notices": result["notices"]}
+    return {
+        "files": files,
+        "notices": result["notices"],
+        "playbooks": referenced_playbooks(config, scenarios_dir),
+        "order": start_steps(config, workers),
+    }
 
 
-def convert_json(text, schema_text, scenarios_dir=COLLECTION_SCENARIOS_DIR):
+def convert_json(text, schema_text, scenarios_dir=COLLECTION_SCENARIOS_DIR, workers=None):
     """JSON wrapper of `convert_text` for the web page.
 
     Args:
         text: the YAML source.
         schema_text: the config schema as JSON text.
         scenarios_dir: the scenarios directory the files are placed under.
+        workers: the start-order cap, or None for the number of scenarios.
 
     Returns:
         The `convert_text` result as JSON text.
     """
-    return json.dumps(convert_text(text, json.loads(schema_text), scenarios_dir))
+    return json.dumps(convert_text(text, json.loads(schema_text), scenarios_dir, workers))

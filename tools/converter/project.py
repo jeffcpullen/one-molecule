@@ -3,6 +3,9 @@
 Standard library only. Key classes come from the schema's `x-class` annotations.
 """
 
+import json
+import posixpath
+
 PLAYBOOKS_ALIAS = "playbooks"
 PROVISIONER = "provisioner"
 PLATFORMS = "platforms"
@@ -318,10 +321,14 @@ def project(config, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
             merged[PLATFORMS] = _copy(parent_platforms)
         resolved = _ordered(merged, classes)
 
-        if node.get(WAVE, 0) not in (0, None):
+        wave, wave_ok = node_wave(node)
+        if not wave_ok:
+            notices.append(_notice(
+                "error", name, WAVE, f"`wave: {json.dumps(node[WAVE], default=str)}` is not an integer."))
+        elif wave != 0:
             notices.append(_notice(
                 "lost", name, WAVE,
-                f"`wave: {node[WAVE]}` orders this scenario among its siblings. Today's Molecule has "
+                f"`wave: {wave}` orders this scenario among its siblings. Today's Molecule has "
                 "no ordering tier, so it is dropped."))
 
         if parent is not None and not shared:
@@ -340,3 +347,196 @@ def project(config, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR):
         walk(root, None, None)
 
     return {"files": files, "notices": notices}
+
+
+def node_wave(node):
+    """Read a node's `wave`.
+
+    Args:
+        node: the node mapping as written.
+
+    Returns:
+        (wave, valid). An absent `wave` is (0, True). An integer, or a float with an
+        integral value, is that integer and valid. Anything else, including a bool and
+        null, is (0, False).
+    """
+    if WAVE not in node:
+        return 0, True
+    value = node[WAVE]
+    if isinstance(value, bool):
+        return 0, False
+    if isinstance(value, int):
+        return value, True
+    if isinstance(value, float) and value.is_integer():
+        return int(value), True
+    return 0, False
+
+
+def scenario_nodes(config):
+    """List the run's scenario nodes in tree pre-order.
+
+    Entries without a string `name`, and repeats of a name already seen, are skipped
+    with their subtrees, as `project` skips them.
+
+    Args:
+        config: the parsed single-config molecule.yml.
+
+    Returns:
+        A list of {name, parent, wave, node, children} where `parent` and each entry of
+        `children` are indexes into the list, `parent` is None for a root, `wave` is the
+        `node_wave` value, which is 0 for an invalid wave, and `node` is the node mapping
+        as written.
+    """
+    nodes = []
+    if not isinstance(config, dict) or not isinstance(config.get(SCENARIOS), list):
+        return nodes
+    seen = set()
+
+    def walk(node, parent):
+        if not isinstance(node, dict) or not isinstance(node.get(NAME), str) or node[NAME] in seen:
+            return
+        seen.add(node[NAME])
+        wave = node_wave(node)[0]
+        index = len(nodes)
+        nodes.append({"name": node[NAME], "parent": parent, "wave": wave, "node": node, "children": []})
+        if parent is not None:
+            nodes[parent]["children"].append(index)
+        children = node.get(CHILDREN)
+        for child in children if isinstance(children, list) else []:
+            walk(child, index)
+
+    for root in config[SCENARIOS]:
+        walk(root, None)
+    return nodes
+
+
+def _playbook_layer(layer):
+    if not isinstance(layer, dict):
+        return {}
+    picked = {}
+    if isinstance(layer.get(PLAYBOOKS_ALIAS), dict):
+        picked[PLAYBOOKS_ALIAS] = layer[PLAYBOOKS_ALIAS]
+    provisioner = layer.get(PROVISIONER)
+    if isinstance(provisioner, dict) and isinstance(provisioner.get("playbooks"), dict):
+        picked[PROVISIONER] = {"playbooks": provisioner["playbooks"]}
+    return fold_playbooks_alias(picked, None, [])
+
+
+def _strings(value):
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [s for item in value.values() for s in _strings(item)]
+    return []
+
+
+def resolve_path(value, scenarios_dir, name):
+    """Resolve a playbook path from a scenario's directory to a project-relative path.
+
+    Args:
+        value: the path as written.
+        scenarios_dir: the scenarios directory.
+        name: the scenario name.
+
+    Returns:
+        The normalised POSIX path. An absolute path stays absolute, and a path that
+        climbs above the project root keeps its leading `..`.
+    """
+    return posixpath.normpath(posixpath.join(scenarios_dir, name, value))
+
+
+def referenced_playbooks(config, scenarios_dir=COLLECTION_SCENARIOS_DIR):
+    """List every playbook the file references, as project-relative paths.
+
+    Each node's playbooks are its `playbooks` and `provisioner.playbooks` merged over
+    those under `defaults:`, as `project` merges them, so a stage the node sets itself
+    hides the defaults path for that stage. Each value is resolved from the node's
+    scenario directory.
+
+    Args:
+        config: the parsed single-config molecule.yml.
+        scenarios_dir: the scenarios directory.
+
+    Returns:
+        The sorted, deduplicated list of paths.
+    """
+    nodes = scenario_nodes(config)
+    defaults = _playbook_layer(config.get(DEFAULTS) if isinstance(config, dict) else None)
+    paths = set()
+    for entry in nodes:
+        merged = deep_merge(defaults, _playbook_layer(entry["node"]))
+        for value in _strings(merged.get(PROVISIONER, {}).get("playbooks")):
+            paths.add(resolve_path(value, scenarios_dir, entry["name"]))
+    return sorted(paths)
+
+
+def start_steps(config, workers=None):
+    """Return the step at which each scenario starts.
+
+    Each scenario takes one step. A child is ready once its parent has completed. Among
+    nodes that share a parent, roots sharing the run, the lowest wave is ready first, and
+    a node is ready only once every sibling in a lower wave has completed its whole
+    subtree. At most `workers` scenarios start per step. Ready scenarios beyond the cap
+    wait, the earliest ready first, ties in pre-order. A wave that `project` reports as
+    an error is ordered as wave 0.
+
+    Args:
+        config: the parsed single-config molecule.yml.
+        workers: the cap, an integer of at least 1, or None for the number of scenarios.
+            A cap above the number of scenarios is lowered to it.
+
+    Returns:
+        A dict with `workers`, the cap applied after lowering, and `scenarios`, a pre-order list of
+        {name, parent, step} where `parent` is a name or None and `step` counts from 1.
+
+    Raises:
+        ValueError: when `workers` is below 1.
+    """
+    nodes = scenario_nodes(config)
+    if workers is None:
+        workers = max(1, len(nodes))
+    if not isinstance(workers, int) or isinstance(workers, bool) or workers < 1:
+        raise ValueError("workers must be an integer of at least 1")
+    workers = min(workers, max(1, len(nodes)))
+    roots = [i for i, n in enumerate(nodes) if n["parent"] is None]
+    started = {}
+    ready_since = {}
+
+    def siblings(index):
+        parent = nodes[index]["parent"]
+        return roots if parent is None else nodes[parent]["children"]
+
+    def subtree_done(index, step):
+        if started.get(index, step) >= step:
+            return False
+        return all(subtree_done(c, step) for c in nodes[index]["children"])
+
+    def ready(index, step):
+        parent = nodes[index]["parent"]
+        if parent is not None and started.get(parent, step) >= step:
+            return False
+        wave = nodes[index]["wave"]
+        return all(subtree_done(j, step) for j in siblings(index) if nodes[j]["wave"] < wave)
+
+    step = 0
+    while len(started) < len(nodes):
+        step += 1
+        for index in range(len(nodes)):
+            if index not in started and index not in ready_since and ready(index, step):
+                ready_since[index] = step
+        queue = sorted((i for i in ready_since if i not in started), key=lambda i: (ready_since[i], i))
+        if not queue:
+            break
+        for index in queue[:workers]:
+            started[index] = step
+    return {
+        "workers": workers,
+        "scenarios": [
+            {
+                "name": n["name"],
+                "parent": None if n["parent"] is None else nodes[n["parent"]]["name"],
+                "step": started.get(i),
+            }
+            for i, n in enumerate(nodes)
+        ],
+    }

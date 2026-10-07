@@ -1,8 +1,11 @@
 """Fixture tests: each fixtures/<slug>/ holds the expected projection of the example's single-file molecule.yml."""
 
+import contextlib
+import io
 import pathlib
 import re
 import sys
+import tempfile
 import unittest
 
 import yaml
@@ -10,8 +13,11 @@ import yaml
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from cli import example_scenarios_dir, example_source, load_schema, load_starter, notices_json  # noqa: E402
-from project import KeyClasses, deep_merge, project  # noqa: E402
+from cli import (  # noqa: E402
+    example_playbooks, example_scenarios_dir, example_source, load_schema, load_starter, notices_json, order_text,
+    playbooks_in)
+from cli import main as cli_main  # noqa: E402
+from project import KeyClasses, deep_merge, project, referenced_playbooks, start_steps  # noqa: E402
 from render import convert_text  # noqa: E402
 
 FIXTURES = HERE / "fixtures"
@@ -317,6 +323,192 @@ class Rules(unittest.TestCase):
         self.assertIn(("error", "defaults", "wave"),
                       {(n["kind"], n["node"], n["key"]) for n in result["notices"]})
         self.assertEqual(result["files"][0]["content"], {})
+
+
+class Playbooks(unittest.TestCase):
+    """Referenced playbooks resolve from each scenario directory to project paths."""
+
+    def test_collection_shared_state_example(self):
+        config = yaml.safe_load(example_source("collection-shared-state").read_text())
+        self.assertEqual(referenced_playbooks(config, example_scenarios_dir("collection-shared-state")), [
+            "playbooks/molecule/converge.yml",
+            "playbooks/molecule/create-default.yml",
+            "playbooks/molecule/create.yml",
+            "playbooks/molecule/destroy.yml",
+            "playbooks/molecule/verify-app_config.yml",
+            "playbooks/molecule/verify-app_users.yml",
+            "playbooks/molecule/verify-default.yml",
+        ])
+
+    def test_both_keys_defaults_and_nested_children(self):
+        config = {
+            "defaults": {"provisioner": {"playbooks": {"prepare": "../../p.yml"}}},
+            "scenarios": [{
+                "name": "a",
+                "playbooks": {"converge": "converge.yml"},
+                "children": [{"name": "b", "children": [{"name": "c", "playbooks": {"verify": "../../v.yml"}}]}],
+            }],
+        }
+        self.assertEqual(referenced_playbooks(config, "molecule"), [
+            "molecule/a/converge.yml",
+            "p.yml",
+            "v.yml",
+        ])
+
+    def test_paths_outside_the_project_stay_visible(self):
+        config = {"scenarios": [{"name": "a", "playbooks": {"verify": "../../../../t.yml", "create": "/abs/c.yml"}}]}
+        self.assertEqual(referenced_playbooks(config), ["../t.yml", "/abs/c.yml"])
+
+    def test_no_scenarios_no_playbooks(self):
+        self.assertEqual(referenced_playbooks(None), [])
+        self.assertEqual(referenced_playbooks({"defaults": {"playbooks": {"create": "c.yml"}}}), [])
+
+    def test_example_playbooks_are_the_existing_files(self):
+        found = example_playbooks("collection-shared-state")
+        self.assertEqual(sorted(found), referenced_playbooks(
+            yaml.safe_load(example_source("collection-shared-state").read_text()), "extensions/molecule"))
+        root = example_source("collection-shared-state").parent
+        self.assertEqual(found["playbooks/molecule/create.yml"],
+                         (root / "playbooks" / "molecule" / "create.yml").read_text())
+
+    def test_node_stage_hides_the_defaults_path(self):
+        config = {
+            "defaults": {"playbooks": {"converge": "../../shared.yml", "verify": "../../verify.yml"}},
+            "scenarios": [
+                {"name": "a", "playbooks": {"converge": "../../own.yml"}},
+                {"name": "b", "provisioner": {"playbooks": {"verify": "../../b-verify.yml"}}},
+            ],
+        }
+        self.assertEqual(referenced_playbooks(config, "molecule"), [
+            "b-verify.yml",
+            "own.yml",
+            "shared.yml",
+            "verify.yml",
+        ])
+        config["scenarios"][1]["playbooks"] = {"converge": "../../own.yml"}
+        self.assertEqual(referenced_playbooks(config, "molecule"), ["b-verify.yml", "own.yml", "verify.yml"])
+
+    def test_alias_and_provisioner_in_one_layer_follow_project(self):
+        config = {"scenarios": [{"name": "a", "playbooks": {"verify": "x.yml"},
+                                 "provisioner": {"playbooks": {"verify": "y.yml"}}}]}
+        self.assertEqual(referenced_playbooks(config, "molecule"), ["molecule/a/y.yml"])
+
+    def test_duplicate_names_and_empty_children(self):
+        config = {"scenarios": [
+            {"name": "a", "children": [], "playbooks": {"verify": "a.yml"}},
+            {"name": "a", "playbooks": {"verify": "dup.yml"}},
+            {"name": "b", "children": None},
+        ]}
+        self.assertEqual(referenced_playbooks(config, "molecule"), ["molecule/a/a.yml"])
+        self.assertEqual(_steps(start_steps(config)), {"a": 1, "b": 1})
+
+    def test_playbooks_in_stays_inside_the_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = pathlib.Path(tmp)
+            root = base / "project"
+            (root / "playbooks").mkdir(parents=True)
+            (root / "playbooks" / "ok.yml").write_text("ok\n")
+            (base / "outside.yml").write_text("secret\n")
+            (root / "playbooks" / "link.yml").symlink_to(base / "outside.yml")
+            config = {"scenarios": [
+                {"name": "a", "playbooks": {
+                    "converge": "../../playbooks/ok.yml",
+                    "verify": "../../../outside.yml",
+                    "create": str(base / "outside.yml"),
+                    "destroy": "../../playbooks/link.yml",
+                }},
+                {"name": "../../..", "playbooks": {"verify": "outside.yml"}},
+                {"name": str(base), "playbooks": {"verify": "outside.yml"}},
+            ]}
+            self.assertEqual(playbooks_in(root, config, "molecule"), {"playbooks/ok.yml": "ok\n"})
+
+    def test_convert_text_lists_them(self):
+        result = convert_text(example_source("roles").read_text(), SCHEMA, "molecule")
+        self.assertIn("playbooks/molecule/verify-motd.yml", result["playbooks"])
+
+
+def _steps(order):
+    return {s["name"]: s["step"] for s in order["scenarios"]}
+
+
+class StartOrder(unittest.TestCase):
+    """The step at which each scenario starts under the tree's scheduling rules."""
+
+    def test_collection_shared_state_example(self):
+        config = yaml.safe_load(example_source("collection-shared-state").read_text())
+        order = start_steps(config)
+        self.assertEqual(order["workers"], 3)
+        self.assertEqual(order["scenarios"], [
+            {"name": "default", "parent": None, "step": 1},
+            {"name": "app_config", "parent": "default", "step": 2},
+            {"name": "app_users", "parent": "default", "step": 2},
+        ])
+
+    def test_waves_wait_for_the_lower_wave_subtree(self):
+        config = {"scenarios": [
+            {"name": "a", "children": [
+                {"name": "a1", "children": [{"name": "a1x"}]},
+                {"name": "a2", "wave": 1},
+            ]},
+            {"name": "b"},
+            {"name": "late", "wave": 1, "children": [{"name": "late1"}]},
+        ]}
+        self.assertEqual(_steps(start_steps(config)), {
+            "a": 1, "b": 1, "a1": 2, "a1x": 3, "a2": 4, "late": 5, "late1": 6,
+        })
+
+    def test_five_roots_two_workers(self):
+        config = {"scenarios": [{"name": n} for n in "abcde"]}
+        steps = _steps(start_steps(config, 2))
+        self.assertEqual(steps, {"a": 1, "b": 1, "c": 2, "d": 2, "e": 3})
+        counts = [list(steps.values()).count(s) for s in (1, 2, 3)]
+        self.assertEqual(counts, [2, 2, 1])
+
+    def test_waiting_scenarios_go_first_ready_first(self):
+        config = {"scenarios": [{"name": "p", "children": [{"name": "c"}]}, {"name": "q"}, {"name": "r"}]}
+        self.assertEqual(_steps(start_steps(config, 1)), {"p": 1, "q": 2, "r": 3, "c": 4})
+
+    def test_workers_above_the_scenario_count_are_lowered(self):
+        order = start_steps({"scenarios": [{"name": "a"}, {"name": "b"}]}, 9)
+        self.assertEqual(order["workers"], 2)
+        self.assertEqual(_steps(order), {"a": 1, "b": 1})
+
+    def test_wave_values(self):
+        def run(wave):
+            config = {"scenarios": [{"name": "a", "wave": wave}, {"name": "b"}]}
+            notices = [(n["kind"], n["node"], n["key"]) for n in project(config, SCHEMA)["notices"]]
+            return notices, _steps(start_steps(config))
+        self.assertEqual(run(1.0), ([("lost", "a", "wave")], {"a": 2, "b": 1}))
+        self.assertEqual(run(-1), ([("lost", "a", "wave")], {"a": 1, "b": 2}))
+        for bad in ("1", True, 1.5, None):
+            with self.subTest(wave=bad):
+                self.assertEqual(run(bad), ([("error", "a", "wave")], {"a": 1, "b": 1}))
+
+    def test_workers_must_be_positive(self):
+        with self.assertRaises(ValueError):
+            start_steps({"scenarios": [{"name": "a"}]}, 0)
+
+    def test_invalid_input_has_no_scenarios(self):
+        self.assertEqual(start_steps(None), {"workers": 1, "scenarios": []})
+
+    def test_cli_prints_the_order(self):
+        source = str(example_source("collection-shared-state"))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = cli_main([source, "--order", "--workers", "1"])
+        self.assertEqual(code, 0)
+        self.assertEqual(out.getvalue(), "workers: 1\nstep 1: default\nstep 2: app_config\nstep 3: app_users\n")
+        for argv, message in (([source, "--workers", "2"], "--workers needs --order"),
+                              ([source, "--order", "--workers", "abc"], "must be an integer of at least 1"),
+                              ([source, "--order", "--workers", "0"], "must be an integer of at least 1")):
+            with self.subTest(argv=argv):
+                err = io.StringIO()
+                with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as raised:
+                    cli_main(argv)
+                self.assertEqual(raised.exception.code, 2)
+                self.assertIn(message, err.getvalue())
+        self.assertEqual(order_text(start_steps({"scenarios": [{"name": n} for n in "abcde"]}, 2)),
+                         "workers: 2\nstep 1: a, b\nstep 2: c, d\nstep 3: e\n")
 
 
 if __name__ == "__main__":

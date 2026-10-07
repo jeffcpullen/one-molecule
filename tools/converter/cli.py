@@ -2,6 +2,7 @@
 
 Usage:
     python3 tools/converter/cli.py <molecule.yml> [--out DIR] [--schema PATH] [--scenarios-dir DIR]
+    python3 tools/converter/cli.py <molecule.yml> --order [--workers N] [--scenarios-dir DIR]
     python3 tools/converter/cli.py --starter
 """
 
@@ -12,7 +13,10 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from project import COLLECTION_SCENARIOS_DIR, PROJECT_SCENARIOS_DIR, SCENARIOS_DIRS  # noqa: E402
+import yaml  # noqa: E402
+
+from project import (  # noqa: E402
+    COLLECTION_SCENARIOS_DIR, PROJECT_SCENARIOS_DIR, SCENARIOS_DIRS, referenced_playbooks)
 from render import convert_text, dump  # noqa: E402
 from starter import starter_text  # noqa: E402
 
@@ -57,6 +61,85 @@ def example_source(slug):
     """
     root_file = ROOT / "examples" / slug / "molecule.yml"
     return root_file if root_file.is_file() else ROOT / "examples" / slug / "after" / "molecule.yml"
+
+
+def example_root(slug):
+    """Return the project root of an example's single-config layout.
+
+    Args:
+        slug: the directory name under `examples/`.
+
+    Returns:
+        The directory that holds the example's single-file `molecule.yml`.
+    """
+    return example_source(slug).parent
+
+
+def example_playbooks(slug):
+    """Return the referenced playbooks that exist in an example.
+
+    Args:
+        slug: the directory name under `examples/`.
+
+    Returns:
+        {project-relative path: file text} for every path `referenced_playbooks` lists
+        that names a file inside the example root.
+    """
+    config = yaml.safe_load(example_source(slug).read_text())
+    return playbooks_in(example_root(slug), config, example_scenarios_dir(slug))
+
+
+def playbooks_in(root, config, scenarios_dir):
+    """Return the referenced playbooks that name a file inside a project root.
+
+    A path that is absolute, climbs above the root, or resolves outside it through a
+    symlink is left out.
+
+    Args:
+        root: the project root directory.
+        config: the parsed single-config molecule.yml.
+        scenarios_dir: the scenarios directory.
+
+    Returns:
+        {project-relative path: file text}.
+    """
+    root = pathlib.Path(root).resolve()
+    found = {}
+    for path in referenced_playbooks(config, scenarios_dir):
+        if path.startswith("/") or path == ".." or path.startswith("../"):
+            continue
+        target = (root / path).resolve()
+        if target.is_relative_to(root) and target.is_file():
+            found[path] = target.read_text()
+    return found
+
+
+def order_text(order):
+    """Render a `start_steps` result as one line per step.
+
+    Args:
+        order: the `start_steps` result.
+
+    Returns:
+        The text, starting with the workers line.
+    """
+    lines = [f"workers: {order['workers']}"]
+    steps = {}
+    for item in order["scenarios"]:
+        steps.setdefault(item["step"], []).append(item["name"])
+    for step in sorted(s for s in steps if s is not None):
+        lines.append(f"step {step}: " + ", ".join(steps[step]))
+    return "\n".join(lines) + "\n"
+
+
+def _workers(value):
+    try:
+        number = int(value)
+    except ValueError:
+        number = 0
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be an integer of at least 1")
+    return number
 
 
 def example_scenarios_dir(slug):
@@ -106,14 +189,23 @@ def main(argv=None):
         "--scenarios-dir", choices=SCENARIOS_DIRS, default=COLLECTION_SCENARIOS_DIR,
         help="where scenarios are placed: extensions/molecule for a collection (default), "
              "molecule for a standalone role or playbook project")
+    parser.add_argument("--order", action="store_true", help="print the step each scenario starts at and exit")
+    parser.add_argument(
+        "--workers", type=_workers,
+        help="with --order, the most scenarios that start per step (default and ceiling: the number of scenarios)")
     args = parser.parse_args(argv)
+    if args.workers is not None and not args.order:
+        parser.error("--workers needs --order")
     if args.starter:
         print(load_starter(args.schema), end="")
         return 0
     if not args.source:
         parser.error("a source file is required unless --starter is given")
-    result = convert_text(pathlib.Path(args.source).read_text(), load_schema(args.schema), args.scenarios_dir)
-    if args.out:
+    result = convert_text(pathlib.Path(args.source).read_text(), load_schema(args.schema), args.scenarios_dir,
+                          args.workers)
+    if args.order:
+        print(order_text(result["order"]), end="")
+    elif args.out:
         write_tree(result, args.out)
     else:
         for item in result["files"]:

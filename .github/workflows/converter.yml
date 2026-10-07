@@ -10,8 +10,7 @@ on:
   push:
     paths: &converter-paths
       - 'tools/converter/**'
-      - 'examples/*/molecule.yml'
-      - 'examples/*/after/molecule.yml'
+      - 'examples/**'
       - 'generated/**'
       - '.github/workflows/converter.yml'
   pull_request:

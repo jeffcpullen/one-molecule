@@ -15,12 +15,12 @@ parent-versus-defaults judgment in `design/docs/migrating.md`, which no tool mak
 
 | File | Role |
 |---|---|
-| `project.py` | The projection. Standard library only. Key classes come from the schema's `x-class` annotations |
+| `project.py` | The projection, the referenced playbook paths and the start order. Standard library only. Key classes come from the schema's `x-class` annotations |
 | `render.py` | YAML in and out, through PyYAML |
 | `starter.py` | The starter file the page opens on: a live `defaults:` block and one live `integration_sample_filter` scenario that together project to the `molecule.yml` the ansible-creator collection scaffold generates, with every other key the spec declares commented out. Keys and notes come from the schema, and the sub-keys of Molecule's sections from Molecule's own schema |
-| `cli.py` | Command line front end |
+| `cli.py` | Command line front end, and the example helpers the staging and the browser check share |
 | `web/` | The page. Its JavaScript is interface only and holds no conversion rule. Both panes are CodeMirror 6 editors with YAML highlighting, loaded from esm.sh at the exact versions the import map in `index.html` pins |
-| `stage_pages.py` | Copies the page, the two modules, the generated schema, the presets and the starter file into a directory, with a content-hash `build.json` the page loads every file under |
+| `stage_pages.py` | Copies the page, the two modules, the generated schema, the presets and the starter file into a directory, with a content-hash `build.json` the page loads every file under. Each preset carries the text of every referenced playbook that exists in its example |
 
 The page loads `project.py` and `render.py` into Pyodide and calls them. No conversion rule
 exists in a second language.
@@ -31,13 +31,59 @@ exists in a second language.
 python3 tools/converter/cli.py examples/openstack-systemd-service/after/molecule.yml
 python3 tools/converter/cli.py <molecule.yml> --out <dir>
 python3 tools/converter/cli.py <molecule.yml> --scenarios-dir molecule --out <dir>
+python3 tools/converter/cli.py <molecule.yml> --order --workers 2
 python3 tools/converter/cli.py --starter
 python3 -m unittest discover -s tools/converter -p 'test_*.py' -v
 ```
 
+`--order` prints the step each scenario starts at instead of the projection, and `--workers` sets
+the cap, which defaults to the number of scenarios and is lowered to it when set higher.
+
 `browser_smoke.py` serves nothing itself. Stage the page, serve the directory, and point it at the
 URL. It needs Playwright with Chromium, as in `.github/workflows/converter.yml`. The pages workflow
-runs the same check against the deployed site after every deploy.
+runs the same check against the deployed site after every deploy. `--shots <dir>` also saves
+full-page screenshots of the collection-shared-state preset and of the roles preset at the default
+workers and at workers 1.
+
+## The page
+
+Each side has a column of file buttons to the left of its code area, with the selected file's path
+above the code. A shared directory is shown once as a heading over its files.
+
+| Side | Lists |
+|---|---|
+| Proposed layout | `molecule.yml`, selected by default and editable, then every playbook it references |
+| Today's layout | The projected files, then the same referenced playbooks |
+
+A node's referenced playbooks are its `playbooks` and `provisioner.playbooks` values merged over
+those under `defaults:`, the way the projection merges them, so a stage the node sets itself hides
+the `defaults:` path for that stage. Each is resolved from `<scenarios directory>/<node name>/` to a
+path from the project root, for every node, children included. A playbook opens read-only.
+
+A referenced path is available only when the loaded preset ships it. A synthetic preset ships every
+referenced file that exists under `examples/<slug>/`. Upstream presets do not ship their playbooks,
+so their references show as not available. Any other path is marked not available, and selecting it
+says the file is not part of this input. Selecting `molecule.yml` again returns to the editor with
+any edits kept.
+
+## Start order
+
+The start order shows the step at which each scenario begins, one column per step and one block per
+scenario, with a line from each parent to its children. It follows the scheduling in
+`design/docs/reference.md`, without the cleanup and destroy units:
+
+- Each scenario takes one step.
+- A child is ready once its parent has completed.
+- Among nodes that share a parent, roots sharing the run, the lowest wave is ready first. A node is
+  ready only once every sibling in a lower wave has completed its whole subtree.
+- A wave the projection reports as an error, anything but an integer or an integral float, is
+  ordered as wave 0.
+- At most the workers number of scenarios start per step. Ready scenarios beyond it wait, the
+  earliest ready first, ties in list order.
+
+The workers control defaults to the number of scenarios, is lowered to it when set higher, and
+redraws the order at once. An entry that is not a whole number of at least 1 is marked invalid and
+leaves the last order in place. Loading a preset or the starter resets it to the default.
 
 ## Notices
 

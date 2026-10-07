@@ -50,15 +50,34 @@
   </header>
   <main>
     <section class="pane">
-      <h2>Single-config molecule.yml</h2>
-      <div id="source" class="editor"></div>
+      <h2>Proposed layout</h2>
+      <p class="hint">The single file and every playbook it references. Select a playbook to view it, and <code>molecule.yml</code> to edit again.</p>
+      <div class="workspace">
+        <ul id="source-files" class="files" aria-label="Input files"></ul>
+        <div class="viewer">
+          <p id="source-path" class="file-path">molecule.yml</p>
+          <div id="source" class="editor"></div>
+          <div id="source-file" class="editor" hidden></div>
+          <p id="source-missing" class="missing-note" hidden></p>
+        </div>
+      </div>
     </section>
     <section class="pane">
-      <h2>Projected file tree</h2>
+      <h2>Today's layout</h2>
       <p class="hint">Files are placed under the chosen scenarios directory, as in an ansible-creator collection by default. Select a file to view it.</p>
-      <ul id="tree" aria-label="Projected files"></ul>
-      <p id="file-path" class="file-path"></p>
-      <div id="file" class="editor"></div>
+      <div class="workspace">
+        <ul id="tree" class="files" aria-label="Projected files"></ul>
+        <div class="viewer">
+          <p id="file-path" class="file-path"></p>
+          <div id="file" class="editor"></div>
+          <p id="file-missing" class="missing-note" hidden></p>
+        </div>
+      </div>
+      <div class="order-head">
+        <h2>Start order</h2>
+        <label>Workers <input id="workers" type="number" min="1" step="1" inputmode="numeric"></label>
+      </div>
+      <div id="order" class="order"></div>
       <h2>Notices</h2>
       <ul id="notices"></ul>
     </section>

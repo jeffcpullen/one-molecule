@@ -6,14 +6,23 @@ const PRESETS_URL = "presets.json";
 const STARTER_URL = "starter.json";
 const BUILD_URL = "build.json";
 const DEFAULT_SCENARIOS_DIR = "extensions/molecule";
+const SOURCE_NAME = "molecule.yml";
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 const el = (id) => document.getElementById(id);
 let convert = null;
 let schemaText = null;
 let selected = null;
+let sourceSelected = SOURCE_NAME;
+let available = new Map();
+let workersAuto = true;
+let workers = 1;
+let readyStatus = "";
+let lastResult = null;
 let timer = null;
 let version = "";
 let sourceView = null;
+let sourceFileView = null;
 let fileView = null;
 
 function getSource() {
@@ -34,13 +43,24 @@ async function makeEditors() {
   const { keymap, lineNumbers } = await import("@codemirror/view");
   const { indentWithTab } = await import("@codemirror/commands");
   const { yaml } = await import("@codemirror/lang-yaml");
+  const readOnlyView = (parent, label) => new EditorView({
+    parent,
+    extensions: [
+      minimalSetup,
+      lineNumbers(),
+      yaml(),
+      EditorState.readOnly.of(true),
+      EditorView.editable.of(false),
+      EditorView.contentAttributes.of({ "aria-label": label }),
+    ],
+  });
   sourceView = new EditorView({
     parent: el("source"),
     extensions: [
       basicSetup,
       keymap.of([indentWithTab]),
       yaml(),
-      EditorView.contentAttributes.of({ "aria-label": "Single-config molecule.yml" }),
+      EditorView.contentAttributes.of({ "aria-label": SOURCE_NAME }),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           schedule();
@@ -48,19 +68,11 @@ async function makeEditors() {
       }),
     ],
   });
-  fileView = new EditorView({
-    parent: el("file"),
-    extensions: [
-      minimalSetup,
-      lineNumbers(),
-      yaml(),
-      EditorState.readOnly.of(true),
-      EditorView.editable.of(false),
-      EditorView.contentAttributes.of({ "aria-label": "Projected file" }),
-    ],
-  });
+  sourceFileView = readOnlyView(el("source-file"), "Referenced playbook");
+  fileView = readOnlyView(el("file"), "Projected file");
   window.converter = {
     source: getSource,
+    sourceFile: () => sourceFileView.state.doc.toString(),
     file: () => fileView.state.doc.toString(),
   };
 }
@@ -106,42 +118,242 @@ function commonDir(paths) {
   return count ? parts[0].slice(0, count).join("/") + "/" : "";
 }
 
-function renderResult(result) {
-  const tree = el("tree");
-  tree.replaceChildren();
-  const paths = result.files.map((f) => f.path);
-  if (!paths.includes(selected)) {
-    selected = paths[0] || null;
+function playbookGroups(paths) {
+  const groups = [];
+  for (const path of paths) {
+    const cut = path.lastIndexOf("/");
+    const heading = cut < 0 ? "" : path.slice(0, cut + 1);
+    let group = groups.find((g) => g.heading === heading);
+    if (!group) {
+      group = { heading, entries: [] };
+      groups.push(group);
+    }
+    group.entries.push({ path, label: path.slice(heading.length), kind: "playbook", available: available.has(path) });
   }
-  const root = commonDir(paths);
-  if (root) {
-    const li = document.createElement("li");
-    li.className = "dir";
-    li.textContent = root;
-    tree.appendChild(li);
+  return groups;
+}
+
+function renderFiles(list, groups, current, onSelect) {
+  list.replaceChildren();
+  for (const group of groups) {
+    if (group.heading) {
+      const li = document.createElement("li");
+      li.className = "dir";
+      li.textContent = group.heading;
+      list.appendChild(li);
+    }
+    for (const entry of group.entries) {
+      const li = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      const label = document.createElement("span");
+      label.className = "label";
+      entry.label.split("/").forEach((part, index, parts) => {
+        label.append(index < parts.length - 1 ? part + "/" : part);
+        if (index < parts.length - 1) {
+          label.appendChild(document.createElement("wbr"));
+        }
+      });
+      button.appendChild(label);
+      button.dataset.path = entry.path;
+      button.dataset.kind = entry.kind;
+      const classes = ["file"];
+      if (!group.heading) {
+        classes.push("top");
+      }
+      if (!entry.available) {
+        classes.push("missing");
+        button.dataset.available = "false";
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = "not available";
+        button.appendChild(tag);
+        button.title = entry.path + " is not part of this input";
+      } else {
+        button.title = "View " + entry.path;
+      }
+      if (entry.path === current) {
+        classes.push("selected");
+      }
+      button.className = classes.join(" ");
+      button.setAttribute("aria-pressed", entry.path === current ? "true" : "false");
+      button.addEventListener("click", () => onSelect(entry.path));
+      li.appendChild(button);
+      list.appendChild(li);
+    }
   }
-  for (const file of result.files) {
-    const li = document.createElement("li");
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = file.path.slice(root.length);
-    button.dataset.path = file.path;
-    button.title = "View " + file.path;
-    button.className = file.path === selected ? "file selected" : "file";
-    button.setAttribute("aria-pressed", file.path === selected ? "true" : "false");
-    button.addEventListener("click", () => {
-      selected = file.path;
-      renderResult(result);
-    });
-    li.appendChild(button);
-    tree.appendChild(li);
+}
+
+function showMissing(note, path) {
+  note.textContent = `${path} is not part of this input.`;
+  note.hidden = false;
+}
+
+function renderSource(result) {
+  const paths = result.playbooks;
+  if (sourceSelected !== SOURCE_NAME && !paths.includes(sourceSelected)) {
+    sourceSelected = SOURCE_NAME;
   }
+  const groups = [{ heading: "", entries: [{ path: SOURCE_NAME, label: SOURCE_NAME, kind: "source", available: true }] }];
+  renderFiles(el("source-files"), groups.concat(playbookGroups(paths)), sourceSelected, (path) => {
+    sourceSelected = path;
+    renderSource(lastResult);
+  });
+  el("source-path").textContent = sourceSelected;
+  const editing = sourceSelected === SOURCE_NAME;
+  const present = !editing && available.has(sourceSelected);
+  el("source").hidden = !editing;
+  el("source-file").hidden = !present;
+  el("source-missing").hidden = true;
+  if (present) {
+    if (sourceFileView.state.doc.toString() !== available.get(sourceSelected)) {
+      setDoc(sourceFileView, available.get(sourceSelected));
+    }
+    sourceFileView.requestMeasure();
+  } else if (!editing) {
+    showMissing(el("source-missing"), sourceSelected);
+  } else {
+    sourceView.requestMeasure();
+  }
+}
+
+function renderTree(result) {
+  const projected = result.files.map((f) => f.path);
+  const extra = result.playbooks.filter((p) => !projected.includes(p));
+  const all = projected.concat(extra);
+  if (!all.includes(selected)) {
+    selected = all[0] || null;
+  }
+  const root = commonDir(projected);
+  const groups = [{
+    heading: root,
+    entries: result.files.map((f) => ({ path: f.path, label: f.path.slice(root.length), kind: "projected", available: true })),
+  }].concat(playbookGroups(extra));
+  renderFiles(el("tree"), groups, selected, (path) => {
+    selected = path;
+    renderTree(lastResult);
+  });
   el("file-path").textContent = selected || "";
   const current = result.files.find((f) => f.path === selected);
-  const text = current ? current.text : "";
-  if (fileView.state.doc.toString() !== text) {
+  let text = "";
+  let missing = false;
+  if (current) {
+    text = current.text;
+  } else if (selected && available.has(selected)) {
+    text = available.get(selected);
+  } else if (selected) {
+    missing = true;
+  }
+  el("file").hidden = missing;
+  el("file-missing").hidden = true;
+  if (missing) {
+    showMissing(el("file-missing"), selected);
+  } else if (fileView.state.doc.toString() !== text) {
     setDoc(fileView, text);
   }
+}
+
+function svg(tag, attrs, text) {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    node.setAttribute(key, String(value));
+  }
+  if (text !== undefined) {
+    node.textContent = text;
+  }
+  return node;
+}
+
+function renderOrder(order) {
+  const box = el("order");
+  box.replaceChildren();
+  const input = el("workers");
+  input.max = String(Math.max(1, order.scenarios.length));
+  if (Number(input.value) !== order.workers) {
+    input.value = order.workers;
+  }
+  input.setCustomValidity("");
+  const items = order.scenarios.filter((s) => s.step);
+  if (!items.length) {
+    return;
+  }
+  const steps = Math.max(...items.map((s) => s.step));
+  const longest = Math.max(...items.map((s) => s.name.length));
+  const blockW = Math.max(88, Math.ceil(longest * 7.4) + 20);
+  const blockH = 26;
+  const gapX = 34;
+  const gapY = 8;
+  const top = 22;
+  const pad = 4;
+  const rows = new Array(steps + 1).fill(0);
+  const place = {};
+  for (const item of items) {
+    const row = rows[item.step];
+    rows[item.step] += 1;
+    place[item.name] = {
+      x: pad + (item.step - 1) * (blockW + gapX),
+      y: top + row * (blockH + gapY),
+    };
+  }
+  const height = top + Math.max(...rows) * (blockH + gapY) - gapY + pad;
+  const width = pad * 2 + steps * blockW + (steps - 1) * gapX;
+  const root = svg("svg", { width, height, viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": "Scenario start order" });
+  for (let step = 1; step <= steps; step += 1) {
+    root.appendChild(svg("text", { class: "step", x: pad + (step - 1) * (blockW + gapX) + blockW / 2, y: 14 }, `step ${step}`));
+  }
+  for (const item of items) {
+    const from = item.parent && place[item.parent];
+    if (!from) {
+      continue;
+    }
+    const to = place[item.name];
+    const x1 = from.x + blockW;
+    const y1 = from.y + blockH / 2;
+    const x2 = to.x;
+    const y2 = to.y + blockH / 2;
+    const bend = Math.max(12, (x2 - x1) / 2);
+    root.appendChild(svg("path", {
+      class: "edge",
+      "data-from": item.parent,
+      "data-to": item.name,
+      d: `M${x1},${y1} C${x1 + bend},${y1} ${x2 - bend},${y2} ${x2},${y2}`,
+    }));
+  }
+  for (const item of items) {
+    const at = place[item.name];
+    const group = svg("g", { class: "block", "data-name": item.name, "data-step": item.step, transform: `translate(${at.x},${at.y})` });
+    group.appendChild(svg("rect", { width: blockW, height: blockH, rx: 5 }));
+    group.appendChild(svg("text", { x: blockW / 2, y: blockH / 2 }, item.name));
+    root.appendChild(group);
+  }
+  box.appendChild(root);
+}
+
+function workersValue() {
+  if (workersAuto) {
+    return undefined;
+  }
+  return workers;
+}
+
+function run() {
+  if (!convert) {
+    return;
+  }
+  let result;
+  try {
+    result = JSON.parse(convert(getSource(), schemaText, el("scenarios-dir").value, workersValue()));
+  } catch (err) {
+    setStatus("Conversion failed: " + err.message);
+    return;
+  }
+  if (readyStatus && el("status").textContent.startsWith("Conversion failed")) {
+    setStatus(readyStatus);
+  }
+  lastResult = result;
+  renderSource(result);
+  renderTree(result);
+  renderOrder(result.order);
 
   const notices = el("notices");
   notices.replaceChildren();
@@ -159,17 +371,18 @@ function renderResult(result) {
   }
 }
 
-function run() {
-  if (!convert) {
-    return;
-  }
-  const result = JSON.parse(convert(getSource(), schemaText, el("scenarios-dir").value));
-  renderResult(result);
-}
-
 function schedule() {
   clearTimeout(timer);
   timer = setTimeout(run, 250);
+}
+
+function loadInput(text, scenariosDir, files) {
+  el("scenarios-dir").value = scenariosDir;
+  available = new Map(Object.entries(files));
+  sourceSelected = SOURCE_NAME;
+  workersAuto = true;
+  setDoc(sourceView, text);
+  run();
 }
 
 async function loadPresets() {
@@ -185,9 +398,8 @@ async function loadPresets() {
     if (!select.value) {
       return;
     }
-    el("scenarios-dir").value = presets[select.value].scenarios_dir;
-    setDoc(sourceView, presets[select.value].text);
-    run();
+    const preset = presets[select.value];
+    loadInput(preset.text, preset.scenarios_dir, preset.playbooks || {});
   });
 }
 
@@ -203,6 +415,19 @@ async function main() {
     await navigator.clipboard.writeText(url.toString());
     setStatus("Share link copied.");
   });
+  el("workers").addEventListener("input", () => {
+    const input = el("workers");
+    const text = input.value.trim();
+    const value = Number(text);
+    if (!/^[0-9]+$/.test(text) || !Number.isSafeInteger(value) || value < 1) {
+      input.setCustomValidity("Enter a whole number of at least 1.");
+      return;
+    }
+    input.setCustomValidity("");
+    workers = value;
+    workersAuto = false;
+    run();
+  });
 
   version = JSON.parse(await fetchText(BUILD_URL, { cache: "no-store" })).version;
   schemaText = await fetchText(SCHEMA_URL);
@@ -210,9 +435,7 @@ async function main() {
   const starter = JSON.parse(await fetchText(STARTER_URL)).text;
   el("starter").addEventListener("click", () => {
     el("preset").value = "";
-    el("scenarios-dir").value = DEFAULT_SCENARIOS_DIR;
-    setDoc(sourceView, starter);
-    run();
+    loadInput(starter, DEFAULT_SCENARIOS_DIR, {});
   });
   el("scenarios-dir").addEventListener("change", run);
   if (window.location.hash.startsWith("#src=")) {
@@ -234,7 +457,8 @@ async function main() {
   }
   pyodide.runPython("import sys\nsys.path.insert(0, '.')");
   convert = pyodide.pyimport("render").convert_json;
-  setStatus(`Ready. Python ${pyodide.runPython("import sys; sys.version.split()[0]")} via Pyodide.`);
+  readyStatus = `Ready. Python ${pyodide.runPython("import sys; sys.version.split()[0]")} via Pyodide.`;
+  setStatus(readyStatus);
   run();
 }
 
