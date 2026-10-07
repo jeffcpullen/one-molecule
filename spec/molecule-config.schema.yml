@@ -1,11 +1,11 @@
 ---
 $schema: http://json-schema.org/draft-07/schema#
-$id: https://raw.githubusercontent.com/jeffcpullen/one-molecule/v0.1.0/generated/molecule-config.schema.json
+$id: https://raw.githubusercontent.com/jeffcpullen/one-molecule/v0.2.0/generated/molecule-config.schema.json
 title: molecule.yml (single-file)
-description: 'The single-file molecule.yml, version 0.1.0: run defaults, a platform catalog, and a tree of scenarios. It describes how existing molecule scenario files appear in single-file form. Node config is molecule''s own scenario schema (molecule.json), referenced rather than restated.'
+description: 'The single-file molecule.yml, version 0.2.0: run defaults, a platform catalog, and a tree of scenarios. It describes how existing molecule scenario files appear in single-file form. Node config is molecule''s own scenario schema (molecule.json), referenced rather than restated.'
 x-spec:
-  version: 0.1.0
-  status: released 0.1.0, the single-file keys the converted examples use plus molecule's scenario keys passed through
+  version: 0.2.0
+  status: 0.2.0, the single-file keys the converted examples use plus molecule's scenario keys passed through
   molecule:
     version: v26.6.0
     commit: de548442a6e43ff33bc72ea928feb0af21854362
@@ -38,7 +38,9 @@ x-spec:
     - 'A `defaults:` block is a sparse overlay: any subset of config keys, none required. It is not a complete scenario.'
     - '`playbooks:` is a top-level convenience alias for `provisioner.playbooks`, valid wherever config is (bare, or under `defaults:`).'
     - A `playbooks` value is a file path.
-    - The FQCN playbook form (`design/data/layout.yml`) depends on molecule#4244, which is unmerged, so it is outside 0.1.0.
+    - 'A relative `playbooks` path resolves against the node''s scenario directory, `<scenarios directory>/<name>/`.'
+    - A stage the node leaves unset is found in the node's scenario directory by molecule's default discovery.
+    - The FQCN playbook form (`design/data/layout.yml`) depends on molecule#4244, which is unmerged, so it is outside this version.
     - '`platforms` is permissive: absent/empty is valid. Consumed only by a creating node, ignored otherwise.'
     - The top-level `platforms:` is the catalog, and each entry defines one platform once by `name` with opaque `vars`.
     - A scenario's `platforms:` is a selection of catalog names, or inline platform objects for backward compatibility.
@@ -100,6 +102,40 @@ definitions:
           minLength: 1
           description: A catalog platform name.
         - $ref: ../vendor/molecule.json#/properties/platforms/items
+  playbooks:
+    _source: Molecule v26.6.0 declares `playbooks` as an object with no properties. The seven stages are the sections `molecule/provisioner/ansible_playbooks.py` resolves.
+    description: One playbook path per stage. A relative path resolves against the node's scenario directory.
+    type: object
+    additionalProperties: false
+    properties:
+      create:
+        type: string
+        minLength: 1
+        description: Path to the playbook that creates the node's instances.
+      prepare:
+        type: string
+        minLength: 1
+        description: Path to the playbook that prepares the instances before converge.
+      converge:
+        type: string
+        minLength: 1
+        description: Path to the playbook that applies the content under test.
+      side_effect:
+        type: string
+        minLength: 1
+        description: Path to the playbook that applies a side effect before verify.
+      verify:
+        type: string
+        minLength: 1
+        description: Path to the playbook that verifies the instances.
+      cleanup:
+        type: string
+        minLength: 1
+        description: Path to the playbook that cleans up before destroy.
+      destroy:
+        type: string
+        minLength: 1
+        description: Path to the playbook that destroys the node's instances.
   config:
     description: 'A sparse molecule scenario-config overlay: any subset of these keys, none required. Each value is validated by molecule''s own per-key subschema (molecule.json).'
     type: object
@@ -107,8 +143,8 @@ definitions:
     properties:
       playbooks:
         x-class: config
-        description: The `provisioner.playbooks` mapping, by file path (top-level alias). The FQCN form is outside 0.1.0. `create`/`destroy` bare by convention so a parent that creates does not hand creation to children.
-        $ref: ../vendor/molecule.json#/$defs/ProvisionerModel/properties/playbooks
+        description: The `provisioner.playbooks` mapping, by file path (top-level alias). The FQCN form is outside this version. `create`/`destroy` bare by convention so a parent that creates does not hand creation to children.
+        $ref: '#/definitions/playbooks'
       driver:
         x-class: config
         description: Typically bare on a creating node, so it is not handed to children.
@@ -168,8 +204,8 @@ definitions:
           $ref: '#/definitions/node'
       playbooks:
         x-class: config
-        description: The `provisioner.playbooks` mapping, by file path. The FQCN form is outside 0.1.0.
-        $ref: ../vendor/molecule.json#/$defs/ProvisionerModel/properties/playbooks
+        description: The `provisioner.playbooks` mapping, by file path. The FQCN form is outside this version.
+        $ref: '#/definitions/playbooks'
       driver:
         x-class: config
         $ref: ../vendor/molecule.json#/properties/driver

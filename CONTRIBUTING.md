@@ -57,7 +57,7 @@ ones the gates use.
 |---|---|---|
 | The design itself | `design/data/<doc>.yml` | Validate it against `design/structure/<doc>.schema.yml` |
 | The shape a design source must take | `design/structure/<doc>.schema.yml` | Re-validate every source it covers |
-| The config surface the work delivers | `spec/molecule-config.schema.yml` | Run `python3 tools/build.py` to regenerate |
+| The config surface the work delivers | `spec/molecule-config.schema.yml` | Bump `x-spec.version`, `$id` and the description, then run `python3 tools/build.py` to regenerate |
 | Documentation | `design/docs/` | Follow the process that page's set describes |
 | A worked example | `examples/<project>/after/` and its `README.md` | Keep `before/` exactly as it came from upstream |
 

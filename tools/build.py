@@ -365,6 +365,46 @@ def load_schema():
     return schema
 
 
+# Every spec version is a git tag `v<version>`. The `$id` names that tag and the
+# description names the version, so a bump that misses either is caught here.
+SPEC_ID = "https://raw.githubusercontent.com/jeffcpullen/one-molecule/v{v}/generated/molecule-config.schema.json"
+
+
+def lint_spec_version(schema):
+    """Return problems where `$id` or the description disagree with `x-spec.version`."""
+    version = str(schema.get("x-spec", {}).get("version", ""))
+    if not version:
+        return ["x-spec.version is missing"]
+    problems = []
+    if schema.get("$id") != SPEC_ID.format(v=version):
+        problems.append(f"$id does not name tag v{version}")
+    if f"version {version}" not in schema.get("description", ""):
+        problems.append(f"description does not name version {version}")
+    return problems
+
+
+SPEC_VERSION_MUST_CATCH = [
+    {"$id": SPEC_ID.format(v="0.1.0"), "description": "version 0.2.0", "x-spec": {"version": "0.2.0"}},
+    {"$id": SPEC_ID.format(v="0.2.0"), "description": "version 0.1.0", "x-spec": {"version": "0.2.0"}},
+    {"$id": SPEC_ID.format(v="0.2.0"), "description": "version 0.2.0"},
+]
+SPEC_VERSION_MUST_ALLOW = [
+    {"$id": SPEC_ID.format(v="0.2.0"), "description": "x, version 0.2.0: y", "x-spec": {"version": "0.2.0"}},
+]
+
+
+def selftest_spec_version():
+    """Return a list of failures for the spec-version fixtures."""
+    failures = []
+    for doc in SPEC_VERSION_MUST_CATCH:
+        if not lint_spec_version(doc):
+            failures.append(f"spec version: should have been caught but was not: {doc!r}")
+    for doc in SPEC_VERSION_MUST_ALLOW:
+        if lint_spec_version(doc):
+            failures.append(f"spec version: should have been allowed but was flagged: {doc!r}")
+    return failures
+
+
 def render_json():
     """The JSON artifact text for the config schema source."""
     schema = load_schema()
@@ -382,7 +422,7 @@ def main(argv):
     check = "--check" in argv
     rc = 0
 
-    failures = selftest_clean_room() + selftest_prose()
+    failures = selftest_clean_room() + selftest_prose() + selftest_spec_version()
     if failures:
         rc = 1
         print("SELFTEST: the lint patterns no longer behave as specified:", file=sys.stderr)
@@ -390,6 +430,10 @@ def main(argv):
             print(f"  {f}", file=sys.stderr)
     else:
         print("OK: lint selftests passed.")
+
+    for problem in lint_spec_version(load_schema()):
+        rc = 1
+        print(f"SPEC VERSION: {SCHEMA_SRC.name}: {problem}", file=sys.stderr)
 
     text = render_json()
     if check:
