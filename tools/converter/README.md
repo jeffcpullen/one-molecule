@@ -13,7 +13,7 @@ parent-versus-defaults judgment in `design/docs/migrating.md`, which no tool mak
 |---|---|
 | `project.py` | The projection. Standard library only. Key classes come from the schema's `x-class` annotations |
 | `render.py` | YAML in and out, through PyYAML |
-| `starter.py` | The starter file the page opens on: one minimal live scenario, the default driver and one platform, with every other key the spec declares commented out. Keys and notes come from the schema, and the sub-keys of Molecule's sections from Molecule's own schema |
+| `starter.py` | The starter file the page opens on: a live `defaults:` block and one live `integration_sample_filter` scenario that together project to the `molecule.yml` the ansible-creator collection scaffold generates, with every other key the spec declares commented out. Keys and notes come from the schema, and the sub-keys of Molecule's sections from Molecule's own schema |
 | `cli.py` | Command line front end |
 | `web/` | The page. Its JavaScript is interface only and holds no conversion rule. Both panes are CodeMirror 6 editors with YAML highlighting, loaded from esm.sh at the exact versions the import map in `index.html` pins |
 | `stage_pages.py` | Copies the page, the two modules, the generated schema, the presets and the starter file into a directory, with a content-hash `build.json` the page loads every file under |

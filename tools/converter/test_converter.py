@@ -52,13 +52,28 @@ class Starter(unittest.TestCase):
 
     def test_converts_to_one_scenario_without_errors(self):
         result = convert_text(load_starter(), SCHEMA)
-        self.assertEqual([f["path"] for f in result["files"]], ["molecule/default/molecule.yml"])
+        self.assertEqual([f["path"] for f in result["files"]], ["molecule/integration_sample_filter/molecule.yml"])
         self.assertEqual([n for n in result["notices"] if n["kind"] == "error"], [])
 
-    def test_live_scenario_is_a_minimal_config(self):
+    def test_live_scenario_matches_the_creator_scaffold(self):
         result = convert_text(load_starter(), SCHEMA)
-        self.assertEqual(yaml.safe_load(result["files"][0]["text"]),
-                         {"driver": {"name": "default"}, "platforms": [{"name": "instance"}]})
+        self.assertEqual(yaml.safe_load(result["files"][0]["text"]), {
+            "platforms": [{"name": "na"}],
+            "provisioner": {
+                "name": "ansible",
+                "playbooks": {
+                    "cleanup": "../utils/playbooks/noop.yml",
+                    "converge": "../utils/playbooks/converge.yml",
+                    "destroy": "../utils/playbooks/noop.yml",
+                    "prepare": "../utils/playbooks/noop.yml",
+                },
+                "config_options": {"defaults": {"collections_path": "${ANSIBLE_COLLECTIONS_PATH}"}},
+            },
+            "scenario": {
+                "test_sequence": ["prepare", "converge"],
+                "destroy_sequence": ["destroy"],
+            },
+        })
         self.assertEqual(result["notices"], [])
 
     def test_lines_stay_short(self):
