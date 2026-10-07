@@ -57,10 +57,9 @@ def example_source(slug):
         slug: the directory name under `examples/`.
 
     Returns:
-        `examples/<slug>/molecule.yml` for a synthetic example, else `examples/<slug>/after/molecule.yml`.
+        `examples/<slug>/molecule.yml`.
     """
-    root_file = ROOT / "examples" / slug / "molecule.yml"
-    return root_file if root_file.is_file() else ROOT / "examples" / slug / "after" / "molecule.yml"
+    return ROOT / "examples" / slug / "molecule.yml"
 
 
 def example_root(slug):
@@ -149,13 +148,12 @@ def example_scenarios_dir(slug):
         slug: the directory name under `examples/`.
 
     Returns:
-        `molecule` for a synthetic example that is not a collection (no `galaxy.yml`),
-        else `extensions/molecule`.
+        `extensions/molecule` for a collection (a `galaxy.yml` beside the root file),
+        else `molecule`.
     """
-    example = ROOT / "examples" / slug
-    if (example / "molecule.yml").is_file() and not (example / "galaxy.yml").is_file():
-        return PROJECT_SCENARIOS_DIR
-    return COLLECTION_SCENARIOS_DIR
+    if (example_root(slug) / "galaxy.yml").is_file():
+        return COLLECTION_SCENARIOS_DIR
+    return PROJECT_SCENARIOS_DIR
 
 
 def write_tree(result, out):

@@ -1,6 +1,0 @@
----
-platforms: []
-provisioner:
-  name: ansible
-scenario:
-  test_sequence: []

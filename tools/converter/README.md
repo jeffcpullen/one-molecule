@@ -28,7 +28,7 @@ exists in a second language.
 ## Run it
 
 ```text
-python3 tools/converter/cli.py examples/openstack-systemd-service/after/molecule.yml
+python3 tools/converter/cli.py examples/collection/molecule.yml
 python3 tools/converter/cli.py <molecule.yml> --out <dir>
 python3 tools/converter/cli.py <molecule.yml> --scenarios-dir molecule --out <dir>
 python3 tools/converter/cli.py <molecule.yml> --order --workers 2
@@ -61,10 +61,9 @@ those under `defaults:`, the way the projection merges them, so a stage the node
 the `defaults:` path for that stage. Each is resolved from `<scenarios directory>/<node name>/` to a
 path from the project root, for every node, children included. A playbook opens read-only.
 
-A referenced path is available only when the loaded preset ships it. A synthetic preset ships every
-referenced file that exists under `examples/<slug>/`. Upstream presets do not ship their playbooks,
-so their references show as not available. Any other path is marked not available, and selecting it
-says the file is not part of this input. Selecting `molecule.yml` again returns to the editor with
+A referenced path is available only when the loaded preset ships it. A preset ships every
+referenced file that exists under `examples/<slug>/`. Any other path, such as one named in typed
+input, is marked not available, and selecting it says the file is not part of this input. Selecting `molecule.yml` again returns to the editor with
 any edits kept.
 
 ## Start order
@@ -116,18 +115,13 @@ project's VCS root. Any other tree with children keeps a `lost` notice per child
 condition that failed.
 
 Paths are copied as written, so a path that names or climbs out of the scenarios directory keeps the
-layout its author wrote it for. The openstack-systemd-service, osism-commons and dev-sec-hardening
-presets come from projects with a top-level `molecule/` directory. openstack-systemd-service's
-`../../tests/` playbook paths and the `molecule/<name>/` requirements paths in osism-commons and
-dev-sec-hardening point where upstream's layout puts those files, not where `extensions/molecule/`
-would.
+layout its author wrote it for.
 
 ## Coverage
 
 Each directory under `fixtures/` is the expected projection of an example's single-file
-`molecule.yml`, compared byte for byte. That file is `examples/<slug>/molecule.yml` for a synthetic
-example and `examples/<slug>/after/molecule.yml` for an upstream one. Only fixture-covered examples
-appear as presets on the page.
+`molecule.yml`, compared byte for byte. That file is `examples/<slug>/molecule.yml`, and only the
+synthetic examples are covered. Every fixture-covered example appears as a preset on the page.
 
 | Example | Covered | What it shows |
 |---|---|---|
@@ -135,31 +129,15 @@ appear as presets on the page.
 | collection-shared-state | yes | A `default` root that creates and two direct children, projected with `extensions/molecule/config.yml` setting `shared_state: true`, each child carrying the parent's `default-instance` platform entry, and no `lost` notice |
 | roles | yes | Three flat roots under the `molecule/` layout, one shared converge naming the role by scenario |
 | playbooks | yes | Two flat roots under the `molecule/` layout, one shared converge importing the playbook named by the scenario |
-| openstack-systemd-service | yes | Run `defaults:` merged under one scenario, playbook paths copied as written |
-| osism-commons | yes | Two scenarios sharing one `defaults:` key, playbooks found by default discovery |
-| dev-sec-hardening | yes | Seven scenarios sharing `defaults:`, two overriding only `test_sequence` |
-| david-igou-armbian | yes | Catalog selections projected as `<scenario>-<catalog name>` platform entries |
-| david-igou-routeros-configuration | no | The projection drops YAML comments, so the throwaway `chr_admin_password` would lose its inline `# notsecret` marker in every fixture file |
-| the other five | not yet | |
 
-A synthetic example has no `before/`, because its fixture is its per-scenario form. Each upstream
-fixture was compared with upstream's `before/` scenario files, with any upstream base
-`config.yml` merged under each scenario the way Molecule merges it. Every difference traces to a
-choice the example's own `after/molecule.yml` makes, never to the tool:
-
-- `scenario.name` is absent, because the scenario directory carries the name.
-- armbian's `ansible.playbooks` entries are absent, because each names `<stage>.yml` in the
-  scenario's own directory, which Molecule finds by default discovery.
-- armbian's static `--inventory=inventory/` argument is replaced by the catalog.
-- armbian's platform entries stand in for upstream's per-scenario `inventory/hosts.yml`. A catalog
-  selection's instance is named `<scenario>-<catalog name>`, so only `bootstrap_armbian` and
-  `pxelinux_render`, which declare inline platforms, keep upstream's host name `instance`.
+A synthetic example has no `before/`, because its fixture is its per-scenario form. The upstream
+examples under `examples/` are not converter fixtures or presets.
 
 A playbook path in the root file is relative to the node's scenario directory, as in Molecule
 today, so the projection copies it as written.
 
 Molecule v26.6.0 moves `provisioner.playbooks` into `ansible.playbooks` on load, so the
-projection's `provisioner.playbooks` is equivalent to upstream's `ansible.playbooks`.
+projection's `provisioner.playbooks` is equivalent to an `ansible.playbooks` block.
 
 ## What it does not check
 
