@@ -49,6 +49,9 @@ sections:
       - name: explicit-host-vars-win
         description: "Where both set the same variable, the scenario's own `provisioner.inventory.host_vars` wins over the entry's `host_vars:`."
         check: resolved
+      - name: catalog-host-vars-reach-children
+        description: "A child that shares its parent's instances receives the `host_vars:` the parent's catalog entries set for them."
+        check: resolved
       - name: catalog-host-vars-not-platform-key
         description: "A catalog entry's `host_vars:` never reaches molecule as a platform key."
         check: resolved

@@ -107,10 +107,12 @@ sections:
   - title: Paths in the root file
     intro: The root file has no scenario directory beside it, so its paths start from the file itself.
     rules:
-      - "A relative path in the root `molecule.yml` resolves against the directory that file sits in, the project root (`design/data/layout.yml`)."
+      - "A relative `playbooks` path in the root `molecule.yml` resolves against the directory that file sits in, the project root (`design/data/layout.yml`)."
       - "A shared playbook is written `playbooks/molecule/converge.yml` in a collection, a role, and a playbook project alike."
-      - "A root-file path reaches a per-scenario `molecule.yml` as `${MOLECULE_PROJECT_DIRECTORY}/<path>`."
-      - A root-file path never reaches a per-scenario file as a resolved absolute path or as a scenario-relative path.
+      - "A relative `playbooks` path reaches a per-scenario `molecule.yml` as `${MOLECULE_PROJECT_DIRECTORY}/<path>`."
+      - "A relative `playbooks` path never reaches a per-scenario file as a resolved absolute path or as a scenario-relative path."
+      - "A `playbooks` path that starts with `${` or is absolute reaches a per-scenario file as written."
+      - "Every other path-valued key reaches molecule unchanged, and molecule resolves it as it does today."
       - "Molecule fills in `MOLECULE_PROJECT_DIRECTORY` in each scenario's own read of its `molecule.yml`."
       - "Molecule sets `MOLECULE_PROJECT_DIRECTORY` to the directory it runs from unless a caller sets it."
       - "A per-scenario file written this way runs from the project root, or from anywhere with `MOLECULE_PROJECT_DIRECTORY` exported."

@@ -41,6 +41,8 @@ x-spec:
     - A `playbooks` value is a file path.
     - A relative `playbooks` path resolves against the directory this file sits in, the project root.
     - 'A relative `playbooks` path reaches each scenario''s molecule.yml as `${MOLECULE_PROJECT_DIRECTORY}/<path>` (`design/data/environment.yml`).'
+    - 'A `playbooks` path that starts with `${` or is absolute reaches each scenario''s molecule.yml as written.'
+    - Every other path-valued key reaches molecule unchanged, and molecule resolves it as it does today.
     - A stage the node leaves unset is found in the node's scenario directory by molecule's default discovery.
     - The FQCN playbook form (`design/data/layout.yml`) depends on molecule#4244, which is unmerged, so it is outside this version.
     - '`platforms` is permissive: absent/empty is valid. Consumed only by a creating node, ignored otherwise.'
@@ -57,6 +59,7 @@ x-spec:
     - 'A catalog selection''s instance name is `<scenario name>-<catalog name>`, where the scenario is the node that selects it.'
     - A catalog name and an inline platform name that match in one run is an error.
     - A child shares its parent's instances, beginning from the parent's inventory (`design/data/tree-spec.yml`).
+    - A child that shares its parent's instances receives the `host_vars` the parent's catalog entries set for them.
     - A child whose parent is not standing has the parent created first (`design/data/tree-spec.yml`).
     - Sharing is within a tree only. There is no cross-tree share.
     - A key this schema does not declare fails validation, at every level.
