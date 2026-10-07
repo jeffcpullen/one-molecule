@@ -43,6 +43,7 @@ open:
       - 3
     framing:
       - "The `--label` and `--skip-label` spelling must layer against ansible-playbook's own task `--tags` (`design/data/naming.yml`)."
+      - "Task `--tags` reach ansible-playbook through molecule's `--` passthrough."
 
   - title: "Dispatch a tree's nodes through the pluggable executor"
     status: "raised, not started"
