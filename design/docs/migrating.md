@@ -1,281 +1,170 @@
 # Migrating an existing layout to one root molecule.yml
 
-Task recipes for converting a project from the per-scenario directory layout to the
-single top-level `molecule.yml` proposed in [the pattern](the-pattern.md). Each recipe is a
-short procedure. For the authoring surface these recipes target, read
-[the pattern](the-pattern.md). For why the tree is less work than the directory layout, read
-the [explanation](explanation.md).
+Task recipes for moving a project from per-scenario directories to the single top-level
+`molecule.yml`. Each recipe is a short procedure. For the authoring surface these recipes
+target, read [the pattern](the-pattern.md). For every key, read the [reference](reference.md).
+For why one file is less work, read the [explanation](explanation.md).
 
-This is a proposed design, not shipped molecule behavior. Every recipe describes how a
-migration would work under the proposal. Steps that rely on a part still marked Proposed
-(the single-file discovery mode, the `runtime:` envelope, playbook references by collection
-FQCN) say so where they occur, so nothing here reads as available in molecule today.
+Every part of today's layout has a place in the single file. The [converter](converter/) turns
+the single file back into the per-scenario files today's Molecule reads, so you can run the
+result with Molecule as it is and compare it with what you had.
 
-Each of the ten projects under `examples/` carries its converted root file at
-`after/molecule.yml`, beside the original layout in `before/`. The recipes below use
-`david_igou.routeros_configuration` (`examples/david-igou-routeros-configuration/`),
-`arista.avd` (`examples/arista-avd/`) and the upstream
-[`ansible.platform`](https://github.com/ansible/ansible.platform) collection as the concrete
-cases, and point to the matching example where one exists. `ansible.platform` has no
-converted example under `examples/`, so recipe 6 describes what folding its playbooks would
-do.
+The recipes point at the four synthetic examples under `examples/`. Each is a project in the
+single-file form, with its root file at `examples/<name>/molecule.yml`.
+
+| Example | Shape |
+|---|---|
+| `playbooks` | A playbook project with two independent scenarios |
+| `roles` | Three standalone roles, one scenario each |
+| `collection` | A collection with two roles, one scenario each |
+| `collection-shared-state` | A collection whose scenarios test against one shared environment |
 
 ## Before you start
 
-Two questions decide the shape of every migration.
+One question decides the shape of every migration. If the shared thing were absent, would a
+scenario be unable to run, or merely unconfigured?
 
-1. Does one scenario build something the others cannot run without? That is a
-   dependency, and it becomes a parent and its children. An image, a template, a server
-   stood up once and tested against many times is a dependency.
-2. Or do the scenarios merely repeat the same config while each stands up its own
-   environment? That is not a dependency. It becomes shared `defaults:`, and the
+1. Unable to run is a dependency. The scenario that builds the shared environment becomes a
+   parent, and the scenarios that need it become its children. Today that is
+   `shared_state: true` with a `default` scenario.
+2. Merely unconfigured is shared config. It goes in the top-level `defaults:` block, and the
    scenarios stay independent roots.
 
-The test is one question, from the
-[explanation](explanation.md#when-you-need-a-parent-and-when-you-only-need-shared-config):
-if the shared thing were absent, would the scenario be unable to run, or merely
-unconfigured. Unable to run is a parent.
-Unconfigured is `defaults:`. Reaching for a parent where `defaults:` is what you need
-invents a dependency, orders scenarios that could run alone, and skips all of them when
-the shared node fails.
+Reaching for a parent where `defaults:` is what you need invents a dependency. See
+[the explanation](explanation.md#when-you-need-a-parent-and-when-you-only-need-shared-config).
 
-## Recipe 1: Convert a shared_state project to a tree
+## Recipe 1: Convert a project of independent scenarios
 
-For a project where one scenario stands up an environment with `create`/`destroy` and
-every other scenario tests against it under `shared_state: true`. Worked case:
-`david_igou.routeros_configuration`, 22 scenario directories under `extensions/molecule/`.
-A shared `config.yml` sets `shared_state: true`, a `default` scenario boots one MikroTik
-CHR, twenty scenarios converge against that one device, and `lifecycle` opts out with
-`shared_state: false`. The converted root file is
-`examples/david-igou-routeros-configuration/after/molecule.yml`.
+For a project whose scenarios each stand up their own instances and share only config. Worked
+cases: `examples/collection/`, `examples/roles/` and `examples/playbooks/`.
 
-1. Find the setup scenario. It is the one whose `test_sequence` runs `create` and
-   `destroy` and whose playbooks stand the shared environment up. In
-   `routeros_configuration` it is `default`, which owns create, prepare and destroy of
-   the CHR.
-2. Make that scenario the root of the tree and make every other scenario its child.
-   Under the proposed single root file, the root is one entry in `scenarios:` and the
-   rest nest under its `children:`. The nesting is the parent edge.
-3. Make each scenario that sets `shared_state: false` a root of its own. It boots its
-   own environment, so it is not a child of the setup scenario. In the worked file
-   `lifecycle` is a second entry in `scenarios:` with its own `create`/`destroy`.
-4. Let ownership follow the playbook references. The root references its own
-   `create`/`destroy`, so it owns the environment. The children reference neither, so
-   they own nothing and start from a snapshot of the root. There is no ownership flag to
-   set. Ownership is read off the create reference.
-5. Define the shared machine once in the top-level `platforms:` catalog. A root with no
-   `platforms:` selects the whole catalog, and a child selects none of its own. In the
-   worked file one catalog entry, `chr-1`, replaces the static `utils/inventory/` tree,
-   and both roots boot it.
-6. Move the settings every child repeated into one top-level `defaults:` block: the
-   dependency, the executor arguments, the inventory variables, the test sequence and the
-   verifier. A child keeps only what makes it different, such as a shorter
-   `test_sequence`.
-7. Move the shared playbooks into `playbooks/molecule/` and reference each by name.
-   A playbook set the children share can ride on the root's own `defaults:` block, which
-   applies to the root and everything below it. Written once, read by many. See recipe 6
-   for folding near-identical playbooks together.
-8. Drop the per-scenario inventory copies. The root owns the inventory and the tree
-   snapshots it down to the children, so a child sees the root's hosts without declaring
-   anything.
-9. Carry any run order the project enforced outside Molecule with `wave:`. The
-   `routeros_configuration` `Makefile` runs `ping` and `fetch` before `configure_full`
-   installs a firewall, and `restore` and `reboot` last. The worked file puts those in
-   waves 0, 2 and 3, the rest of the children in wave 1, and `lifecycle` in root wave 1
-   because it forwards the same host ports as `default`.
-10. Drop `shared_state: true`. It is not a key in the root file, and the nesting now
-    declares the relationship it stood in for. A project left in its scenario directories
-    keeps `shared_state` with Molecule's own meaning, unchanged.
+1. Create `molecule.yml` at the project root, the folder that holds `galaxy.yml` in a
+   collection, or the top of the repository for roles and playbooks.
+2. Add one entry under `scenarios:` for each scenario directory. Its `name:` is the directory
+   name.
+3. Move the keys of the base `config.yml`, if the project has one, into the top-level
+   `defaults:` block.
+4. Move each scenario's `molecule.yml` keys onto its entry, as bare keys.
+5. Move any key every scenario repeats into `defaults:`, and delete it from the entries. A
+   mapping merges, so an entry that sets one key inside `playbooks:` still receives the rest
+   from `defaults:`.
+6. Leave a stage playbook that lives in a scenario directory unset, and Molecule's default
+   discovery still finds it there. Reference a shared playbook by a path relative to the
+   project root, such as `playbooks/molecule/create.yml`.
+7. Convert the file with the scenarios directory the project uses, `extensions/molecule` for a
+   collection or `molecule` for a role or playbook project, and compare the output with the
+   files you started from (see [Recipe 7](#recipe-7-check-the-conversion)).
 
-Children that share one device are not safe to run concurrently just because they sit in
-different waves. In the worked file several wave 1 children set the device's system
-identity to different values, so it is correct only under `--workers 1`, which runs a wave
-in list order. See recipe 8 for how waves and `--workers` interact.
+A project that keeps one `molecule/` directory inside each role, `roles/<role>/molecule/`,
+converts the same way. The converter writes it back as a top-level `molecule/` directory with
+one scenario per role, which is how `examples/roles/` runs.
 
-The worked example turns `shared_state` into a tree one level deep. It is not evidence for
-deeper nesting. The config collapse replaces the shared `config.yml`, the 22 per-scenario
-`molecule.yml` files and the two `utils/inventory/` files with one root `molecule.yml`.
-The per-example counts are in `examples/david-igou-routeros-configuration/README.md`.
+## Recipe 2: Convert a shared_state project to a tree
 
-## Recipe 2: Convert a per-role roles/*/molecule/ layout to one root config
+For a project where a scenario named `default` stands up an environment and every other
+scenario tests against it under `shared_state: true`. Worked case:
+`examples/collection-shared-state/`.
 
-For a collection that carries a separate `molecule/` directory inside each role, plus a
-helper role that every scenario pulls in for shared setup. This is the
-`prometheus-community` shape from the repository README, where a `_common` role stands in
-for the missing shared home. The converted root file is
-`examples/prometheus-community/after/molecule.yml`.
+1. Make `default` the one entry under `scenarios:`.
+2. Nest every other scenario under `default`'s `children:`. The nesting declares what
+   `shared_state` declared.
+3. Move the base config's other keys into the top-level `defaults:` block, and drop
+   `shared_state: true`. It is not a key in the single file.
+4. Keep the platforms on `default`, inline or as catalog names. A root with no `platforms:`
+   selects the whole catalog.
+5. Remove `platforms:` from every child. A child selects none and shares its parent's
+   instances.
+6. Remove any `create` or `destroy` playbook a child sets for itself. A child may still inherit
+   them from `defaults:`, because under `shared_state` Molecule runs those two stages only for
+   `default`.
+7. If `default` sets `scenario.test_sequence`, keep both `create` and `destroy` in it.
+8. Convert the file. The converter writes the base config with `shared_state: true` and gives
+   each child `default`'s platform entries. An empty notice list means the tree matched
+   `shared_state` exactly.
 
-1. Choose the root file location. It is the collection root, the one place that exists
-   for a collection, a role, and a playbook project alike
-   ([the pattern](the-pattern.md#why-the-project-root)).
-2. Declare each role's scenario as an entry in the root `scenarios:` list. A scenario
-   becomes a named entry, not a directory under a role.
-3. Decide whether the roles share a real dependency or only config. Per-role test
-   scenarios that each build their own environment are independent, so they stay roots in
-   the list and share through `defaults:`. Use a parent only where one role genuinely
-   builds what another needs.
-4. Replace the helper role used for shared setup with shared playbooks under
-   `playbooks/molecule/`. The setup that lived in the helper role becomes a converge or
-   prepare playbook referenced by the scenarios that need it. The helper role existed
-   because shared content had nowhere else to live.
-5. Move each role's converge and verify playbooks into `playbooks/molecule/` and
-   reference them by name.
+The converter writes a tree as `shared_state` only in this shape: one root named `default`,
+every other scenario a direct child of it. Any other shape gets a `lost` notice that names the
+condition that failed. See
+[the tree today's Molecule runs](reference.md#the-tree-todays-molecule-runs).
 
-## Recipe 3: Convert a delegated-driver, many-scenario collection
+## Recipe 3: Define a repeated platform once
 
-For a collection with many scenarios that each connect to hosts under a delegated or
-ansible-native driver and share a large amount of config. Worked case: `arista.avd`, 30
-scenarios under `extensions/molecule/`, collapsed to one root `molecule.yml` in
-`examples/arista-avd/after/`.
+For scenarios that each write the same inline platform entry.
 
-1. Read the scenarios as independent first. In `arista.avd` each scenario stands up and
-   tears down its own instances and shares only configuration, so none of them is a
-   parent of another. They become a flat list of roots under `scenarios:`, not a tree.
-2. Lift the shared config into one top-level `defaults:` block: the executor backend and
-   its inventory argument, the shared play environment (`ansible.env`), the ansible
-   config, the default sequences, the dependency and verifier settings. In the worked file
-   this is a single `defaults:` block above the list.
-3. Give each scenario only its own difference. Most `arista.avd` scenarios reduce to a
-   name, a converge playbook reference, and a per-scenario sequence where it diverges
-   from the default. A scenario that needs an extra environment variable or a different
-   inventory carries just that key bare on the node.
-4. Reference the playbooks. In the worked file they are named by collection FQCN, for
-   example `arista.avd.molecule_ansible_only_converge`. That form is Proposed and assumes
-   molecule's FQCN stage-reference fix (molecule issue 4244). Until that fix lands, the
-   same playbooks are referenced by relative path into `playbooks/molecule/`. The layout
-   is identical either way, only the reference form changes.
-5. Keep the python and ansible-core grid with the outer caller. That toolchain matrix
-   belongs to whatever calls molecule, such as tox or CI, running the molecule CLI as a
-   plain caller. The root file does not carry it. In the root file the `runtime:` envelope
-   selects the execution method and, under the `ee` method, one run cell per execution
-   environment. The `runtime:` envelope is Proposed.
+1. Add the entry once to the top-level `platforms:` catalog, with a `name:` and Molecule's own
+   platform keys.
+2. Remove the inline entry from each root scenario that used it. A root with no `platforms:`
+   selects the whole catalog. To select only some entries, list their catalog names.
+3. Update anything that names the old instance. A catalog selection's instance is named
+   `<scenario name>-<catalog name>`, so a root `motd` selecting `instance` gets
+   `motd-instance`.
+4. Move per-instance inventory variables into the entry's `host_vars:`. Each selecting
+   scenario receives them under its own instance name. A scenario's own
+   `provisioner.inventory.host_vars` for that instance still wins where both set a variable.
 
-## Recipe 4: Move a project-local ../shared/ directory into playbooks/molecule/
+An inline platform object stays valid, and keeps its `name` exactly as written. A catalog name
+and an inline name that match in one run is an error.
 
-For a project with a top-level `molecule/` directory and a project-local `../shared/`
-folder that the scenarios reach into for common playbooks. This is the
-`dev-sec/ansible-collection-hardening` shape from the repository README. The converted
-root file is `examples/dev-sec-hardening/after/molecule.yml`.
+## Recipe 4: Share one converge or verify playbook
 
-1. Move the contents of `../shared/` into `playbooks/molecule/`. Under the collection's
-   own `playbooks/` tree these are ordinary playbooks, addressable by name and lintable
-   like any other content, rather than files reached through a relative path out of a
-   scenario directory.
-2. Reference each shared playbook from the scenarios that use it, by name. The
-   `../shared/` folder existed because molecule had no shared home above a scenario. It
-   has nothing left to do once the playbooks live under `playbooks/molecule/`.
-3. Fix any path that counted `../` to climb out of the scenario directory. A path written
-   once in a shared location must mean the same file from every scenario, so it must not
-   depend on how deep the referring scenario sits
-   ([the four path anchors](reference.md#the-four-path-anchors)).
-4. Declare the scenarios in the root `scenarios:` list, sharing their common config
-   through `defaults:`.
+For scenarios that run the same converge or verify steps. Worked case: `examples/roles/`.
 
-## Recipe 5: Add a child scenario to an existing tree
+1. Put one copy of the playbook in a shared folder under the project root, such as
+   `playbooks/molecule/`.
+2. Reference it once from the `playbooks:` key in `defaults:`.
+3. Pass each scenario's difference in rather than writing a separate playbook. In
+   `examples/roles/` the one `converge.yml` includes the role named by `MOLECULE_SCENARIO_NAME`,
+   and each scenario is named for the role it tests.
+4. Set the stage bare on the scenarios that genuinely differ. A bare key overrides `defaults:`
+   for that scenario only.
 
-For a tree that already has a root and you want a new scenario that depends on the root's
-environment.
+## Recipe 5: Add a child to a shared_state tree
 
-1. Add the new scenario as an entry nested under its parent's `children:` in the root
-   file. The nesting is the parent edge, so there is no parent name to type and no second
-   file to edit.
-2. Give the child only its own keys: its `name`, the converge and verify playbooks it
-   runs, and any config that differs from what the tree already hands down.
-3. Reference the child's playbooks from `playbooks/molecule/`. It starts from the
-   parent's snapshot for the environment, so it does not restate the driver, the
-   platforms, or the inventory.
-4. Leave `create`/`destroy` off the child unless it stands up its own instances. Without
-   a `create` the child is not a creator, owns nothing, and tests against the parent's
-   environment. If it does need its own instances, give it its own `create`/`destroy`
-   references and it owns what its `create` produces while still starting from the
-   parent's snapshot ([derived ownership](reference.md#derived-ownership)).
+For a tree with a `default` root, where a new scenario tests against `default`'s environment.
 
-## Recipe 6: Share one converge or verify playbook across scenarios
+1. Nest the new scenario under `default`'s `children:`.
+2. Give it its `name:` and the playbooks it runs itself, such as its own `verify`.
+3. Leave `platforms:`, `create` and `destroy` off it. It shares `default`'s instances.
 
-For scenarios that run near-identical converge or verify steps.
+## Recipe 6: Run scenarios in parallel
 
-1. Put one copy of the playbook under `playbooks/molecule/`.
-2. Reference it from every scenario that runs it. Referencing the same file from several
-   scenarios is how the shared content is written once and read by many.
-3. Pass each scenario's difference as variables on the node rather than as a separate
-   playbook.
+For running independent scenarios at the same time. This needs a collection, a project with a
+`galaxy.yml`.
 
-Folding many near-identical playbooks onto one parameterized trio is an author-side
-content refactor, not something the conversion does for you. Molecule gives the shared
-content a home under `playbooks/molecule/`. Reducing several playbooks to one is your
-edit. In `ansible.platform` many of the 22 mock scenarios run the same converge,
-verify, and cleanup skeleton and differ mainly in the module they call and a few
-variables. Those could fold onto one shared playbook set driven by a per-child vars block,
-while any scenario that genuinely diverges keeps its own playbooks. One task limit sets
-the boundary: a task's module name cannot be Jinja-templated in Ansible, so a shared
-converge that dispatches different modules needs a small dispatch shim rather than a bare
-templated module key. Fold together only the playbooks that really are the same shape.
+1. Set the `workers` key at the top of the file to an integer, `cpus` or `cpus-1`. The default
+   is 1, one scenario at a time.
+2. Pass the same value as `--workers` when you run the converted files. Today's Molecule takes
+   the cap only from the flag, so the converter reports the key as `lost` and names the flag.
+3. Do not combine a value above 1 with `--destroy=never`. Molecule rejects it.
+4. Check the children of a `default` root. They run against the same host, so a child that
+   changes state another one reads makes their order matter, and nothing guards against that.
 
-## Recipe 7: Test one node without its siblings
+## Recipe 7: Check the conversion
 
-For running one scenario in a tree and getting only what it depends on.
+For confirming that the single file says what the old layout said.
 
-1. Select the node by name, the same `-s` selection molecule uses today.
-2. Expect its ancestors to come along. A request for a node is a request for the node and
-   its full ancestor chain, because a child cannot run without the parent that builds its
-   environment. Selection narrows what is tested, never what is depended on.
-3. Expect nothing sideways or below. Ancestor closure is upward only. A targeted run
-   pulls in the target and its ancestors and never its siblings, its cousins, or its
-   descendants.
-4. Expect a standing ancestor to be left alone. An ancestor whose environment is already
-   up and converged is trusted, not rebuilt. An ancestor that is not standing runs its own
-   full sequence, minus `destroy`, including its verify, before the target starts.
+1. Paste the file into the [converter](converter/), or run it from a clone of this repository.
 
-If the target turns out to need a scenario that is not on its ancestor chain, the repair
-is to declare that dependency. An opt-in selector to also run the scenarios that share the
-target's parent covers the case where you cannot declare it yet
-([a partial run](reference.md#a-partial-run)). It is
-opt-in because a targeted run must not fan out sideways on its own.
+   ```
+   python3 tools/converter/cli.py molecule.yml --scenarios-dir molecule --out <dir>
+   ```
 
-## Recipe 8: Run a tree in parallel with --workers
+2. Read the notices.
 
-For running independent nodes concurrently. `--workers` exists in molecule today as an
-experimental flag, in collection mode, and the proposal reshapes what it schedules.
+   | Notice | Means |
+   |---|---|
+   | `error` | The file breaks the spec, such as a key the spec does not declare |
+   | `unresolved` | The design does not decide the case, so the converter picks no answer |
+   | `lost` | The single file carries it and today's Molecule cannot, such as a `wave` |
+   | `unsupported` | Today's Molecule rejects the combination at run time |
 
-1. Run with `--workers <n>`. It is a single global cap on how many scenarios are in flight
-   at once, oriented to machine capacity.
-2. Expect the gate to order the tree for you. A root runs first. Its children become
-   runnable only after it succeeds and are skipped if it fails. Siblings in the same wave
-   run concurrently.
-3. Keep siblings independent. Siblings in one wave run at the same time and take no
-   snapshot from each other, so two siblings must not name the same host or step on each
-   other's state. Ancestor-to-descendant handoff is ordered by the gate and stays safe.
-4. Where two siblings must run one after the other without depending on each other, put
-   them in different waves with `wave:`. Nodes that share a parent run in ascending wave
-   order, and a wave starts once every node in a lower wave has completed its whole
-   subtree. Where one needs the other's result, nest it under that sibling instead.
-5. Expect the root phase to idle slots. A single-tree project leaves the other workers
-   idle while the root runs alone, because the root has to finish before any child is
-   runnable. The idle slots fill once there is more than one tree.
-
-If you would rather not reason about sibling concurrency at all, run with `--workers 1`,
-which serializes the run while still following the tree.
-
-## Recipe 9: Refuse implicit provisioning for a costly layer
-
-For a layer that should never be stood up implicitly, such as a driver that costs real
-money, a shared lab owned by someone else, or a CI job whose whole point is to assert the
-layer was already there.
-
-1. Set `missing_parent: fail` on the scenario whose ancestor must already be standing. The
-   default is `create`, which builds a missing ancestor the way any dependency system
-   satisfies a dependency. `fail` refuses instead.
-2. Expect a loud refusal, not a silent skip. When the ancestor is not standing, the run
-   stops and names the ancestor and the command that would build it.
-3. Override per invocation with `--missing-parent` where one run needs the other policy.
-
-`missing_parent` is a per-scenario behavior key, so it is committed with the project and
-does not have to be remembered on the command line.
+3. Compare the written scenario files with the ones you started from. Playbook paths differ in
+   form only, because a relative path is written as `${MOLECULE_PROJECT_DIRECTORY}/<path>`.
+4. Run the written files with `molecule test --all` from the project root.
 
 ## Where to go next
 
-For the structure of the root file, how playbooks are referenced, and why the config
-lives at the project root, read [the pattern](the-pattern.md). For the full key and behavior
-spec, read the [reference](reference.md). For the reasoning behind declaring scenarios as a
-tree, read the [explanation](explanation.md). To learn the tree from nothing, read
+For every key and how a value resolves, read the [reference](reference.md). For the structure
+of the root file, read [the pattern](the-pattern.md). For the reasoning, read the
+[explanation](explanation.md). To learn the file from nothing, read
 [getting started](getting-started.md).
