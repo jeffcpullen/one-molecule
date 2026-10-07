@@ -1,7 +1,7 @@
 ---
 $schema: https://json-schema.org/draft/2020-12/schema
 title: Open-questions source
-description: 'Bespoke shape for design/data/open-questions.yml: the register of undecided items and a TODO backlog. A decided item moves to its owning source and is deleted, so there is no resolved list. Each open item keeps bounded framing lines only, and states what is unknown or undecided about the design rather than an action for anyone to take. Every text string forbids the semicolon and the em or en dash (house writing style).'
+description: 'Bespoke shape for design/data/open-questions.yml: the register of undecided items and a TODO backlog. A decided item moves to its owning source and is deleted, so there is no resolved list. An item discussed in public names its issue numbers, and the decision still lands in the owning source. Each open item keeps bounded framing lines only, and states what is unknown or undecided about the design rather than an action for anyone to take. Every text string forbids the semicolon and the em or en dash (house writing style).'
 type: object
 additionalProperties: false
 required:
@@ -65,6 +65,14 @@ $defs:
         allOf:
           - $ref: '#/$defs/line'
         description: Optional source that owns the decision, where the settled part already lives.
+      issues:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          type: integer
+          minimum: 1
+        description: Optional numbers of the public issues in this repository that carry the discussion. An item with none stays internal.
   linelist:
     type: object
     additionalProperties: false

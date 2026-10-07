@@ -15,6 +15,8 @@ open:
     status: "behavior settled, spelling not started"
     raised: "2026-09-24"
     owning_doc: "`design/data/environment.yml`"
+    issues:
+      - 1
     framing:
       - "The key that declares an arg in the file is unnamed."
       - "The key that declares a secret in the file is unnamed."
@@ -22,10 +24,23 @@ open:
       - "The arg reference syntax is unchosen, and it must differ from molecule's `${VAR}`."
       - "Arg declarations enter `spec/molecule-config.schema.yml` once the spelling is chosen."
 
+  - title: "Keep a catalog entry's labels out of the handoff"
+    status: "raised, not started"
+    raised: "2026-10-07"
+    owning_doc: "`spec/molecule-config.schema.yml`"
+    issues:
+      - 2
+    framing:
+      - "A spec 0.2.0 catalog entry accepts any molecule platform key, and a selected entry reaches the node's platforms as written except for its `name`."
+      - "No orchestrator key reaches molecule (`design/data/tree-spec.yml`, rule `handoff-no-orchestrator-keys`)."
+      - "Undecided is how `labels:` on a catalog entry is held back while every molecule platform key still passes through."
+
   - title: "Spell the label selection flags"
     status: "raised, not started"
     raised: "2026-09-25"
     owning_doc: "`design/data/tree-spec.yml`"
+    issues:
+      - 3
     framing:
       - "The `--label` and `--skip-label` spelling must layer against ansible-playbook's own task `--tags` (`design/data/naming.yml`)."
 
@@ -33,6 +48,10 @@ open:
     status: "raised, not started"
     raised: "2026-10-02"
     owning_doc: "`design/data/execution-environments.yml`"
+    issues:
+      - 4
+      - 5
+      - 6
     framing:
       - "The orchestrator owns ordering, the snapshot handoff, retry, and teardown, and the executor decides where each node's actions run (`design/data/lifecycle.yml`)."
       - "Undecided is what crosses the executor seam for one node, beyond its config and its snapshot."
@@ -46,24 +65,60 @@ open:
     status: "deferred to a future spec version"
     raised: "2026-09-21"
     owning_doc: "`spec/molecule-config.schema.yml`"
+    issues:
+      - 11
     framing:
       - "A catalog selection's instance name is `<scenario name>-<catalog name>`, unique within one run."
       - "Two concurrent runs of one project on one host still collide on that name."
-      - "Separating them needs run identity, which is a residual ephemeral item below."
+      - "Separating them needs run identity, which is the run identity item in this file."
+
+  - title: "Give a run its own identity"
+    status: "proposed, not settled"
+    owning_doc: "`design/data/ephemeral.yml`"
+    issues:
+      - 10
+    framing:
+      - "Run identity is the internal path segment that keeps concurrent runs disjoint, and it is not exported to playbooks (`design/data/target.yml`)."
+      - "An artifact such as an image tag is machine-global, and the author who chooses its tag needs a value that names the run to isolate it (`design/data/provisioning.yml`)."
+      - "An exported run key must be durable for the whole run and never the per-process `run_uuid` under another name (`design/data/rejected-ideas.yml`)."
+      - "Undecided is whether an author can read a run's identity."
+
+  - title: "Split `MOLECULE_EPHEMERAL_DIRECTORY`"
+    status: "proposed, not settled"
+    owning_doc: "`design/data/ephemeral.yml`"
+    issues:
+      - 12
+    framing:
+      - "The split is a location input for the whole tree and a per-node output for one scenario's directory."
+      - "Keeping the per-node input meaning and ignoring the input entirely are both rejected (`design/data/rejected-ideas.yml`)."
 
   - title: "The per-node run report"
     status: "raised, not started"
     raised: "2026-10-02"
     owning_doc: "`design/data/lifecycle.yml`"
+    issues:
+      - 7
     framing:
       - "GitLab renders a JUnit XML report natively, and GitHub renders one through a reporting action or the Checks API."
       - "Undecided is the report format, JUnit alone or JUnit beside a molecule-native form."
       - "Undecided is how a run switches the report on and where it writes it."
       - "Unknown is whether molecule's existing run results already carry what a per-node report needs."
 
+  - title: "Name the run-level lint key"
+    status: "behavior settled, spelling not started"
+    raised: "2026-10-07"
+    owning_doc: "`design/data/lint.yml`"
+    issues:
+      - 13
+    framing:
+      - "The key that declares the run-level lint command is unnamed."
+      - "Molecule's own per-scenario `lint` key still passes through to each scenario."
+
   - title: "A reused resource pool of instances assigned to children"
     status: "deferred under a working assumption"
     raised: "2026-09-23"
+    issues:
+      - 8
     framing:
       - "linux-system-roles/storage allocates a fixed count of ephemeral nodes on demand (Artemis on Testing Farm, local virtual for `tmt try`) and packs 150 test playbooks onto them, reusing each node as it frees rather than booting one per test."
       - "The proposed model boots a fresh node per scenario capped by `--workers`, which matches the concurrency width but not the reuse."
@@ -94,8 +149,6 @@ todo:
   residual_ephemeral:
     intro: "Marked Proposed in `design/data/ephemeral.yml` rather than open-ended, but not settled."
     items:
-      - "splitting `MOLECULE_EPHEMERAL_DIRECTORY` into a location input and a per-node output, with ignoring it entirely rejected in `design/data/rejected-ideas.yml`"
-      - "giving a run its own identity, which is what the documented tox-parallel recipe is really a workaround for"
       - "the scratch directory variable and how long `prune`'s denylist survives as a fallback"
   documentation_backlog:
     intro: "Not design questions, but decided by design decisions and missing from the docs unless written down here."
