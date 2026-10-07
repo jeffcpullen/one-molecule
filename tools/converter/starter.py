@@ -8,6 +8,7 @@ from project import KeyClasses
 
 MOLECULE_REF = "../vendor/molecule.json#"
 LIVE_NAME = "default"
+MAX_ENUM_VALUES = 5
 LIVE_KEYS = {
     "driver": {"name": "default"},
     "platforms": [{"name": "instance"}],
@@ -73,17 +74,27 @@ class _Schemas:
         return props
 
     def kind(self, sub, doc):
-        """Short type hint, such as `string`, `list` or `one of: a, b`."""
+        """Short type hint, such as `string`, `list` or `one of: a, b`.
+
+        An enum longer than `MAX_ENUM_VALUES` is not listed.
+        """
         kinds = []
+        long_enums = []
         for variant, _ in self.variants(sub, doc):
             if "enum" in variant:
-                kinds.append("one of: " + ", ".join(str(v) for v in variant["enum"] if v is not None))
+                values = [str(v) for v in variant["enum"] if v is not None]
+                if len(values) <= MAX_ENUM_VALUES:
+                    kinds.append("one of: " + ", ".join(values))
+                else:
+                    long_enums.append(len(values))
                 continue
             types = variant.get("type", [])
             for name in types if isinstance(types, list) else [types]:
                 label = {"array": "list", "object": "mapping"}.get(name, name)
                 if name != "null" and label not in kinds:
                     kinds.append(label)
+        if not kinds and long_enums:
+            kinds.append(f"one of {max(long_enums)} values")
         return " or ".join(kinds)
 
     def note(self, sub, doc):

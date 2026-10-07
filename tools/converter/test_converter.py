@@ -61,6 +61,10 @@ class Starter(unittest.TestCase):
                          {"driver": {"name": "default"}, "platforms": [{"name": "instance"}]})
         self.assertEqual(result["notices"], [])
 
+    def test_lines_stay_short(self):
+        long_lines = [line for line in load_starter().splitlines() if len(line) > 100]
+        self.assertEqual(long_lines, [])
+
     def test_names_every_declared_key(self):
         text = load_starter()
         definitions = SCHEMA["definitions"]
