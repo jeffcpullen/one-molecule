@@ -70,6 +70,9 @@ groups:
       - gist: "A lint warning for `platforms` declared bare on a non-creating node"
         why: "New behavior molecule does not have. Molecule accepts every platforms-vs-driver combination silently and treats empty or absent `platforms` as first-class valid. Deferred to current behavior, permissive, no diagnostic."
         tags: [src]
+      - gist: "An empty value that cancels an inherited default"
+        why: "Setting the wanted value on the node already overrides the default, and treating null or the empty string as a cancel deletes a real empty value such as an Ansible variable set to an empty string."
+        tags: [reasoned]
 
   - title: "design/data/layout.yml (the authoring surface)"
     items:

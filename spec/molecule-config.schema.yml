@@ -31,9 +31,7 @@ x-spec:
     - A key under the top-level `defaults:` applies to every node that does not set it bare.
     - K in the precedence is a key path, not a top-level key.
     - Mappings deep-merge across the precedence layers.
-    - An empty value is null or the empty string.
-    - An empty value overrides every lower precedence layer.
-    - A key whose resolved value is empty is absent.
+    - A null or empty-string value is an ordinary value.
     - 'The run is the virtual root: run-only keys bare, all cascading config under the top-level `defaults:`.'
     - 'A `defaults:` block is a sparse overlay: any subset of config keys, none required. It is not a complete scenario.'
     - '`playbooks:` is a top-level convenience alias for `provisioner.playbooks`, valid wherever config is (bare, or under `defaults:`).'
