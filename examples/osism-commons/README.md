@@ -12,5 +12,10 @@ The counts below are upstream's.
 | | Before | After |
 |---|---|---|
 | Config and orchestration files | 4 | 1 |
-| Scenario folders | 2 | 0 |
-| Total lines | 521 | 54 |
+| Scenario folders | 2 | 1 |
+| Total lines | 521 | 52 |
+
+The `delegated` scenario folder stays because its stage playbooks and test files stay where upstream
+keeps them, and Molecule finds its `converge.yml` and `prepare.yml` by its default discovery, so the
+single file names neither. The After count is the folders that still hold a file. The `default`
+folder held only its `molecule.yml`, so it goes.

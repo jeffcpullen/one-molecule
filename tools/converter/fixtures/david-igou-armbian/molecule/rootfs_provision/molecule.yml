@@ -1,11 +1,5 @@
 ---
 provisioner:
-  playbooks:
-    create: david_igou.molecule_provisioners.create
-    destroy: david_igou.molecule_provisioners.destroy
-    prepare: david_igou.armbian.molecule_rootfs_provision_prepare
-    converge: david_igou.armbian.molecule_rootfs_provision_converge
-    verify: david_igou.armbian.molecule_rootfs_provision_verify
   inventory:
     host_vars:
       instance:

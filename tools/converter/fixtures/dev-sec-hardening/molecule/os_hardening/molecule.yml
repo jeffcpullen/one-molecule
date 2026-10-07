@@ -19,10 +19,6 @@ provisioner:
       interpreter_python: auto_silent
       callbacks_enabled: profile_tasks, timer
       inject_facts_as_vars: false
-  playbooks:
-    converge: devsec.hardening.molecule_os_hardening_converge
-    verify: devsec.hardening.molecule_os_hardening_verify
-    prepare: devsec.hardening.molecule_os_hardening_prepare
 verifier:
   name: ansible
 scenario:
@@ -32,7 +28,7 @@ scenario:
     - prepare
   check_sequence:
     - dependency
-    - verify molecule/shared/prerequisites.yml
+    - verify ../shared/prerequisites.yml
     - destroy
     - create
     - prepare
@@ -48,7 +44,7 @@ scenario:
     - destroy
   test_sequence:
     - dependency
-    - verify molecule/shared/prerequisites.yml
+    - verify ../shared/prerequisites.yml
     - destroy
     - syntax
     - create

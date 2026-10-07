@@ -39,6 +39,6 @@ scenarios:
         groups:
           - service_hosts
     playbooks:
-      converge: tests/test.yml
-      side_effect: tests/side_effect.yml
-      verify: tests/verify.yml
+      converge: ../../tests/test.yml
+      side_effect: ../../tests/side_effect.yml
+      verify: ../../tests/verify.yml

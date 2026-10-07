@@ -73,45 +73,23 @@ defaults:
       - destroy
   verifier:
     name: ansible
-  playbooks:
-    create: david_igou.molecule_provisioners.create
-    destroy: david_igou.molecule_provisioners.destroy
-    prepare: david_igou.armbian.molecule_shared_prepare
 
 scenarios:
   - name: board_boot_verify
     platforms:
       - debian-13-qemu
-    playbooks:
-      converge: david_igou.armbian.molecule_board_boot_verify_converge
-      verify: david_igou.armbian.molecule_board_boot_verify_verify
   - name: board_boot_wait
     platforms:
       - ubuntu-2404-podman
-    playbooks:
-      converge: david_igou.armbian.molecule_board_boot_wait_converge
-      verify: david_igou.armbian.molecule_board_boot_wait_verify
   - name: bootstrap_armbian
     platforms:
       - armbian-uefi-qemu
-    playbooks:
-      prepare: david_igou.armbian.molecule_bootstrap_armbian_prepare
-      converge: david_igou.armbian.molecule_bootstrap_armbian_converge
-      verify: david_igou.armbian.molecule_bootstrap_armbian_verify
   - name: disk_image
     platforms:
       - debian-13-qemu
-    playbooks:
-      prepare: david_igou.armbian.molecule_disk_image_prepare
-      converge: david_igou.armbian.molecule_disk_image_converge
-      verify: david_igou.armbian.molecule_disk_image_verify
   - name: disk_provision
     platforms:
       - debian-13-qemu
-    playbooks:
-      prepare: david_igou.armbian.molecule_disk_provision_prepare
-      converge: david_igou.armbian.molecule_disk_provision_converge
-      verify: david_igou.armbian.molecule_disk_provision_verify
   - name: image_build
     platforms:
       - armbian-builder-qemu
@@ -127,28 +105,15 @@ scenarios:
                       sed -i -e "s/#define BOOT_TARGETS.*/#define BOOT_TARGETS \"${t[*]}\"/" \
                           include/configs/rockchip-common.h
                   }
-    playbooks:
-      prepare: david_igou.armbian.molecule_image_build_prepare
-      converge: david_igou.armbian.molecule_image_build_converge
-      verify: david_igou.armbian.molecule_image_build_verify
   - name: local_kernel_render
     platforms:
       - ubuntu-2404-podman
-    playbooks:
-      converge: david_igou.armbian.molecule_local_kernel_render_converge
-      verify: david_igou.armbian.molecule_local_kernel_render_verify
   - name: persist_uboot_env
     platforms:
       - ubuntu-2404-podman
-    playbooks:
-      converge: david_igou.armbian.molecule_persist_uboot_env_converge
-      verify: david_igou.armbian.molecule_persist_uboot_env_verify
   - name: pxelinux_render
     platforms:
       - ubuntu-2404-podman
-    playbooks:
-      converge: david_igou.armbian.molecule_pxelinux_render_converge
-      verify: david_igou.armbian.molecule_pxelinux_render_verify
   - name: rootfs_provision
     platforms:
       - debian-13-qemu
@@ -158,7 +123,3 @@ scenarios:
           instance:
             armbian_nfs_rootfs_path: /var/lib/armbian/test-nfs
             armbian_image_cache: /var/lib/armbian/test-cache
-    playbooks:
-      prepare: david_igou.armbian.molecule_rootfs_provision_prepare
-      converge: david_igou.armbian.molecule_rootfs_provision_converge
-      verify: david_igou.armbian.molecule_rootfs_provision_verify

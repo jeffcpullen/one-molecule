@@ -18,10 +18,6 @@ provisioner:
     defaults:
       interpreter_python: auto_silent
       callbacks_enabled: profile_tasks, timer
-  playbooks:
-    converge: devsec.hardening.molecule_mysql_hardening_converge
-    verify: devsec.hardening.molecule_mysql_hardening_verify
-    prepare: devsec.hardening.molecule_mysql_hardening_prepare
 verifier:
   name: ansible
 dependency:
@@ -36,7 +32,7 @@ scenario:
     - prepare
   check_sequence:
     - dependency
-    - verify molecule/shared/prerequisites.yml
+    - verify ../shared/prerequisites.yml
     - destroy
     - create
     - prepare
@@ -52,7 +48,7 @@ scenario:
     - destroy
   test_sequence:
     - dependency
-    - verify molecule/shared/prerequisites.yml
+    - verify ../shared/prerequisites.yml
     - destroy
     - syntax
     - create

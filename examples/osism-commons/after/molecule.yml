@@ -1,13 +1,15 @@
 ---
 # SPDX-License-Identifier: Apache-2.0
 # Converted by the one-molecule project from the upstream per-scenario Molecule layout to the single top-level layout.
+defaults:
+  provisioner:
+    name: ansible
+
 scenarios:
   - name: default
     scenario:
       test_sequence: []
     platforms: []
-    provisioner:
-      name: ansible
   - name: delegated
     dependency:
       name: galaxy
@@ -22,7 +24,6 @@ scenarios:
     platforms:
       - name: "molecule-${ANSIBLE_ROLE}"
     provisioner:
-      name: ansible
       env:
         ANSIBLE_LIBRARY: ../../plugins
         ANSIBLE_ROLES_PATH: ../../roles
@@ -49,6 +50,3 @@ scenarios:
         - converge
         - verify
         - destroy
-    playbooks:
-      prepare: osism.commons.molecule_delegated_prepare
-      converge: osism.commons.molecule_delegated_converge

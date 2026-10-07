@@ -93,11 +93,9 @@ defaults:
 scenarios:
   - name: default
     playbooks:
-      create: david_igou.molecule_provisioners.create
-      prepare: david_igou.routeros_configuration.molecule_shared_prepare
-      converge: david_igou.routeros_configuration.molecule_default_converge
-      verify: david_igou.routeros_configuration.molecule_default_verify
-      destroy: david_igou.molecule_provisioners.destroy
+      create: ../utils/playbooks/create.yml
+      prepare: ../utils/playbooks/prepare.yml
+      destroy: ../utils/playbooks/destroy.yml
     scenario:
       test_sequence:
         - dependency
@@ -108,13 +106,7 @@ scenarios:
         - destroy
     children:
       - name: ping
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_ping_converge
-          verify: david_igou.routeros_configuration.molecule_ping_verify
       - name: fetch
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_fetch_converge
-          verify: david_igou.routeros_configuration.molecule_fetch_verify
         scenario:
           test_sequence:
             - dependency
@@ -122,44 +114,20 @@ scenarios:
             - verify
       - name: configure_lists
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_configure_lists_converge
-          verify: david_igou.routeros_configuration.molecule_configure_lists_verify
       - name: configure_singletons
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_configure_singletons_converge
-          verify: david_igou.routeros_configuration.molecule_configure_singletons_verify
       - name: configure_ordered
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_configure_ordered_converge
-          verify: david_igou.routeros_configuration.molecule_configure_ordered_verify
       - name: configure_modify_only
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_configure_modify_only_converge
-          verify: david_igou.routeros_configuration.molecule_configure_modify_only_verify
       - name: configure_dependency_chain
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_configure_dependency_chain_converge
-          verify: david_igou.routeros_configuration.molecule_configure_dependency_chain_verify
       - name: configure_full
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_configure_full_converge
-          verify: david_igou.routeros_configuration.molecule_configure_full_verify
       - name: configure_check_mode
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_configure_check_mode_converge
-          verify: david_igou.routeros_configuration.molecule_configure_check_mode_verify
       - name: certificate
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_certificate_converge
-          verify: david_igou.routeros_configuration.molecule_certificate_verify
         scenario:
           test_sequence:
             - dependency
@@ -167,19 +135,10 @@ scenarios:
             - verify
       - name: upgrade
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_upgrade_converge
-          verify: david_igou.routeros_configuration.molecule_upgrade_verify
       - name: export_vars
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_export_vars_converge
-          verify: david_igou.routeros_configuration.molecule_export_vars_verify
       - name: command
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_command_converge
-          verify: david_igou.routeros_configuration.molecule_command_verify
         scenario:
           test_sequence:
             - dependency
@@ -187,40 +146,24 @@ scenarios:
             - verify
       - name: poe
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_poe_converge
         scenario:
           test_sequence:
             - dependency
             - converge
       - name: user_password
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_user_password_converge
-          verify: david_igou.routeros_configuration.molecule_user_password_verify
       - name: reset
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_reset_converge
-          verify: david_igou.routeros_configuration.molecule_reset_verify
       - name: backup
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_backup_converge
-          verify: david_igou.routeros_configuration.molecule_backup_verify
       - name: negative
         wave: 1
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_negative_converge
         scenario:
           test_sequence:
             - dependency
             - converge
       - name: restore
         wave: 2
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_restore_converge
-          verify: david_igou.routeros_configuration.molecule_restore_verify
         scenario:
           test_sequence:
             - dependency
@@ -228,9 +171,6 @@ scenarios:
             - verify
       - name: reboot
         wave: 3
-        playbooks:
-          converge: david_igou.routeros_configuration.molecule_reboot_converge
-          verify: david_igou.routeros_configuration.molecule_reboot_verify
         scenario:
           test_sequence:
             - dependency
@@ -240,10 +180,9 @@ scenarios:
   - name: lifecycle
     wave: 1
     playbooks:
-      create: david_igou.molecule_provisioners.create
-      prepare: david_igou.routeros_configuration.molecule_shared_prepare
-      converge: david_igou.routeros_configuration.molecule_lifecycle_converge
-      destroy: david_igou.molecule_provisioners.destroy
+      create: ../utils/playbooks/create.yml
+      prepare: ../utils/playbooks/prepare.yml
+      destroy: ../utils/playbooks/destroy.yml
     scenario:
       test_sequence:
         - dependency

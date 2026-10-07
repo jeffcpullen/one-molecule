@@ -90,14 +90,12 @@ class Rules(unittest.TestCase):
         self.assertEqual(unresolved, {"a", "b"})
         self.assertTrue(all("platforms" not in f["content"] for f in result["files"]))
 
-    def test_fqcn_playbook_reported_lost_not_as_path(self):
-        config = {"scenarios": [{"name": "a", "playbooks": {
-            "converge": "ns.coll.molecule_converge", "verify": "tests/verify.yml"}}]}
-        notices = project(config, SCHEMA)["notices"]
-        by_kind = {n["kind"]: n["message"] for n in notices if n["key"] == "provisioner.playbooks"}
-        self.assertIn("converge: ns.coll.molecule_converge", by_kind["lost"])
-        self.assertNotIn("ns.coll", by_kind["unresolved"])
-        self.assertIn("verify: tests/verify.yml", by_kind["unresolved"])
+    def test_playbook_paths_copied_as_written(self):
+        config = {"scenarios": [{"name": "a", "playbooks": {"verify": "../../tests/verify.yml"}}]}
+        result = project(config, SCHEMA)
+        self.assertEqual(result["notices"], [])
+        playbooks = result["files"][0]["content"]["provisioner"]["playbooks"]
+        self.assertEqual(playbooks, {"verify": "../../tests/verify.yml"})
 
     def test_unknown_key_is_error(self):
         result = project({"scenarios": [{"name": "a", "parent": "x"}]}, SCHEMA)

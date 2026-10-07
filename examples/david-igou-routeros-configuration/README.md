@@ -11,8 +11,8 @@ credential has an added inline `# notsecret` comment, which adds no lines.
 | | Before | After |
 |---|---|---|
 | Config and orchestration files | 25 | 1 |
-| Scenario folders | 22 | 0 |
-| Total lines | 331 | 253 |
+| Scenario folders | 22 | 22 |
+| Total lines | 331 | 192 |
 
 This example is evidence for translating `shared_state`, not for nesting. `extensions/molecule/config.yml`
 sets `shared_state: true` for the whole suite, `default` boots one MikroTik CHR and owns create,
@@ -25,11 +25,15 @@ same machine definition, which upstream keeps as one static `utils/inventory/` t
 a `platforms:` catalog of one entry.
 
 The line drop is comments, not structure. Not counting blank lines, comments and `---` markers, the 25
-files hold 175 lines and the single file holds 246, so on content the single file is 71 lines longer.
-Upstream's `config.yml` sets `converge: converge.yml` and `verify: verify.yml` once, and molecule
-resolves them against each scenario's own directory. A single file has no scenario directory, so each
-of the twenty children names its own playbooks, 58 lines between them. The ordering below adds 19
-`wave:` lines.
+files hold 175 lines and the single file holds 185, so on content the single file is 10 lines longer.
+The ordering below adds 19 `wave:` lines.
+
+The scenario folders stay. Each still holds its stage playbooks where upstream keeps them, and
+Molecule finds `converge.yml` and `verify.yml` there by its default discovery, so no scenario names
+them. The After count is the folders that still hold a file once their `molecule.yml` is gone, which
+is all 22. The two roots name upstream's shared `create`, `prepare` and `destroy` playbooks by the
+same `../utils/playbooks/` paths upstream's `config.yml` uses, resolved against each scenario's own
+directory.
 
 Upstream's `Makefile` runs the twenty one at a time and says the order matters: `ping` and `fetch` run
 before `configure_full` installs a firewall that drops ICMP and HTTP, and `restore` and `reboot` run
@@ -47,11 +51,5 @@ The count covers the files the single file absorbs: 22 `molecule.yml`, the share
 the two `utils/inventory/` files. The `Makefile` is not counted and survives for install and build,
 though two of its jobs would pass to the tree: prepending `default` to a single-scenario run is
 ancestor closure, and the guard that fails CI on an unlisted scenario has nothing to guard when the
-file is the list. Also not counted: the create and destroy wrappers under `utils/playbooks/` that only
-import `david_igou.molecule_provisioners`, which the file references directly,
-`requirements-test.yml`, and the stage playbooks, which are unchanged and still referenced. Three of
-those playbooks reach `../utils/` by relative path and need that path repointed when they move.
-
-Stage playbooks are referenced by collection FQCN
-(`david_igou.routeros_configuration.molecule_<scenario>_<stage>`). That form assumes molecule's FQCN
-stage reference fix, open issue https://github.com/ansible/molecule/issues/4244, not yet merged.
+file is the list. Also not counted: `requirements-test.yml` and the stage playbooks, including the
+`utils/playbooks/` ones, which are unchanged and stay where upstream keeps them.

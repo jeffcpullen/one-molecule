@@ -12,11 +12,11 @@ not among the counted ones.
 | | Before | After |
 |---|---|---|
 | Config and orchestration files | 11 | 1 |
-| Scenario folders | 7 | 0 |
-| Total lines | 451 | 260 |
+| Scenario folders | 7 | 7 |
+| Total lines | 451 | 158 |
 
-Six sequences in the single file still run `verify molecule/shared/prerequisites.yml`, upstream's
-path. That playbook is named as the argument to a `verify` step inside a sequence rather than under
-`playbooks:`, and this example does not assume the collection FQCN reference form reaches step
-arguments. Moved into `playbooks/molecule/` as the shared-folder recipe describes, those six
-references would name the new path instead.
+The scenario folders stay because the stage playbooks stay where upstream keeps them, and Molecule
+finds each scenario's `converge.yml`, `prepare.yml` and `verify.yml` by its default discovery, so the
+single file names none of them. The After count is the folders that still hold a file, and all seven
+do. The sequences still run `verify ../shared/prerequisites.yml` exactly as upstream writes it,
+relative to each scenario folder.

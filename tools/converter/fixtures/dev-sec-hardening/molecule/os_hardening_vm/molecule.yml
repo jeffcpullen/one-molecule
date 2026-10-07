@@ -12,18 +12,14 @@ provisioner:
   name: ansible
   options:
     diff: true
-  env:
-    ANSIBLE_PIPELINING: 'True'
   config_options:
     defaults:
       interpreter_python: auto_silent
       callbacks_enabled: profile_tasks, timer
       library: ${MOLECULE_PROJECT_DIRECTORY}/plugins/modules:/usr/share/ansible:${MOLECULE_VAGRANT_PLUGIN_DIR}
       inject_facts_as_vars: false
-  playbooks:
-    converge: devsec.hardening.molecule_os_hardening_vm_converge
-    verify: devsec.hardening.molecule_os_hardening_vm_verify
-    prepare: devsec.hardening.molecule_os_hardening_vm_prepare
+  env:
+    ANSIBLE_PIPELINING: 'True'
 verifier:
   name: ansible
   env:
@@ -39,7 +35,7 @@ scenario:
     - prepare
   check_sequence:
     - dependency
-    - verify molecule/shared/prerequisites.yml
+    - verify ../shared/prerequisites.yml
     - destroy
     - create
     - prepare
@@ -55,7 +51,7 @@ scenario:
     - destroy
   test_sequence:
     - dependency
-    - verify molecule/shared/prerequisites.yml
+    - verify ../shared/prerequisites.yml
     - destroy
     - syntax
     - create

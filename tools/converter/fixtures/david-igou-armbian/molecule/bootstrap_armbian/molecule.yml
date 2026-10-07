@@ -1,11 +1,4 @@
 ---
-provisioner:
-  playbooks:
-    create: david_igou.molecule_provisioners.create
-    destroy: david_igou.molecule_provisioners.destroy
-    prepare: david_igou.armbian.molecule_bootstrap_armbian_prepare
-    converge: david_igou.armbian.molecule_bootstrap_armbian_converge
-    verify: david_igou.armbian.molecule_bootstrap_armbian_verify
 verifier:
   name: ansible
 dependency:

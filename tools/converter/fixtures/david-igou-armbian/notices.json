@@ -6,22 +6,10 @@
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
   },
   {
-    "kind": "lost",
-    "node": "board_boot_verify",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_shared_prepare, converge: david_igou.armbian.molecule_board_boot_verify_converge, verify: david_igou.armbian.molecule_board_boot_verify_verify."
-  },
-  {
     "kind": "unresolved",
     "node": "board_boot_wait",
     "key": "platforms",
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
-  },
-  {
-    "kind": "lost",
-    "node": "board_boot_wait",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_shared_prepare, converge: david_igou.armbian.molecule_board_boot_wait_converge, verify: david_igou.armbian.molecule_board_boot_wait_verify."
   },
   {
     "kind": "unresolved",
@@ -30,22 +18,10 @@
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
   },
   {
-    "kind": "lost",
-    "node": "bootstrap_armbian",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_bootstrap_armbian_prepare, converge: david_igou.armbian.molecule_bootstrap_armbian_converge, verify: david_igou.armbian.molecule_bootstrap_armbian_verify."
-  },
-  {
     "kind": "unresolved",
     "node": "disk_image",
     "key": "platforms",
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
-  },
-  {
-    "kind": "lost",
-    "node": "disk_image",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_disk_image_prepare, converge: david_igou.armbian.molecule_disk_image_converge, verify: david_igou.armbian.molecule_disk_image_verify."
   },
   {
     "kind": "unresolved",
@@ -54,22 +30,10 @@
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
   },
   {
-    "kind": "lost",
-    "node": "disk_provision",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_disk_provision_prepare, converge: david_igou.armbian.molecule_disk_provision_converge, verify: david_igou.armbian.molecule_disk_provision_verify."
-  },
-  {
     "kind": "unresolved",
     "node": "image_build",
     "key": "platforms",
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
-  },
-  {
-    "kind": "lost",
-    "node": "image_build",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_image_build_prepare, converge: david_igou.armbian.molecule_image_build_converge, verify: david_igou.armbian.molecule_image_build_verify."
   },
   {
     "kind": "unresolved",
@@ -78,22 +42,10 @@
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
   },
   {
-    "kind": "lost",
-    "node": "local_kernel_render",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_shared_prepare, converge: david_igou.armbian.molecule_local_kernel_render_converge, verify: david_igou.armbian.molecule_local_kernel_render_verify."
-  },
-  {
     "kind": "unresolved",
     "node": "persist_uboot_env",
     "key": "platforms",
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
-  },
-  {
-    "kind": "lost",
-    "node": "persist_uboot_env",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_shared_prepare, converge: david_igou.armbian.molecule_persist_uboot_env_converge, verify: david_igou.armbian.molecule_persist_uboot_env_verify."
   },
   {
     "kind": "unresolved",
@@ -102,21 +54,9 @@
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
   },
   {
-    "kind": "lost",
-    "node": "pxelinux_render",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_shared_prepare, converge: david_igou.armbian.molecule_pxelinux_render_converge, verify: david_igou.armbian.molecule_pxelinux_render_verify."
-  },
-  {
     "kind": "unresolved",
     "node": "rootfs_provision",
     "key": "platforms",
     "message": "Catalog selections have no projection yet. The instance name a selection gets is an open question in the design, and the catalog's `vars` are opaque to Molecule. Platforms are left out of this file."
-  },
-  {
-    "kind": "lost",
-    "node": "rootfs_provision",
-    "key": "provisioner.playbooks",
-    "message": "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, which is unmerged. Today's Molecule reads each one as a file path relative to the scenario directory. References: create: david_igou.molecule_provisioners.create, destroy: david_igou.molecule_provisioners.destroy, prepare: david_igou.armbian.molecule_rootfs_provision_prepare, converge: david_igou.armbian.molecule_rootfs_provision_converge, verify: david_igou.armbian.molecule_rootfs_provision_verify."
   }
 ]

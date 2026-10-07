@@ -18,9 +18,6 @@ provisioner:
       all:
         molecule_role: ${ANSIBLE_ROLE}
         prepared_vars_path: /tmp/ansible-molecule
-  playbooks:
-    prepare: osism.commons.molecule_delegated_prepare
-    converge: osism.commons.molecule_delegated_converge
 verifier:
   name: testinfra
   options:

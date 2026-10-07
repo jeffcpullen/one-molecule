@@ -36,29 +36,26 @@ One `molecule.yml` at the project root carries the run config, the scenario decl
 and the parent and child edges. Shared playbooks live once under `playbooks/molecule/` and
 are referenced by name. See `design/docs/the-pattern.md`.
 
-Some `after/` examples reference relocated molecule stage playbooks by collection FQCN
-(`<collection>.molecule_<scenario>_<stage>`). That form assumes molecule's FQCN stage
-reference fix, open issue https://github.com/ansible/molecule/issues/4244, not yet merged.
-
 ## The result
 
 Each project's per-scenario config collapses into one root `molecule.yml`. The count covers only
 the files that describe or orchestrate the test suite, not the playbooks or fixture data, which are
-unchanged and still referenced.
+unchanged and still referenced. The stage playbooks stay where upstream keeps them, in each
+scenario's own folder, so a scenario folder is counted after wherever it still holds a file.
 
 | Project | Config files | Scenario folders | Lines |
 |---|---|---|---|
-| aristanetworks/avd | 32 → 1 | 30 → 0 | 914 → 342 |
-| david-igou/ansible-collection-armbian | 41 → 1 | 10 → 0 | 328 → 164 |
-| david-igou/ansible-collection-routeros_configuration | 25 → 1 | 22 → 0 | 331 → 253 |
-| nginxinc/ansible-role-nginx | 15 → 1 | 14 → 0 | 3042 → 866 |
-| dev-sec/ansible-collection-hardening | 11 → 1 | 7 → 0 | 451 → 260 |
-| prometheus-community/ansible | 11 → 1 | 9 → 0 | 249 → 274 |
-| osism/ansible-collection-commons | 4 → 1 | 2 → 0 | 521 → 54 |
+| aristanetworks/avd | 32 → 1 | 30 → 29 | 914 → 285 |
+| david-igou/ansible-collection-armbian | 41 → 1 | 10 → 10 | 328 → 125 |
+| david-igou/ansible-collection-routeros_configuration | 25 → 1 | 22 → 22 | 331 → 192 |
+| nginxinc/ansible-role-nginx | 15 → 1 | 14 → 14 | 3042 → 809 |
+| dev-sec/ansible-collection-hardening | 11 → 1 | 7 → 7 | 451 → 158 |
+| prometheus-community/ansible | 11 → 1 | 9 → 9 | 249 → 274 |
+| osism/ansible-collection-commons | 4 → 1 | 2 → 1 | 521 → 52 |
 | openstack/ansible-role-systemd_service | 4 → 1 | 1 → 0 | 151 → 44 |
 | linux-system-roles/network | 5 → 1 | 0 | 622 → 213 |
 | linux-system-roles/storage | 8 → 1 | 0 | 1029 → 267 |
-| Total, the Molecule projects | 143 → 8 | 95 → 0 | 5987 → 2257 |
+| Total, the Molecule projects | 143 → 8 | 95 → 92 | 5987 → 1939 |
 
 prometheus-community/ansible is counted over a representative three-role subset, and it is the one
 project here whose single file is not shorter than what it replaces, because its scenarios already

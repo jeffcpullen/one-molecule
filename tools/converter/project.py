@@ -3,9 +3,6 @@
 Standard library only. Key classes come from the schema's `x-class` annotations.
 """
 
-import re
-
-FQCN_PLAYBOOK = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*){2}$")
 PLAYBOOKS_ALIAS = "playbooks"
 PROVISIONER = "provisioner"
 PLATFORMS = "platforms"
@@ -131,11 +128,6 @@ def _ordered(resolved, classes):
     return out
 
 
-def _playbook_paths(resolved):
-    playbooks = (resolved.get(PROVISIONER) or {}).get("playbooks") or {}
-    return [(stage, path) for stage, path in playbooks.items() if isinstance(path, str)]
-
-
 def _check_keys(mapping, allowed, where, notices):
     for key in mapping:
         if key not in allowed:
@@ -206,25 +198,6 @@ def project(config, schema):
                 "unresolved", name, PLATFORMS,
                 "A root with no `platforms` selects the whole catalog, and catalog selections have no "
                 "projection yet. Platforms are left out of this file."))
-
-        entries = _playbook_paths(resolved)
-        fqcns = [(stage, ref) for stage, ref in entries if FQCN_PLAYBOOK.match(ref)]
-        paths = [(stage, ref) for stage, ref in entries if not FQCN_PLAYBOOK.match(ref)]
-        if fqcns:
-            listed = ", ".join(f"{stage}: {ref}" for stage, ref in fqcns)
-            notices.append(_notice(
-                "lost", name, "provisioner.playbooks",
-                "Collection FQCN playbook references are outside spec 0.1.0 and depend on molecule#4244, "
-                "which is unmerged. Today's Molecule reads each one as a file path relative to the "
-                f"scenario directory. References: {listed}."))
-        if paths:
-            listed = ", ".join(f"{stage}: {path}" for stage, path in paths)
-            notices.append(_notice(
-                "unresolved", name, "provisioner.playbooks",
-                "Playbook paths are copied as written. Today's Molecule resolves them against the "
-                f"scenario directory `{SCENARIO_ROOT}/{name}/`. The spec does not say what a path "
-                "in the root file is relative to, so whether they need rebasing is undecided. "
-                f"Paths: {listed}."))
 
         if node.get(WAVE, 0) not in (0, None):
             notices.append(_notice(

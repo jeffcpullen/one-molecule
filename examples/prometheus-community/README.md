@@ -13,9 +13,11 @@ a one-line comment saying so, in `before/` and `after/` alike.
 | | Before | After |
 |---|---|---|
 | Config and orchestration files | 11 | 1 |
-| Scenario folders | 9 | 0 |
+| Scenario folders | 9 | 9 |
 | Total lines | 249 | 274 |
 
-Line count is the one metric that does not improve here, and the reason is that this repo has already factored its duplication: a shared 96-line `.config/molecule/config.yml` backs all nine scenarios, so the before side starts near its floor. What the single-config form removes is the nine scenario folders and the split between a shared config and nine per-scenario overrides, not lines.
+Line count does not improve here, and neither does the folder count. This repo has already factored its duplication: a shared 96-line `.config/molecule/config.yml` backs all nine scenarios, so the before side starts near its floor. What the single-config form removes is the split between a shared config and nine per-scenario overrides, not lines or folders.
+
+The nine scenario folders stay because each still holds its testinfra test under `tests/`, which the verifier finds by its default discovery. The After folder count is the scenario folders that still hold a file, counted from upstream's tree at the pinned commit, since `before/` copies only one of those tests. The converge and prepare playbooks already live once under `.config/molecule/` upstream, and the single file names them with upstream's own strings, as it does the verifier's two `.testinfra` paths. Those strings assume Molecule's project directory is the role, as it is today. With the root file at the collection root that no longer holds, and the spec does not yet say what the project directory is for a node declared there.
 
 The ansible-core fan-out is not in `molecule.yml`. That axis lives with the outer caller, which is what `prometheus-community/ansible` does today: its CI iterates the versions and calls the test tool as a plain caller. The per-platform `exclude_ansible_vers` stay as inventory host_vars for that caller to read.
