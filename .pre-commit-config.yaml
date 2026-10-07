@@ -112,7 +112,7 @@ repos:
       - id: check-jsonschema
         alias: check-jsonschema-examples
         name: example configs against the generated config schema
-        files: ^examples/[^/]+/after/molecule\.yml$
+        files: ^examples/[^/]+/(after/)?molecule\.yml$
         # --base-uri overrides the published $id so the relative vendor refs
         # resolve from the working tree, offline.
         args: [--schemafile, generated/molecule-config.schema.json, --base-uri, molecule-config.schema.json]

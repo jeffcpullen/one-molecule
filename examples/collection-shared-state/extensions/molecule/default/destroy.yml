@@ -1,0 +1,9 @@
+---
+- name: Destroy
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Remove the shared app tree
+      ansible.builtin.file:
+        path: "{{ app_root }}"
+        state: absent

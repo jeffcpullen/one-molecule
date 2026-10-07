@@ -1,0 +1,19 @@
+---
+platforms:
+  - name: issue-na
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+  playbooks:
+    cleanup: ../../../playbooks/molecule/noop.yml
+    destroy: ../../../playbooks/molecule/noop.yml
+    prepare: ../../../playbooks/molecule/noop.yml
+scenario:
+  test_sequence:
+    - prepare
+    - converge
+    - verify
+  destroy_sequence:
+    - destroy

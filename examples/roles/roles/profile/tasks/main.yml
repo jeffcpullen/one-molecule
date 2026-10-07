@@ -1,0 +1,6 @@
+---
+- name: Write the editor profile snippet
+  ansible.builtin.copy:
+    dest: "{{ profile_path }}"
+    content: "export EDITOR={{ profile_editor }}\n"
+    mode: "0644"

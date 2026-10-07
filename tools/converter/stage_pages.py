@@ -14,7 +14,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
-from cli import load_starter  # noqa: E402
+from cli import example_source, load_starter  # noqa: E402
 
 SCHEMA = ROOT / "generated" / "molecule-config.schema.json"
 MODULES = ["project.py", "render.py"]
@@ -38,7 +38,7 @@ def stage(dest):
         shutil.copy2(HERE / name, dest / name)
     shutil.copy2(SCHEMA, dest / SCHEMA.name)
     slugs = sorted(p.name for p in (HERE / "fixtures").iterdir() if p.is_dir())
-    presets = {slug: (ROOT / "examples" / slug / "after" / "molecule.yml").read_text() for slug in slugs}
+    presets = {slug: example_source(slug).read_text() for slug in slugs}
     (dest / "presets.json").write_text(json.dumps(presets, indent=2) + "\n")
     (dest / "starter.json").write_text(json.dumps({"text": load_starter()}, indent=2) + "\n")
     digest = hashlib.sha256()

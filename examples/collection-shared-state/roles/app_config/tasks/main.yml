@@ -1,0 +1,6 @@
+---
+- name: Write the application config
+  ansible.builtin.copy:
+    dest: "{{ app_root }}/etc/app.conf"
+    content: "listen_port = {{ app_config_port }}\n"
+    mode: "0644"

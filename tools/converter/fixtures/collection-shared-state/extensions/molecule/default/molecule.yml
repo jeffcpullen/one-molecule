@@ -1,0 +1,20 @@
+---
+platforms:
+  - name: default-na
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+  inventory:
+    group_vars:
+      all:
+        app_root: '{{ lookup(''env'', ''TMPDIR'') | default(''/tmp'', true) }}/example-shared-state'
+  playbooks:
+    cleanup: ../../../playbooks/molecule/noop.yml
+    prepare: ../../../playbooks/molecule/noop.yml
+scenario:
+  test_sequence:
+    - create
+    - verify
+    - destroy

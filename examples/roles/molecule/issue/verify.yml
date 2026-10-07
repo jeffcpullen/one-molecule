@@ -1,0 +1,14 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Read the issue file
+      ansible.builtin.slurp:
+        src: "{{ issue_path }}"
+      register: issue_file
+
+    - name: Check the banner text
+      ansible.builtin.assert:
+        that:
+          - issue_file.content | b64decode == "Example Linux\n"

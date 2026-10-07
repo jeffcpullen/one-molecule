@@ -1,0 +1,5 @@
+---
+app_root: /opt/app
+app_users_names:
+  - alice
+  - bob

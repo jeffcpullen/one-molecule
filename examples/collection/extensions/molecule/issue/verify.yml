@@ -1,0 +1,14 @@
+---
+- name: Verify
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Read the issue file
+      ansible.builtin.slurp:
+        src: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/issue"
+      register: issue_file
+
+    - name: Check the banner text
+      ansible.builtin.assert:
+        that:
+          - issue_file.content | b64decode == "Example Linux\n"

@@ -1,0 +1,14 @@
+---
+- name: Verify
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Read the users file
+      ansible.builtin.slurp:
+        src: "{{ app_root }}/data/users.txt"
+      register: users_file
+
+    - name: Check the users
+      ansible.builtin.assert:
+        that:
+          - users_file.content | b64decode == "alice\nbob\n"

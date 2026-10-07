@@ -1,0 +1,14 @@
+---
+- name: Verify
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Read the app config
+      ansible.builtin.slurp:
+        src: "{{ app_root }}/etc/app.conf"
+      register: app_conf
+
+    - name: Check the listen port
+      ansible.builtin.assert:
+        that:
+          - app_conf.content | b64decode == "listen_port = 8080\n"

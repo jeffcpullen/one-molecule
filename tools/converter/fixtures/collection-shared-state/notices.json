@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "lost",
+    "node": "app_config",
+    "key": "children",
+    "message": "Nested under `default`, whose instances it shares in the tree. Today's Molecule has no parent edge, so this runs as an independent scenario without them."
+  },
+  {
+    "kind": "lost",
+    "node": "app_users",
+    "key": "children",
+    "message": "Nested under `default`, whose instances it shares in the tree. Today's Molecule has no parent edge, so this runs as an independent scenario without them."
+  }
+]

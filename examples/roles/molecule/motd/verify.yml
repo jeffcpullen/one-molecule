@@ -1,0 +1,14 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Read the motd file
+      ansible.builtin.slurp:
+        src: "{{ motd_path }}"
+      register: motd_file
+
+    - name: Check the motd text
+      ansible.builtin.assert:
+        that:
+          - motd_file.content | b64decode == "Authorized use only\n"

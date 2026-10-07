@@ -45,6 +45,19 @@ def load_starter(schema_path=DEFAULT_SCHEMA, molecule_path=MOLECULE_SCHEMA):
     return starter_text(load_schema(schema_path), load_schema(molecule_path))
 
 
+def example_source(slug):
+    """Return the single-file `molecule.yml` of an example.
+
+    Args:
+        slug: the directory name under `examples/`.
+
+    Returns:
+        `examples/<slug>/molecule.yml` for a synthetic example, else `examples/<slug>/after/molecule.yml`.
+    """
+    root_file = ROOT / "examples" / slug / "molecule.yml"
+    return root_file if root_file.is_file() else ROOT / "examples" / slug / "after" / "molecule.yml"
+
+
 def write_tree(result, out):
     """Write projected files and `notices.json` under a directory.
 

@@ -1,0 +1,6 @@
+---
+- name: Write the motd file
+  ansible.builtin.copy:
+    dest: "{{ motd_path }}"
+    content: "{{ motd_text }}\n"
+    mode: "0644"

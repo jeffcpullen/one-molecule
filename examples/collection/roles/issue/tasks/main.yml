@@ -1,0 +1,6 @@
+---
+- name: Write the pre-login banner
+  ansible.builtin.copy:
+    dest: "{{ issue_path }}"
+    content: "{{ issue_text }}\n"
+    mode: "0644"

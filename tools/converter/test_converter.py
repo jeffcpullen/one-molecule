@@ -1,4 +1,4 @@
-"""Fixture tests: each fixtures/<slug>/ holds the expected projection of examples/<slug>/after/molecule.yml."""
+"""Fixture tests: each fixtures/<slug>/ holds the expected projection of the example's single-file molecule.yml."""
 
 import pathlib
 import re
@@ -10,7 +10,7 @@ import yaml
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from cli import ROOT, load_schema, load_starter, notices_json  # noqa: E402
+from cli import example_source, load_schema, load_starter, notices_json  # noqa: E402
 from project import KeyClasses, deep_merge, project  # noqa: E402
 from render import convert_text  # noqa: E402
 
@@ -26,7 +26,7 @@ class ExampleFixtures(unittest.TestCase):
         self.assertTrue(slugs)
         for slug in slugs:
             with self.subTest(slug=slug):
-                source = ROOT / "examples" / slug / "after" / "molecule.yml"
+                source = example_source(slug)
                 result = convert_text(source.read_text(), SCHEMA)
                 expected_dir = FIXTURES / slug
                 expected = {p.relative_to(expected_dir).as_posix(): p.read_text()
@@ -39,7 +39,7 @@ class ExampleFixtures(unittest.TestCase):
 
     def test_rendering_is_lossless(self):
         for slug in sorted(p.name for p in FIXTURES.iterdir() if p.is_dir()):
-            source = (ROOT / "examples" / slug / "after" / "molecule.yml").read_text()
+            source = example_source(slug).read_text()
             data = project(yaml.safe_load(source), SCHEMA)
             texts = {f["path"]: f["text"] for f in convert_text(source, SCHEMA)["files"]}
             for item in data["files"]:

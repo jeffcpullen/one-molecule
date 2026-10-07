@@ -1,0 +1,34 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+platforms:
+  - name: na
+
+defaults:
+  playbooks:
+    cleanup: ../../../playbooks/molecule/noop.yml
+    prepare: ../../../playbooks/molecule/noop.yml
+  provisioner:
+    name: ansible
+    config_options:
+      defaults:
+        collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+    inventory:
+      group_vars:
+        all:
+          app_root: "{{ lookup('env', 'TMPDIR') | default('/tmp', true) }}/example-shared-state"
+  scenario:
+    test_sequence:
+      - prepare
+      - converge
+      - verify
+
+scenarios:
+  - name: default
+    scenario:
+      test_sequence:
+        - create
+        - verify
+        - destroy
+    children:
+      - name: app_config
+      - name: app_users

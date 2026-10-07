@@ -1,0 +1,6 @@
+---
+- name: Write the application users file
+  ansible.builtin.copy:
+    dest: "{{ app_root }}/data/users.txt"
+    content: "{{ app_users_names | join('\n') }}\n"
+    mode: "0644"

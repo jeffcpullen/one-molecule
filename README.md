@@ -50,11 +50,18 @@ separate systems, and the single-config layout gathers it into one file.
 
 ## What is in here
 
-For each project, `examples/<project>/` holds:
+For each upstream project, `examples/<project>/` holds:
 
 - `before/`: the real testing files, copied from a pinned upstream commit, licenses intact.
 - `after/`: the same run expressed in the single top-level layout.
 - `README.md`: the specific duplication that project carried, and what the refactor removes.
+
+Four synthetic examples, written for this repo, show each common layout on its own:
+`playbooks` (two playbooks), `roles` (three standalone roles), `collection` (an ansible-creator
+collection with two roles) and `collection-shared-state` (a collection whose scenarios test against
+one shared environment). Each is the project itself in the single top-level layout: a `README.md`,
+the root `molecule.yml`, the content under test, and any shared playbooks under
+`playbooks/molecule/`. Its per-scenario form is what the converter produces from that one file.
 
 The rest of the repo says what may be edited by hand:
 

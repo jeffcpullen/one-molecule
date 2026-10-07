@@ -1,0 +1,3 @@
+---
+app_root: /opt/app
+app_config_port: 8080

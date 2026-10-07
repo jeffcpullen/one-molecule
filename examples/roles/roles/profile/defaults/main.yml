@@ -1,0 +1,3 @@
+---
+profile_path: /etc/profile.d/editor.sh
+profile_editor: vim

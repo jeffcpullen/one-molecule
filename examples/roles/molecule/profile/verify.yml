@@ -1,0 +1,14 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Read the profile snippet
+      ansible.builtin.slurp:
+        src: "{{ profile_path }}"
+      register: profile_file
+
+    - name: Check the editor export
+      ansible.builtin.assert:
+        that:
+          - profile_file.content | b64decode == "export EDITOR=vim\n"

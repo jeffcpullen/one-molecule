@@ -62,11 +62,16 @@ would.
 
 ## Coverage
 
-Each directory under `fixtures/` is the expected projection of `examples/<slug>/after/molecule.yml`,
-compared byte for byte. Only fixture-covered examples appear as presets on the page.
+Each directory under `fixtures/` is the expected projection of an example's single-file
+`molecule.yml`, compared byte for byte. That file is `examples/<slug>/molecule.yml` for a synthetic
+example and `examples/<slug>/after/molecule.yml` for an upstream one. Only fixture-covered examples
+appear as presets on the page.
 
 | Example | Covered | What it shows |
 |---|---|---|
+| collection | yes | Two flat roots sharing `defaults:`, shared stub playbooks reached in `playbooks/molecule/` |
+| collection-shared-state | yes | A root that creates and two children, each child reported `lost` because today's Molecule has no parent edge |
+| playbooks, roles | not yet | Their scenarios live in a top-level `molecule/` directory, a layout the tool does not offer yet |
 | openstack-systemd-service | yes | Run `defaults:` merged under one scenario, playbook paths copied as written |
 | osism-commons | yes | Two scenarios sharing one `defaults:` key, playbooks found by default discovery |
 | dev-sec-hardening | yes | Seven scenarios sharing `defaults:`, two overriding only `test_sequence` |
@@ -74,7 +79,8 @@ compared byte for byte. Only fixture-covered examples appear as presets on the p
 | david-igou-routeros-configuration | no | The projection drops YAML comments, so the throwaway `chr_admin_password` would lose its inline `# notsecret` marker in every fixture file |
 | the other five | not yet | |
 
-Each fixture was compared with upstream's `before/` scenario files, with any upstream base
+A synthetic example has no `before/`, because its fixture is its per-scenario form. Each upstream
+fixture was compared with upstream's `before/` scenario files, with any upstream base
 `config.yml` merged under each scenario the way Molecule merges it. Every difference traces to a
 choice the example's own `after/molecule.yml` makes, never to the tool:
 

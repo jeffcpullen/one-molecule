@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Apply the app_config role
+      ansible.builtin.include_role:
+        name: example.shared_state.app_config
