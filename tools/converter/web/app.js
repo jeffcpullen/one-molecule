@@ -86,7 +86,7 @@ function schedule() {
 async function loadPresets() {
   const presets = await (await fetch(PRESETS_URL)).json();
   const select = el("preset");
-  for (const name of presets) {
+  for (const name of Object.keys(presets)) {
     const option = document.createElement("option");
     option.value = name;
     option.textContent = name;
@@ -96,7 +96,7 @@ async function loadPresets() {
     if (!select.value) {
       return;
     }
-    el("source").value = await (await fetch(`examples/${select.value}.yml`)).text();
+    el("source").value = presets[select.value];
     run();
   });
 }

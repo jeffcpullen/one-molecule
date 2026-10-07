@@ -29,7 +29,8 @@ python3 -m unittest discover -s tools/converter -p 'test_*.py' -v
 ```
 
 `browser_smoke.py` serves nothing itself. Stage the page, serve the directory, and point it at the
-URL. It needs Playwright with Chromium, as in `.github/workflows/converter.yml`.
+URL. It needs Playwright with Chromium, as in `.github/workflows/converter.yml`. The pages workflow
+runs the same check against the deployed site after every deploy.
 
 ## Notices
 

@@ -68,6 +68,26 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # The converter check again, against the deployed site, so anything the
+  # Jekyll build does to the staged files is caught.
+  verify-converter:
+    needs: deploy
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.63.0-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Python packages
+        run: pip install pyyaml playwright==1.63.0
+
+      - name: Check the live converter page
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: python3 tools/converter/browser_smoke.py "${PAGE_URL}converter/"

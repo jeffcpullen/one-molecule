@@ -16,7 +16,9 @@ MODULES = ["project.py", "render.py"]
 
 
 def stage(dest):
-    """Copy the page, the Python modules, the schema and the fixture-covered examples.
+    """Copy the page, the Python modules and the schema, and write the fixture-covered examples as presets.
+
+    No staged file starts with `---`, so the Jekyll build copies every one unchanged.
 
     Args:
         dest: the output directory.
@@ -28,12 +30,12 @@ def stage(dest):
     for name in MODULES:
         shutil.copy2(HERE / name, dest / name)
     shutil.copy2(SCHEMA, dest / SCHEMA.name)
-    examples = dest / "examples"
-    examples.mkdir(exist_ok=True)
     slugs = sorted(p.name for p in (HERE / "fixtures").iterdir() if p.is_dir())
-    for slug in slugs:
-        shutil.copy2(ROOT / "examples" / slug / "after" / "molecule.yml", examples / f"{slug}.yml")
-    (dest / "presets.json").write_text(json.dumps(slugs) + "\n")
+    presets = {slug: (ROOT / "examples" / slug / "after" / "molecule.yml").read_text() for slug in slugs}
+    (dest / "presets.json").write_text(json.dumps(presets, indent=2) + "\n")
+    for path in dest.rglob("*"):
+        if path.is_file() and path.read_bytes().startswith(b"---"):
+            raise SystemExit(f"{path} starts with ---, which Jekyll would render as a page")
 
 
 if __name__ == "__main__":
