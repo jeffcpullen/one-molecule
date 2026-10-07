@@ -318,8 +318,6 @@ groups:
         means: "The project-root anchor export."
       - term: "`MOLECULE_COLLECTION_DIRECTORY`"
         means: "The collection-root anchor export."
-      - term: "`MOLECULE_CONTENT_ROOT`"
-        means: "The content-root anchor export."
       - term: "`MOLECULE_EPHEMERAL_DIRECTORY`"
         means: "The ephemeral-location override (its input meaning deprecated and split)."
 
