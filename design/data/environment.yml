@@ -100,9 +100,22 @@ sections:
       - Identity is per checkout location by design, so a dev box and a pipeline workspace do not share state (`design/data/ephemeral.yml`).
       - Pinning the location input is how a caller controls that sharing, and it is the one place a path legitimately comes from outside.
       - cwd is never the anchor for a user-written path, because it is an implementation detail.
-      - Every path-valued config key documents its anchor, defaulting to the scenario directory.
+      - Every path-valued config key in a per-scenario `molecule.yml` documents its anchor, defaulting to the scenario directory.
       - Molecule exports every anchor it knows.
       - The author writes the relationship between anchors and molecule supplies the prefix it discovered, so the same paths work on two machines.
+
+  - title: Paths in the root file
+    intro: The root file has no scenario directory beside it, so its paths start from the file itself.
+    rules:
+      - "A relative path in the root `molecule.yml` resolves against the directory that file sits in, the project root (`design/data/layout.yml`)."
+      - "A shared playbook is written `playbooks/molecule/converge.yml` in a collection, a role, and a playbook project alike."
+      - "A root-file path reaches a per-scenario `molecule.yml` as `${MOLECULE_PROJECT_DIRECTORY}/<path>`."
+      - A root-file path never reaches a per-scenario file as a resolved absolute path or as a scenario-relative path.
+      - "Molecule fills in `MOLECULE_PROJECT_DIRECTORY` in each scenario's own read of its `molecule.yml`."
+      - "Molecule sets `MOLECULE_PROJECT_DIRECTORY` to the directory it runs from unless a caller sets it."
+      - "A per-scenario file written this way runs from the project root, or from anywhere with `MOLECULE_PROJECT_DIRECTORY` exported."
+      - "This resolution enters `spec/molecule-config.schema.yml` in version 0.3.0."
+      - "Spec 0.2.0 resolves a relative `playbooks` path against the node's scenario directory."
 
   - title: The anchors
     intro: Content root is the anchor to reach for, because the same expression resolves in every supported layout.
