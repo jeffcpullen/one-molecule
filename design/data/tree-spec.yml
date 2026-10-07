@@ -320,3 +320,30 @@ sections:
       - name: selection-on-cli
         description: Selection, meaning `-s`, `--exclude`, the sibling selector, and what this invocation covers, stays on the command line.
         check: none
+
+  - title: Label selection
+    description: >-
+      `labels:` on a catalog platform, a scenario, or an execution-environment entry are selection
+      membership. Scenarios, platforms, and EEs are the three selection dimensions.
+    rules:
+      - name: labels-are-strings
+        description: "`labels:` is a list of non-empty strings."
+        check: static
+      - name: label-filters-own-dimension
+        description: A label filters only the dimension it appears on.
+        check: resolved
+      - name: bare-run-selects-all
+        description: A bare run executes every scenario, platform, and EE, because labels only narrow when named.
+        check: resolved
+      - name: label-narrows-its-dimension
+        description: "A `--label` selection narrows only the dimension its label appears on."
+        check: resolved
+      - name: labels-union
+        description: "Multiple `--label` selections union."
+        check: resolved
+      - name: skip-label-subtracts
+        description: "A `--skip-label` subtracts the items carrying that label from the run."
+        check: resolved
+      - name: unmatched-label-fails
+        description: A label named for selection that matches nothing in the config fails, the way an unknown field fails.
+        check: resolved

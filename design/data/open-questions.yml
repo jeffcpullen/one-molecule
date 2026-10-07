@@ -22,6 +22,13 @@ open:
       - "The arg reference syntax is unchosen, and it must differ from molecule's `${VAR}`."
       - "Arg declarations enter `spec/molecule-config.schema.yml` once the spelling is chosen."
 
+  - title: "Spell the label selection flags"
+    status: "raised, not started"
+    raised: "2026-09-25"
+    owning_doc: "`design/data/tree-spec.yml`"
+    framing:
+      - "The `--label` and `--skip-label` spelling must layer against ansible-playbook's own task `--tags` (`design/data/naming.yml`)."
+
   - title: "Dispatch a tree's nodes through the pluggable executor"
     status: "raised, not started"
     raised: "2026-10-02"

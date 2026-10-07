@@ -35,9 +35,9 @@ sections:
       - header: [Page, Owning docs]
         rows:
           - ["Root `molecule.yml` schema (`runtime`, `defaults`, `scenarios`, `children`)", "`spec/molecule-config.schema.yml`, `design/data/layout.yml`"]
-          - ["Config scope and precedence (`defaults:` vs bare)", "`spec/molecule-config.schema.yml`"]
+          - ["Config scope and precedence (`defaults:` vs bare)", "`spec/molecule-config.schema.yml`, `design/data/layout.yml`"]
           - ["Platform catalog and selection (top-level `platforms:`, defined once and selected by name)", "`spec/molecule-config.schema.yml`"]
-          - ["Labels and selection (`labels:` on platforms, scenarios, and EEs, with `--label` and `--skip-label`)", "`spec/molecule-config.schema.yml`, `design/data/execution-environments.yml`"]
+          - ["Labels and selection (`labels:` on platforms, scenarios, and EEs, with `--label` and `--skip-label`)", "`design/data/tree-spec.yml`, `design/data/execution-environments.yml`"]
           - ["The parent edge, activation, `missing_parent`", "`design/data/tree-spec.yml`"]
           - ["Lifecycle (actions, traversal, retry, teardown)", "`design/data/lifecycle.yml`"]
           - ["State and the snapshot (copy-at-start, inventory channel, precedence, per-node group)", "`design/data/tree-spec.yml`, `design/data/state.yml`"]
@@ -47,7 +47,7 @@ sections:
           - ["Reporting (`molecule matrix` tree, once-per-run notices)", "`design/data/tree-spec.yml`"]
           - ["Run-level lint", "`design/data/lint.yml`"]
           - ["Provisioning step (owned artifacts before `create`)", "`design/data/provisioning.yml`"]
-          - ["Runtime envelope and execution environments (`runtime`, methods, the executor and build seams, EE cells)", "`design/data/execution-environments.yml`, `spec/molecule-config.schema.yml`"]
+          - ["Runtime envelope and execution environments (`runtime`, methods, the executor and build seams, EE cells)", "`design/data/execution-environments.yml`"]
           - ["Glossary (authoritative term list)", "`design/data/naming.yml`"]
     rules:
       - "Banner these proposed-but-load-bearing pages rather than omit them: FQCN-addressable playbooks (`design/data/layout.yml`) and the runtime envelope (`design/data/execution-environments.yml`)."

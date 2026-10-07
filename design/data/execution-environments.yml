@@ -5,16 +5,16 @@
 # entry forms and name inference, pull-policy availability, provenance and run
 # identity, the cell contract, the per-EE option bags, and selection by labels.
 # State the rule, never the reasoning. The outer-engine matrix rejection lives in
-# design/data/rejected-ideas.yml. spec/molecule-config.schema.yml owns the
-# config keys and the label selection mechanics, this file owns the runtime design.
+# design/data/rejected-ideas.yml. design/data/tree-spec.yml owns the label
+# selection mechanics, this file owns the runtime design.
 # One idea per rule, no semicolons, no em or en dashes.
 
 title: "Execution environments, the runtime the sequence runs inside"
 intro: >-
   The runtime is the sealed, selectable execution the whole sequence runs inside, declared once under
   the run-only `runtime:` block. This file owns the runtime methods, the executor and build seams, the
-  execution-environment entry forms, provenance, and the cell contract. `spec/molecule-config.schema.yml` owns the
-  config keys and the label selection mechanics, and molecule references the runtime but never builds or
+  execution-environment entry forms, provenance, and the cell contract. `design/data/tree-spec.yml` owns the
+  label selection mechanics, and molecule references the runtime but never builds or
   inspects its contents.
 status: direction settled 2026-09-21, promoted to schema, executor and build seams and the ee entry forms settled
 
@@ -142,6 +142,6 @@ sections:
   - title: Selection
     intro: EEs are one of the label selection dimensions, alongside platforms and scenarios.
     rules:
-      - "`labels:` on an EE entry place it in the EE selection dimension (`spec/molecule-config.schema.yml`)."
+      - "`labels:` on an EE entry place it in the EE selection dimension (`design/data/tree-spec.yml`)."
       - "A bare run executes every EE, because a label narrows only when named."
       - "`--label` and `--skip-label` narrow the EE dimension the same way as platforms and scenarios."

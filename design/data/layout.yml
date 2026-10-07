@@ -26,8 +26,9 @@ sections:
       - converge, verify, create and destroy are Ansible playbooks, so the file references them by path rather than inlining task files.
       - Molecule already has the seam for this, because provisioner.playbooks maps converge and verify to paths today.
       - The new part is declaring several scenarios in one file with no directory per scenario.
-      - "spec/molecule-config.schema.yml is the full structure: the scenarios list of roots run top to bottom, the two-placement scope model, how nesting expresses the edge, how inventory is shared down to children by default, and how a key resolves by the bare then own-defaults then ancestor-defaults precedence rule."
-      - "The `defaults:` block means this node and everything below it, which a bare key cannot express because bare is self-only (`spec/molecule-config.schema.yml`)."
+      - "The full structure is the scenarios list of roots run top to bottom, the two-placement scope model, how nesting expresses the edge, how inventory is shared down to children by default, and how a key resolves by the bare then own-defaults then ancestor-defaults precedence rule."
+      - "spec/molecule-config.schema.yml is the published, versioned subset of that structure."
+      - "The `defaults:` block means this node and everything below it, which a bare key cannot express because bare is self-only."
     code:
       - lang: yaml
         caption: A root molecule.yml, run-only keys bare and cascading config under a top-level defaults block.
