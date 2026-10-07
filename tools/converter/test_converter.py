@@ -1,6 +1,7 @@
 """Fixture tests: each fixtures/<slug>/ holds the expected projection of examples/<slug>/after/molecule.yml."""
 
 import pathlib
+import re
 import sys
 import unittest
 
@@ -9,7 +10,7 @@ import yaml
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from cli import ROOT, load_schema, notices_json  # noqa: E402
+from cli import ROOT, load_schema, load_starter, notices_json  # noqa: E402
 from project import KeyClasses, deep_merge, drop_empty, project  # noqa: E402
 from render import convert_text  # noqa: E402
 
@@ -44,6 +45,32 @@ class ExampleFixtures(unittest.TestCase):
             for item in data["files"]:
                 with self.subTest(slug=slug, path=item["path"]):
                     self.assertEqual(yaml.safe_load(texts[item["path"]]), item["content"])
+
+
+class Starter(unittest.TestCase):
+    """The starter file converts cleanly and names every key the spec declares."""
+
+    def test_converts_to_one_scenario_without_errors(self):
+        result = convert_text(load_starter(), SCHEMA)
+        self.assertEqual([f["path"] for f in result["files"]], ["molecule/default/molecule.yml"])
+        self.assertEqual([n for n in result["notices"] if n["kind"] == "error"], [])
+
+    def test_names_every_declared_key(self):
+        text = load_starter()
+        definitions = SCHEMA["definitions"]
+        keys = (set(SCHEMA["properties"]) | set(definitions["catalogPlatform"]["properties"])
+                | set(definitions["config"]["properties"]) | set(definitions["node"]["properties"]))
+        missing = sorted(k for k in keys if not re.search(rf"(^|\s){re.escape(k)}:", text, re.M))
+        self.assertEqual(missing, [])
+
+    def test_uncommenting_every_key_keeps_the_nesting(self):
+        key_line = re.compile(r"^( *)# ((- )?[a-z_]+:.*)$")
+        lines = [key_line.sub(r"\1\2", line) for line in load_starter().splitlines()]
+        data = yaml.safe_load("\n".join(lines))
+        self.assertEqual(list(data), ["platforms", "defaults", "scenarios"])
+        node = data["scenarios"][0]
+        self.assertEqual(set(node), set(SCHEMA["definitions"]["node"]["properties"]))
+        self.assertEqual(set(data["defaults"]), set(SCHEMA["definitions"]["config"]["properties"]))
 
 
 class Rules(unittest.TestCase):

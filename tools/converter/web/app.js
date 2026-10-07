@@ -4,6 +4,7 @@
 const PY_MODULES = ["project.py", "render.py"];
 const SCHEMA_URL = "molecule-config.schema.json";
 const PRESETS_URL = "presets.json";
+const STARTER_URL = "starter.json";
 const BUILD_URL = "build.json";
 
 const el = (id) => document.getElementById(id);
@@ -121,10 +122,18 @@ async function main() {
     setStatus("Share link copied.");
   });
 
+  version = JSON.parse(await fetchText(BUILD_URL, { cache: "no-store" })).version;
+  const starter = JSON.parse(await fetchText(STARTER_URL)).text;
+  el("starter").addEventListener("click", () => {
+    el("preset").value = "";
+    el("source").value = starter;
+    run();
+  });
   if (window.location.hash.startsWith("#src=")) {
     el("source").value = await decodeShare(window.location.hash.slice(5));
+  } else {
+    el("source").value = starter;
   }
-  version = JSON.parse(await fetchText(BUILD_URL, { cache: "no-store" })).version;
   await loadPresets();
 
   const pyodide = await loadPyodide();

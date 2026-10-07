@@ -13,9 +13,10 @@ parent-versus-defaults judgment in `design/docs/migrating.md`, which no tool mak
 |---|---|
 | `project.py` | The projection. Standard library only. Key classes come from the schema's `x-class` annotations |
 | `render.py` | YAML in and out, through PyYAML |
+| `starter.py` | The starter file the page opens on: every key the spec declares, commented out, with one live scenario. Keys and notes come from the schema, and the sub-keys of Molecule's sections from Molecule's own schema |
 | `cli.py` | Command line front end |
 | `web/` | The page. Its JavaScript is interface only and holds no conversion rule |
-| `stage_pages.py` | Copies the page, the two modules, the generated schema and the presets into a directory, with a content-hash `build.json` the page loads every file under |
+| `stage_pages.py` | Copies the page, the two modules, the generated schema, the presets and the starter file into a directory, with a content-hash `build.json` the page loads every file under |
 
 The page loads `project.py` and `render.py` into Pyodide and calls them. No conversion rule
 exists in a second language.
@@ -25,6 +26,7 @@ exists in a second language.
 ```text
 python3 tools/converter/cli.py examples/openstack-systemd-service/after/molecule.yml
 python3 tools/converter/cli.py <molecule.yml> --out <dir>
+python3 tools/converter/cli.py --starter
 python3 -m unittest discover -s tools/converter -p 'test_*.py' -v
 ```
 
@@ -74,4 +76,6 @@ projection's `provisioner.playbooks` is equivalent to upstream's `ansible.playbo
 The tool checks run, node and `defaults:` keys against the spec's own key lists. It does not validate values against
 Molecule's per-key schema. The `check-jsonschema-examples` hook does that for the examples only.
 Catalog platform selections have no projection yet, because the instance name a selection gets is an
-open question in the design. Paths are copied as written and never checked against the tree.
+open question in the design. Paths are copied as written and never checked against the tree. The
+starter file lists no stage names under `playbooks`, because neither the spec's schema nor Molecule's
+declares them as keys.

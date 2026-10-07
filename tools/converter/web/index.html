@@ -9,10 +9,12 @@
 <body>
   <header>
     <h1>one-molecule converter</h1>
-    <p>Type a single-config <code>molecule.yml</code> (spec 0.1.0) on the left. The right side shows the
-      per-scenario files today's Molecule would need, and what the projection could not carry.
+    <p>Edit a single-config <code>molecule.yml</code> (spec 0.1.0) on the left. It opens on a starter
+      file that lists every key the spec declares, commented out, with one live scenario. The right side
+      shows the per-scenario files today's Molecule would need, and what the projection could not carry.
       The conversion runs in your browser, in Python, from the same module the repository tests.</p>
     <div class="bar">
+      <button id="starter" type="button">Starter</button>
       <label>Example <select id="preset"><option value="">(choose)</option></select></label>
       <button id="share" type="button">Copy share link</button>
       <span id="status">Loading Python runtime...</span>

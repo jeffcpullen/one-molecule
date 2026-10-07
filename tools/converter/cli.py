@@ -2,6 +2,7 @@
 
 Usage:
     python3 tools/converter/cli.py <molecule.yml> [--out DIR] [--schema PATH]
+    python3 tools/converter/cli.py --starter
 """
 
 import argparse
@@ -12,9 +13,11 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from render import convert_text, dump  # noqa: E402
+from starter import starter_text  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DEFAULT_SCHEMA = ROOT / "generated" / "molecule-config.schema.json"
+MOLECULE_SCHEMA = ROOT / "vendor" / "molecule.json"
 
 
 def load_schema(path=DEFAULT_SCHEMA):
@@ -27,6 +30,19 @@ def load_schema(path=DEFAULT_SCHEMA):
         The schema as a dict.
     """
     return json.loads(pathlib.Path(path).read_text())
+
+
+def load_starter(schema_path=DEFAULT_SCHEMA, molecule_path=MOLECULE_SCHEMA):
+    """Render the starter file from the config schema and Molecule's schema.
+
+    Args:
+        schema_path: path to the generated config schema.
+        molecule_path: path to the vendored Molecule schema.
+
+    Returns:
+        The starter YAML text.
+    """
+    return starter_text(load_schema(schema_path), load_schema(molecule_path))
 
 
 def write_tree(result, out):
@@ -52,10 +68,16 @@ def notices_json(notices):
 def main(argv=None):
     """Run the CLI. Returns 1 when any notice is an error, else 0."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("source")
+    parser.add_argument("source", nargs="?")
     parser.add_argument("--out")
     parser.add_argument("--schema", default=str(DEFAULT_SCHEMA))
+    parser.add_argument("--starter", action="store_true", help="print the starter file and exit")
     args = parser.parse_args(argv)
+    if args.starter:
+        print(load_starter(args.schema), end="")
+        return 0
+    if not args.source:
+        parser.error("a source file is required unless --starter is given")
     result = convert_text(pathlib.Path(args.source).read_text(), load_schema(args.schema))
     if args.out:
         write_tree(result, args.out)

@@ -14,7 +14,7 @@ from playwright.sync_api import sync_playwright
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from cli import ROOT, load_schema  # noqa: E402
+from cli import ROOT, load_schema, load_starter  # noqa: E402
 from render import convert_text  # noqa: E402
 
 READY_TIMEOUT_MS = 120000
@@ -50,6 +50,21 @@ def check_preset(page, slug, schema):
     shown_notices = page.locator("#notices li").all_text_contents()
     assert shown_notices == notice_lines(expected), (slug, shown_notices)
     print(f"ok {slug}: {len(paths)} file(s), {len(expected['notices'])} notice(s) match CPython")
+
+
+def check_starter(page, schema):
+    """A fresh page opens on the starter file and shows its projection."""
+    text = load_starter()
+    assert page.input_value("#source") == text, "page did not open on the starter file"
+    expected = convert_text(text, schema)
+    page.wait_for_function("document.querySelectorAll('#tree button').length > 0")
+    paths = page.locator("#tree button").all_inner_texts()
+    assert paths == [f["path"] for f in expected["files"]], paths
+    page.select_option("#preset", "")
+    page.fill("#source", "")
+    page.click("#starter")
+    assert page.input_value("#source") == text, "the Starter button did not restore the starter file"
+    print(f"ok the page opens on the starter file: {len(paths)} file(s)")
 
 
 def check_share(browser, url):
@@ -97,6 +112,7 @@ def main(url):
         page.goto(url)
         page.wait_for_selector("#status:has-text('Ready')", timeout=READY_TIMEOUT_MS)
         print("status:", page.text_content("#status"))
+        check_starter(page, schema)
         slugs = page.locator("#preset option").evaluate_all("o => o.map(x => x.value).filter(v => v)")
         assert slugs, "no presets"
         for slug in slugs:
