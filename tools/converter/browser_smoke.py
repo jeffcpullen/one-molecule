@@ -6,6 +6,7 @@ Usage:
 Needs Playwright with Chromium. Exits non-zero on any mismatch.
 """
 
+import json
 import pathlib
 import sys
 
@@ -19,6 +20,13 @@ from render import convert_text  # noqa: E402
 
 READY_TIMEOUT_MS = 120000
 EDITOR = "#source .cm-content"
+FILE_BUTTONS = "#tree button.file"
+SHOWN_PATHS = "[...document.querySelectorAll('#tree button.file')].map(b => b.dataset.path)"
+
+
+def shown_paths(page):
+    """Return the full paths of the file buttons in the tree."""
+    return page.evaluate(SHOWN_PATHS)
 
 
 def notice_lines(result):
@@ -41,13 +49,17 @@ def check_preset(page, slug, schema):
     """Load one preset in the page and compare every file and notice with CPython."""
     expected = convert_text((ROOT / "examples" / slug / "after" / "molecule.yml").read_text(), schema)
     page.select_option("#preset", slug)
-    page.wait_for_function("document.querySelectorAll('#tree button').length > 0")
-    paths = page.locator("#tree button").all_inner_texts()
-    assert paths == [f["path"] for f in expected["files"]], (slug, paths)
+    expected_paths = [f["path"] for f in expected["files"]]
+    page.wait_for_function(f"{SHOWN_PATHS}.join() === {json.dumps(','.join(expected_paths))}")
+    paths = shown_paths(page)
+    assert paths == expected_paths, (slug, paths)
     for item in expected["files"]:
-        page.locator("#tree button", has_text=item["path"]).click()
+        page.click(f'{FILE_BUTTONS}[data-path="{item["path"]}"]')
         shown = page.evaluate("converter.file()")
         assert shown == item["text"], (slug, item["path"], shown)
+        assert page.text_content("#file-path") == item["path"], (slug, item["path"])
+        selected = page.locator(f"{FILE_BUTTONS}.selected").get_attribute("data-path")
+        assert selected == item["path"], (slug, selected)
     shown_notices = page.locator("#notices li").all_text_contents()
     assert shown_notices == notice_lines(expected), (slug, shown_notices)
     print(f"ok {slug}: {len(paths)} file(s), {len(expected['notices'])} notice(s) match CPython")
@@ -58,8 +70,8 @@ def check_starter(page, schema):
     text = load_starter()
     assert page.evaluate("converter.source()") == text, "page did not open on the starter file"
     expected = convert_text(text, schema)
-    page.wait_for_function("document.querySelectorAll('#tree button').length > 0")
-    paths = page.locator("#tree button").all_inner_texts()
+    page.wait_for_function(f"document.querySelectorAll('{FILE_BUTTONS}').length > 0")
+    paths = shown_paths(page)
     assert paths == [f["path"] for f in expected["files"]], paths
     page.select_option("#preset", "")
     page.fill(EDITOR, "")
@@ -77,10 +89,7 @@ def check_share(browser, url):
     text = "---\nscenarios:\n  - name: shared-link\n"
     page.fill(EDITOR, text)
     assert page.evaluate("converter.source()") == text, "the editor changed the typed text"
-    page.wait_for_function(
-        "[...document.querySelectorAll('#tree button')].map(b => b.textContent).join() "
-        "=== 'molecule/shared-link/molecule.yml'"
-    )
+    page.wait_for_function(f"{SHOWN_PATHS}.join() === 'extensions/molecule/shared-link/molecule.yml'")
     print("ok typing in the editor reruns the conversion")
     page.click("#share")
     page.wait_for_function("window.location.hash.startsWith('#src=')")
@@ -89,7 +98,7 @@ def check_share(browser, url):
     other.goto(link)
     other.wait_for_selector("#status:has-text('Ready')", timeout=READY_TIMEOUT_MS)
     assert other.evaluate("converter.source()") == text
-    assert other.locator("#tree button").all_inner_texts() == ["molecule/shared-link/molecule.yml"]
+    assert shown_paths(other) == ["extensions/molecule/shared-link/molecule.yml"]
     print("ok share link round-trips the source")
     context.close()
 

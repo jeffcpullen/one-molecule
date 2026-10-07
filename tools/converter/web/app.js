@@ -92,6 +92,19 @@ async function decodeShare(code) {
   return new Response(stream).text();
 }
 
+function commonDir(paths) {
+  if (!paths.length) {
+    return "";
+  }
+  const parts = paths.map((p) => p.split("/"));
+  const limit = Math.min(...parts.map((p) => p.length)) - 2;
+  let count = 0;
+  while (count < limit && parts.every((p) => p[count] === parts[0][count])) {
+    count += 1;
+  }
+  return count ? parts[0].slice(0, count).join("/") + "/" : "";
+}
+
 function renderResult(result) {
   const tree = el("tree");
   tree.replaceChildren();
@@ -99,12 +112,22 @@ function renderResult(result) {
   if (!paths.includes(selected)) {
     selected = paths[0] || null;
   }
+  const root = commonDir(paths);
+  if (root) {
+    const li = document.createElement("li");
+    li.className = "dir";
+    li.textContent = root;
+    tree.appendChild(li);
+  }
   for (const file of result.files) {
     const li = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = file.path;
+    button.textContent = file.path.slice(root.length);
+    button.dataset.path = file.path;
+    button.title = "View " + file.path;
     button.className = file.path === selected ? "file selected" : "file";
+    button.setAttribute("aria-pressed", file.path === selected ? "true" : "false");
     button.addEventListener("click", () => {
       selected = file.path;
       renderResult(result);
@@ -112,6 +135,7 @@ function renderResult(result) {
     li.appendChild(button);
     tree.appendChild(li);
   }
+  el("file-path").textContent = selected || "";
   const current = result.files.find((f) => f.path === selected);
   const text = current ? current.text : "";
   if (fileView.state.doc.toString() !== text) {

@@ -11,7 +11,7 @@ WAVE = "wave"
 NAME = "name"
 DEFAULTS = "defaults"
 SCENARIOS = "scenarios"
-SCENARIO_ROOT = "molecule"
+SCENARIO_ROOT = "extensions/molecule"
 SCENARIO_FILE = "molecule.yml"
 
 

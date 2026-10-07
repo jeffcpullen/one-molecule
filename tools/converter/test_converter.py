@@ -52,7 +52,7 @@ class Starter(unittest.TestCase):
 
     def test_converts_to_one_scenario_without_errors(self):
         result = convert_text(load_starter(), SCHEMA)
-        self.assertEqual([f["path"] for f in result["files"]], ["molecule/integration_sample_filter/molecule.yml"])
+        self.assertEqual([f["path"] for f in result["files"]], ["extensions/molecule/integration_sample_filter/molecule.yml"])
         self.assertEqual([n for n in result["notices"] if n["kind"] == "error"], [])
 
     def test_live_scenario_matches_the_creator_scaffold(self):
@@ -138,9 +138,9 @@ class Rules(unittest.TestCase):
             }],
         }
         files = {f["path"]: f["content"] for f in project(config, SCHEMA)["files"]}
-        self.assertEqual(files["molecule/parent/molecule.yml"]["driver"], {"name": "default"})
-        self.assertNotIn("driver", files["molecule/child/molecule.yml"])
-        self.assertEqual(files["molecule/child/molecule.yml"]["verifier"], {"name": "ansible"})
+        self.assertEqual(files["extensions/molecule/parent/molecule.yml"]["driver"], {"name": "default"})
+        self.assertNotIn("driver", files["extensions/molecule/child/molecule.yml"])
+        self.assertEqual(files["extensions/molecule/child/molecule.yml"]["verifier"], {"name": "ansible"})
 
     def test_tree_and_wave_reported_lost(self):
         config = {"scenarios": [{"name": "p", "children": [{"name": "c", "wave": 1}]}]}
@@ -160,12 +160,12 @@ class Rules(unittest.TestCase):
             {"kind": "lost", "node": "c", "key": "children", "message": result["notices"][0]["message"]},
         ])
         files = {f["path"]: f["content"] for f in result["files"]}
-        self.assertEqual(files["molecule/a/molecule.yml"]["platforms"], [
+        self.assertEqual(files["extensions/molecule/a/molecule.yml"]["platforms"], [
             {"name": "a-vm", "image": "debian:13"},
             {"name": "a-ct"},
         ])
-        self.assertNotIn("platforms", files["molecule/c/molecule.yml"])
-        self.assertEqual(files["molecule/b/molecule.yml"]["platforms"], [
+        self.assertNotIn("platforms", files["extensions/molecule/c/molecule.yml"])
+        self.assertEqual(files["extensions/molecule/b/molecule.yml"]["platforms"], [
             {"name": "b-vm", "image": "debian:13"},
             {"name": "local"},
         ])

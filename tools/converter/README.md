@@ -1,6 +1,6 @@
 # Converter
 
-Projects a single-config `molecule.yml` into the per-scenario `molecule/<name>/molecule.yml`
+Projects a single-config `molecule.yml` into the per-scenario `extensions/molecule/<name>/molecule.yml`
 files today's Molecule reads, and lists what the projection could not carry. It runs as a command
 and as a static web page published with the docs site under `converter/`.
 
@@ -45,6 +45,20 @@ runs the same check against the deployed site after every deploy.
 | `error` | The input breaks the spec, such as a key the spec does not declare |
 | `unresolved` | The design does not decide the case yet, so the tool does not pick an answer |
 | `lost` | The tree carries it, today's Molecule cannot, such as a parent edge or a wave |
+
+## Layout
+
+The projection assumes the content is a collection and places each scenario where the
+ansible-creator collection scaffold does, `extensions/molecule/<name>/molecule.yml`, with shared
+playbooks reached as `../utils/playbooks/`. A standalone role or a playbook project keeps its scenarios
+in a top-level `molecule/` directory instead, and the tool does not offer that layout yet.
+
+Paths are copied as written, so a path that names or climbs out of the scenarios directory keeps the
+layout its author wrote it for. The openstack-systemd-service, osism-commons and dev-sec-hardening
+presets come from projects with a top-level `molecule/` directory. openstack-systemd-service's
+`../../tests/` playbook paths and the `molecule/<name>/` requirements paths in osism-commons and
+dev-sec-hardening point where upstream's layout puts those files, not where `extensions/molecule/`
+would.
 
 ## Coverage
 

@@ -73,17 +73,72 @@ ul {
   margin: 0;
 }
 
+.hint {
+  margin: 0 0 0.5rem;
+  color: #57606a;
+  font-size: 0.9rem;
+}
+
+#tree {
+  margin-bottom: 0.75rem;
+}
+
+#tree li.dir {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: #57606a;
+  padding: 0.15rem 0;
+}
+
+#tree li.dir::before {
+  content: "\25BE  ";
+}
+
 button.file {
   font-family: ui-monospace, monospace;
-  background: none;
-  border: none;
-  padding: 0.15rem 0.25rem;
+  font-size: 0.85rem;
+  color: #0969da;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  margin: 0.15rem 0 0.15rem 1.25rem;
+  padding: 0.3rem 0.6rem;
   cursor: pointer;
+  text-align: left;
+}
+
+button.file::before {
+  content: "\25B8  ";
+  color: #57606a;
+}
+
+button.file:hover {
+  background: #ddf4ff;
+  border-color: #0969da;
+  text-decoration: underline;
+}
+
+button.file:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 1px;
 }
 
 button.file.selected {
-  background: #ddf4ff;
-  border-radius: 4px;
+  color: #ffffff;
+  background: #0969da;
+  border-color: #0969da;
+  text-decoration: none;
+}
+
+button.file.selected::before {
+  color: #ffffff;
+}
+
+.file-path {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  margin: 0 0 0.35rem;
+  color: #1f2328;
 }
 
 .notice {
