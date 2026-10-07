@@ -8,9 +8,5 @@ against real VMs. A representative slice of that layout is copied verbatim into 
 paths, in one root file. Molecule cannot run a single root config today, so the after shows how the
 layout would be authored, not a shipped setup.
 
-## Changed
-
-| | Before | After |
-|---|---|---|
-| Test config locations (tox.ini, .fmf/, .ostree/, plans/, tests/) | 5 | 1 |
-| Test playbooks (tests/tests_*.yml) | 65, run through those separate systems | 65, declared as scenarios in one file |
+Its test config is spread across `tox.ini`, `.fmf/`, `.ostree/`, `plans/` and `tests/`. The single
+file declares every `tests/tests_*.yml` playbook as a scenario in one place.

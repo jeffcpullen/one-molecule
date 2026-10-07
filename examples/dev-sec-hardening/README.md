@@ -4,19 +4,9 @@ This is a proof of concept of a testing layout idea. It takes the real molecule 
 `ansible-collection-hardening` (pinned at commit `64a97293a230899c1584e788cdbfb486f329d649` on
 `master`, copied verbatim into `before/`) and shows it collapsed into one root `molecule.yml`. The one
 exception is `before/molecule/os_hardening/prepare_tasks/pw_ageing.yml`, where upstream's literal
-SHA-512 password hash is replaced by one computed at run time, with a comment saying so. That file is
-not among the counted ones.
-
-## Changed
-
-| | Before | After |
-|---|---|---|
-| Config and orchestration files | 11 | 1 |
-| Scenario folders | 7 | 7 |
-| Total lines | 451 | 158 |
+SHA-512 password hash is replaced by one computed at run time, with a comment saying so.
 
 The scenario folders stay because the stage playbooks stay where upstream keeps them, and Molecule
 finds each scenario's `converge.yml`, `prepare.yml` and `verify.yml` by its default discovery, so the
-single file names none of them. The After count is the folders that still hold a file, and all seven
-do. The sequences still run `verify ../shared/prerequisites.yml` exactly as upstream writes it,
+single file names none of them. The sequences still run `verify ../shared/prerequisites.yml` exactly as upstream writes it,
 relative to each scenario folder.

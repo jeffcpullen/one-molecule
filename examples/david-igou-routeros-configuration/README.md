@@ -4,15 +4,7 @@ This is a proof of concept of a testing layout idea. It takes the real molecule 
 `david-igou/ansible-collection-routeros_configuration` (pinned at commit
 `1dc714593ca8534706655fb54eb6cb5c401bd421` on `main`, copied verbatim into `before/`) and shows it
 collapsed into one root `molecule.yml`. The one exception is that each line carrying a throwaway test
-credential has an added inline `# notsecret` comment, which adds no lines.
-
-## Changed
-
-| | Before | After |
-|---|---|---|
-| Config and orchestration files | 25 | 1 |
-| Scenario folders | 22 | 22 |
-| Total lines | 331 | 193 |
+credential has an added inline `# notsecret` comment.
 
 This example is evidence for translating `shared_state`, not for nesting. `extensions/molecule/config.yml`
 sets `shared_state: true` for the whole suite, `default` boots one MikroTik CHR and owns create,
@@ -32,15 +24,13 @@ platform's `name`, `groups` and `children` only, so the entry's `groups:` puts t
 group, but its other keys reach a playbook only as `molecule_yml.platforms`, which that playbook does
 not read.
 
-The line drop is comments, not structure. Not counting blank lines, comments and `---` markers, the 25
-files hold 175 lines and the single file holds 186, so on content the single file is 11 lines longer.
-The ordering below adds 19 `wave:` lines.
+The single file is not shorter on content. What it drops is upstream's comments, and the ordering
+below adds `wave:` lines.
 
 The scenario folders stay. Each still holds its stage playbooks where upstream keeps them, and
 Molecule finds `converge.yml` and `verify.yml` there by its default discovery, so no scenario names
-them. The After count is the folders that still hold a file once their `molecule.yml` is gone, which
-is all 22. The two roots name upstream's shared `create`, `prepare` and `destroy` playbooks by the
-same `../utils/playbooks/` paths upstream's `config.yml` uses, resolved against each scenario's own
+them. The two roots name upstream's shared `create`, `prepare` and `destroy` playbooks by the same
+`../utils/playbooks/` paths upstream's `config.yml` uses, resolved against each scenario's own
 directory.
 
 Upstream's `Makefile` runs the twenty one at a time and says the order matters: `ping` and `fetch` run
@@ -55,9 +45,9 @@ wave 1 in list order. `lifecycle` is in root wave 1 because it forwards the same
 2223, as `default`, so it starts only after the whole `default` tree has finished and destroyed its
 CHR. Upstream gets the same effect by running it as a separate `molecule test -s lifecycle`.
 
-The count covers the files the single file absorbs: 22 `molecule.yml`, the shared `config.yml`, and
-the two `utils/inventory/` files. The `Makefile` is not counted and survives for install and build,
+The single file absorbs the 22 `molecule.yml`, the shared `config.yml` and the two
+`utils/inventory/` files. The `Makefile` survives for install and build,
 though two of its jobs would pass to the tree: prepending `default` to a single-scenario run is
 ancestor closure, and the guard that fails CI on an unlisted scenario has nothing to guard when the
-file is the list. Also not counted: `requirements-test.yml` and the stage playbooks, including the
-`utils/playbooks/` ones, which are unchanged and stay where upstream keeps them.
+file is the list. `requirements-test.yml` and the stage playbooks, including the `utils/playbooks/`
+ones, are unchanged and stay where upstream keeps them.
