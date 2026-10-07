@@ -3,6 +3,9 @@
 Real Ansible projects, refactored to a single top-level `molecule.yml`. This repository is a
 proof of concept for that idea.
 
+- [Documentation](https://jeffcpullen.github.io/one-molecule/): getting started, migrating, the explanation, and the full reference.
+- [Converter](https://jeffcpullen.github.io/one-molecule/converter/): paste a single-config `molecule.yml` and see the per-scenario files today's Molecule needs.
+
 This is a personal project. It is not a Molecule project proposal and does not represent the
 position of the author's employer.
 
