@@ -23,7 +23,7 @@ them, never mirror them into your output or your handoffs.
 
 ## The shape of an example
 
-Nine exist. Copy the shape, do not invent one.
+Copy the shape of the existing set, do not invent one.
 
 ```
 examples/<slug>/
@@ -76,7 +76,7 @@ canonical rows, in this order:
 Deviate from those row labels only when the project has no Molecule today, where the rows name what it
 actually uses instead and the cells may carry a short phrase rather than a bare number.
 
-Thirteen lines is the floor and four examples sit exactly there. Add a caveat paragraph when the numbers
+Thirteen lines is the floor and the shortest existing READMEs sit exactly there. Add a caveat paragraph when the numbers
 need explaining, and say the unflattering thing plainly. One existing README opens its caveat with "Line
 count is the one metric that does not improve here". That is the register: no spin, no hedging, and state
 what you did not count.
