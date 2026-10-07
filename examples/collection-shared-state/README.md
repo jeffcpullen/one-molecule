@@ -36,8 +36,9 @@ grandchild, cannot be expressed with `shared_state`, and the converter reports w
 
 That projection, placed in a copy of this folder at `ansible_collections/example/shared_state/`,
 passed `molecule test --all` on Molecule 26.9.0, ansible-core 2.21.4 and containers.podman 1.21.0
-against rootless podman 5.6.2. Both roles were applied to `default-instance` and verified, then
-`default` verified the tree and destroyed the container. It is a preset on the converter page.
+through the podman 5.6.2 client against a rootless podman 5.8.7 service. Both roles were applied to
+`default-instance` and verified, then `default` verified the tree and destroyed the container. It is
+a preset on the converter page.
 
 The two children write different files, so they are safe to run side by side. Both run on one
 container, though, so a role that changed state the other reads would make their order matter,

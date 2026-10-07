@@ -31,6 +31,6 @@ projected scenario file as `${MOLECULE_PROJECT_DIRECTORY}/playbooks/molecule/...
 
 The converter projects this file into a top-level `molecule/` layout with `--scenarios-dir
 molecule`. That projection, placed in a copy of this folder, passed `molecule test --all` on
-Molecule 26.9.0, ansible-core 2.21.4 and containers.podman 1.21.0 against rootless podman 5.6.2,
-with each role applied, idempotent and verified in its own container. It is a preset on the
-converter page.
+Molecule 26.9.0, ansible-core 2.21.4 and containers.podman 1.21.0 through the podman 5.6.2 client
+against a rootless podman 5.8.7 service, with each role applied, idempotent and verified in its own
+container. It is a preset on the converter page.
