@@ -15,8 +15,7 @@ let schemaText = null;
 let selected = null;
 let sourceSelected = SOURCE_NAME;
 let available = new Map();
-let workersAuto = true;
-let workers = 1;
+let workers = null;
 let readyStatus = "";
 let lastResult = null;
 let timer = null;
@@ -267,12 +266,6 @@ function svg(tag, attrs, text) {
 function renderOrder(order) {
   const box = el("order");
   box.replaceChildren();
-  const input = el("workers");
-  input.max = String(Math.max(1, order.scenarios.length));
-  if (Number(input.value) !== order.workers) {
-    input.value = order.workers;
-  }
-  input.setCustomValidity("");
   const items = order.scenarios.filter((s) => s.step);
   if (!items.length) {
     return;
@@ -330,10 +323,7 @@ function renderOrder(order) {
 }
 
 function workersValue() {
-  if (workersAuto) {
-    return undefined;
-  }
-  return workers;
+  return workers === null ? undefined : workers;
 }
 
 function run() {
@@ -380,7 +370,9 @@ function loadInput(text, scenariosDir, files) {
   el("scenarios-dir").value = scenariosDir;
   available = new Map(Object.entries(files));
   sourceSelected = SOURCE_NAME;
-  workersAuto = true;
+  workers = null;
+  el("workers").value = "";
+  el("workers").setCustomValidity("");
   setDoc(sourceView, text);
   run();
 }
@@ -419,13 +411,18 @@ async function main() {
     const input = el("workers");
     const text = input.value.trim();
     const value = Number(text);
+    if (text === "" && !input.validity.badInput) {
+      input.setCustomValidity("");
+      workers = null;
+      run();
+      return;
+    }
     if (!/^[0-9]+$/.test(text) || !Number.isSafeInteger(value) || value < 1) {
-      input.setCustomValidity("Enter a whole number of at least 1.");
+      input.setCustomValidity("Enter a whole number of at least 1, or leave it empty for no limit.");
       return;
     }
     input.setCustomValidity("");
     workers = value;
-    workersAuto = false;
     run();
   });
 

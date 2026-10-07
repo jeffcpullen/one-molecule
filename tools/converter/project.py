@@ -476,28 +476,25 @@ def start_steps(config, workers=None):
     Each scenario takes one step. A child is ready once its parent has completed. Among
     nodes that share a parent, roots sharing the run, the lowest wave is ready first, and
     a node is ready only once every sibling in a lower wave has completed its whole
-    subtree. At most `workers` scenarios start per step. Ready scenarios beyond the cap
+    subtree. With a cap, at most `workers` scenarios start per step. Ready scenarios beyond the cap
     wait, the earliest ready first, ties in pre-order. A wave that `project` reports as
     an error is ordered as wave 0.
 
     Args:
         config: the parsed single-config molecule.yml.
-        workers: the cap, an integer of at least 1, or None for the number of scenarios.
-            A cap above the number of scenarios is lowered to it.
+        workers: the cap, an integer of at least 1, or None for no cap.
 
     Returns:
-        A dict with `workers`, the cap applied after lowering, and `scenarios`, a pre-order list of
+        A dict with `workers`, the cap as given or None, and `scenarios`, a pre-order list of
         {name, parent, step} where `parent` is a name or None and `step` counts from 1.
 
     Raises:
         ValueError: when `workers` is below 1.
     """
     nodes = scenario_nodes(config)
-    if workers is None:
-        workers = max(1, len(nodes))
-    if not isinstance(workers, int) or isinstance(workers, bool) or workers < 1:
+    if workers is not None and (not isinstance(workers, int) or isinstance(workers, bool) or workers < 1):
         raise ValueError("workers must be an integer of at least 1")
-    workers = min(workers, max(1, len(nodes)))
+    cap = len(nodes) if workers is None else workers
     roots = [i for i, n in enumerate(nodes) if n["parent"] is None]
     started = {}
     ready_since = {}
@@ -527,7 +524,7 @@ def start_steps(config, workers=None):
         queue = sorted((i for i in ready_since if i not in started), key=lambda i: (ready_since[i], i))
         if not queue:
             break
-        for index in queue[:workers]:
+        for index in queue[:cap]:
             started[index] = step
     return {
         "workers": workers,

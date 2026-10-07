@@ -437,7 +437,7 @@ class StartOrder(unittest.TestCase):
     def test_collection_shared_state_example(self):
         config = yaml.safe_load(example_source("collection-shared-state").read_text())
         order = start_steps(config)
-        self.assertEqual(order["workers"], 3)
+        self.assertIsNone(order["workers"])
         self.assertEqual(order["scenarios"], [
             {"name": "default", "parent": None, "step": 1},
             {"name": "app_config", "parent": "default", "step": 2},
@@ -468,10 +468,17 @@ class StartOrder(unittest.TestCase):
         config = {"scenarios": [{"name": "p", "children": [{"name": "c"}]}, {"name": "q"}, {"name": "r"}]}
         self.assertEqual(_steps(start_steps(config, 1)), {"p": 1, "q": 2, "r": 3, "c": 4})
 
-    def test_workers_above_the_scenario_count_are_lowered(self):
-        order = start_steps({"scenarios": [{"name": "a"}, {"name": "b"}]}, 9)
-        self.assertEqual(order["workers"], 2)
-        self.assertEqual(_steps(order), {"a": 1, "b": 1})
+    def test_workers_above_the_scenario_count_bind_nothing(self):
+        config = {"scenarios": [{"name": "a"}, {"name": "b"}]}
+        order = start_steps(config, 9)
+        self.assertEqual(order["workers"], 9)
+        self.assertEqual(order["scenarios"], start_steps(config)["scenarios"])
+
+    def test_no_cap_by_default(self):
+        config = {"scenarios": [{"name": n} for n in "abcdefgh"]}
+        order = start_steps(config)
+        self.assertIsNone(order["workers"])
+        self.assertEqual(set(_steps(order).values()), {1})
 
     def test_wave_values(self):
         def run(wave):
@@ -489,7 +496,7 @@ class StartOrder(unittest.TestCase):
             start_steps({"scenarios": [{"name": "a"}]}, 0)
 
     def test_invalid_input_has_no_scenarios(self):
-        self.assertEqual(start_steps(None), {"workers": 1, "scenarios": []})
+        self.assertEqual(start_steps(None), {"workers": None, "scenarios": []})
 
     def test_cli_prints_the_order(self):
         source = str(example_source("collection-shared-state"))
@@ -498,6 +505,14 @@ class StartOrder(unittest.TestCase):
             code = cli_main([source, "--order", "--workers", "1"])
         self.assertEqual(code, 0)
         self.assertEqual(out.getvalue(), "workers: 1\nstep 1: default\nstep 2: app_config\nstep 3: app_users\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            cli_main([source, "--order"])
+        self.assertEqual(out.getvalue(), "workers: no limit\nstep 1: default\nstep 2: app_config, app_users\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            cli_main([source, "--order", "--workers", "7"])
+        self.assertTrue(out.getvalue().startswith("workers: 7\n"), out.getvalue())
         for argv, message in (([source, "--workers", "2"], "--workers needs --order"),
                               ([source, "--order", "--workers", "abc"], "must be an integer of at least 1"),
                               ([source, "--order", "--workers", "0"], "must be an integer of at least 1")):

@@ -5,7 +5,7 @@ Usage:
 
 Needs Playwright with Chromium. Exits non-zero on any mismatch. With `--shots`, saves
 full-page PNGs of the collection-shared-state preset and of the roles preset at the
-default workers and at workers 1.
+default of no limit and at workers 1.
 """
 
 import argparse
@@ -134,7 +134,8 @@ def check_preset(page, slug, schema):
     steps = expected_steps(expected["order"])
     shown_steps = {name: step for name, (step, _) in blocks(page).items()}
     assert shown_steps == steps, (slug, shown_steps)
-    assert page.input_value("#workers") == str(expected["order"]["workers"]), (slug, page.input_value("#workers"))
+    assert expected["order"]["workers"] is None, slug
+    assert page.input_value("#workers") == "", (slug, page.input_value("#workers"))
     missing = sum(1 for p in expected["playbooks"] if p not in present)
     print(f"ok {slug}: {len(paths)} file(s), {len(expected['playbooks'])} playbook(s) ({missing} not available), "
           f"{len(expected['notices'])} notice(s), {len(steps)} start step(s) match CPython")
@@ -170,12 +171,15 @@ def check_edit_survives(page):
 
 
 def check_workers(page, schema, shots):
-    """The workers control redraws the start order without waiting for the debounce."""
+    """Workers is empty and unlimited by default, a typed value caps at once, and clearing it restores no limit."""
     slug = "roles"
     text = example_source(slug).read_text()
     page.select_option("#preset", slug)
     default = expected_steps(convert_text(text, schema, "molecule")["order"])
     wait_for_steps(page, default)
+    assert page.input_value("#workers") == "", page.input_value("#workers")
+    assert page.get_attribute("#workers", "placeholder") == "no limit"
+    assert set(default.values()) == {1}, default
     before = blocks(page)
     if shots:
         page.screenshot(path=str(shots / "roles-workers-default.png"), full_page=True)
@@ -191,17 +195,35 @@ def check_workers(page, schema, shots):
     if shots:
         page.screenshot(path=str(shots / "roles-workers-1.png"), full_page=True)
     print(f"ok workers 1 redraws at once and moves {len(moved)} block(s): {one}")
-    for bad in ("", "0", "-2", "1.5"):
+    for bad in ("0", "-2", "1.5"):
         page.fill("#workers", bad)
         page.wait_for_timeout(100)
         assert page.evaluate("document.getElementById('workers').matches(':invalid')"), bad
         assert blocks(page) == after, (bad, blocks(page))
+    page.locator("#workers").select_text()
+    page.locator("#workers").press_sequentially("e")
+    page.wait_for_timeout(100)
+    assert page.evaluate("document.getElementById('workers').validity.badInput")
+    assert page.evaluate("document.getElementById('workers').matches(':invalid')")
+    assert blocks(page) == after, blocks(page)
     print("ok an invalid workers entry is marked invalid and keeps the last graphic")
     page.fill("#workers", "10")
     wait_for_steps(page, default)
-    assert page.input_value("#workers") == str(len(default)), page.input_value("#workers")
+    assert page.input_value("#workers") == "10", page.input_value("#workers")
     assert not page.evaluate("document.getElementById('workers').matches(':invalid')")
-    print(f"ok workers above the scenario count is lowered to {len(default)}")
+    print("ok workers above the scenario count stays as typed and binds nothing")
+    page.fill("#workers", "1")
+    wait_for_steps(page, one)
+    page.fill("#workers", "")
+    wait_for_steps(page, default)
+    assert page.input_value("#workers") == ""
+    assert not page.evaluate("document.getElementById('workers').matches(':invalid')")
+    print("ok clearing workers restores no limit")
+    page.fill("#workers", "2")
+    wait_for_steps(page, expected_steps(convert_text(text, schema, "molecule", 2)["order"]))
+    page.select_option("#preset", "collection")
+    page.wait_for_function("document.getElementById('workers').value === ''")
+    print("ok loading a preset clears workers")
 
 
 def check_typed_missing(page, schema):

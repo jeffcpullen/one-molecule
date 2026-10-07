@@ -43,7 +43,7 @@ def convert_text(text, schema, scenarios_dir=COLLECTION_SCENARIOS_DIR, workers=N
         text: the YAML source.
         schema: the config schema as a dict.
         scenarios_dir: the scenarios directory the files are placed under.
-        workers: the start-order cap, or None for the number of scenarios.
+        workers: the start-order cap, or None for no cap.
 
     Returns:
         A dict with `files`, a list of {path, text}, `notices`, `playbooks`, the
@@ -72,7 +72,7 @@ def convert_json(text, schema_text, scenarios_dir=COLLECTION_SCENARIOS_DIR, work
         text: the YAML source.
         schema_text: the config schema as JSON text.
         scenarios_dir: the scenarios directory the files are placed under.
-        workers: the start-order cap, or None for the number of scenarios.
+        workers: the start-order cap, or None for no cap.
 
     Returns:
         The `convert_text` result as JSON text.

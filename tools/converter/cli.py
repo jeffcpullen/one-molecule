@@ -123,7 +123,7 @@ def order_text(order):
     Returns:
         The text, starting with the workers line.
     """
-    lines = [f"workers: {order['workers']}"]
+    lines = ["workers: " + ("no limit" if order["workers"] is None else str(order["workers"]))]
     steps = {}
     for item in order["scenarios"]:
         steps.setdefault(item["step"], []).append(item["name"])
@@ -192,7 +192,7 @@ def main(argv=None):
     parser.add_argument("--order", action="store_true", help="print the step each scenario starts at and exit")
     parser.add_argument(
         "--workers", type=_workers,
-        help="with --order, the most scenarios that start per step (default and ceiling: the number of scenarios)")
+        help="with --order, the most scenarios that start per step (default: no limit)")
     args = parser.parse_args(argv)
     if args.workers is not None and not args.order:
         parser.error("--workers needs --order")

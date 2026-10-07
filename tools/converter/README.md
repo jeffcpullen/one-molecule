@@ -36,14 +36,15 @@ python3 tools/converter/cli.py --starter
 python3 -m unittest discover -s tools/converter -p 'test_*.py' -v
 ```
 
-`--order` prints the step each scenario starts at instead of the projection, and `--workers` sets
-the cap, which defaults to the number of scenarios and is lowered to it when set higher.
+`--order` prints the step each scenario starts at instead of the projection. With no `--workers`
+there is no limit on parallel execution and it prints `workers: no limit`. `--workers N` caps it and
+prints the value as given.
 
 `browser_smoke.py` serves nothing itself. Stage the page, serve the directory, and point it at the
 URL. It needs Playwright with Chromium, as in `.github/workflows/converter.yml`. The pages workflow
 runs the same check against the deployed site after every deploy. `--shots <dir>` also saves
-full-page screenshots of the collection-shared-state preset and of the roles preset at the default
-workers and at workers 1.
+full-page screenshots of the collection-shared-state preset and of the roles preset with no workers
+limit and at workers 1.
 
 ## The page
 
@@ -78,12 +79,13 @@ scenario, with a line from each parent to its children. It follows the schedulin
   ready only once every sibling in a lower wave has completed its whole subtree.
 - A wave the projection reports as an error, anything but an integer or an integral float, is
   ordered as wave 0.
-- At most the workers number of scenarios start per step. Ready scenarios beyond it wait, the
-  earliest ready first, ties in list order.
+- Workers is opt-in. Without it every ready scenario starts. With it, at most that many start per
+  step, and ready scenarios beyond it wait, the earliest ready first, ties in list order.
 
-The workers control defaults to the number of scenarios, is lowered to it when set higher, and
-redraws the order at once. An entry that is not a whole number of at least 1 is marked invalid and
-leaves the last order in place. Loading a preset or the starter resets it to the default.
+The workers field starts empty, which means no limit. A whole number of at least 1 applies as a cap
+and redraws the order at once. A value above the number of scenarios stays as typed and binds
+nothing. Clearing the field returns to no limit. Any other entry is marked invalid and leaves the
+last order in place. Loading a preset or the starter clears the field.
 
 ## Notices
 
