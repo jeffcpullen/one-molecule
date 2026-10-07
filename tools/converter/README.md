@@ -15,7 +15,7 @@ parent-versus-defaults judgment in `design/docs/migrating.md`, which no tool mak
 | `render.py` | YAML in and out, through PyYAML |
 | `cli.py` | Command line front end |
 | `web/` | The page. Its JavaScript is interface only and holds no conversion rule |
-| `stage_pages.py` | Copies the page, the two modules, the generated schema and the presets into a directory |
+| `stage_pages.py` | Copies the page, the two modules, the generated schema and the presets into a directory, with a content-hash `build.json` the page loads every file under |
 
 The page loads `project.py` and `render.py` into Pyodide and calls them. No conversion rule
 exists in a second language.

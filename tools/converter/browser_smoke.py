@@ -72,6 +72,22 @@ def check_share(browser, url):
     context.close()
 
 
+def check_missing_module(browser, url):
+    """A module that fails to load names itself and its HTTP status in the page status."""
+    context = browser.new_context()
+    page = context.new_page()
+    requested = []
+    page.on("request", lambda r: requested.append(r.url))
+    page.route("**/project.py*", lambda route: route.fulfill(status=404, body="not found"))
+    page.goto(url)
+    page.wait_for_selector("#status:has-text('Failed to start')", timeout=READY_TIMEOUT_MS)
+    status = page.text_content("#status")
+    assert "could not load project.py (HTTP 404)" in status, status
+    assert any("project.py?v=" in r for r in requested), requested
+    print("ok a missing module is reported by name and status")
+    context.close()
+
+
 def main(url):
     """Run every check against the staged site at `url`."""
     schema = load_schema()
@@ -86,6 +102,7 @@ def main(url):
         for slug in slugs:
             check_preset(page, slug, schema)
         check_share(browser, url)
+        check_missing_module(browser, url)
         browser.close()
 
 

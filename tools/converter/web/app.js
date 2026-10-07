@@ -4,12 +4,22 @@
 const PY_MODULES = ["project.py", "render.py"];
 const SCHEMA_URL = "molecule-config.schema.json";
 const PRESETS_URL = "presets.json";
+const BUILD_URL = "build.json";
 
 const el = (id) => document.getElementById(id);
 let convert = null;
 let schemaText = null;
 let selected = null;
 let timer = null;
+let version = "";
+
+async function fetchText(url, options) {
+  const res = await fetch(version ? `${url}?v=${version}` : url, options);
+  if (!res.ok) {
+    throw new Error(`could not load ${url} (HTTP ${res.status}). Reload the page to retry.`);
+  }
+  return res.text();
+}
 
 function setStatus(text) {
   el("status").textContent = text;
@@ -84,7 +94,7 @@ function schedule() {
 }
 
 async function loadPresets() {
-  const presets = await (await fetch(PRESETS_URL)).json();
+  const presets = JSON.parse(await fetchText(PRESETS_URL));
   const select = el("preset");
   for (const name of Object.keys(presets)) {
     const option = document.createElement("option");
@@ -114,14 +124,15 @@ async function main() {
   if (window.location.hash.startsWith("#src=")) {
     el("source").value = await decodeShare(window.location.hash.slice(5));
   }
+  version = JSON.parse(await fetchText(BUILD_URL, { cache: "no-store" })).version;
   await loadPresets();
 
   const pyodide = await loadPyodide();
   await pyodide.loadPackage("pyyaml");
   for (const name of PY_MODULES) {
-    pyodide.FS.writeFile(name, await (await fetch(name)).text());
+    pyodide.FS.writeFile(name, await fetchText(name));
   }
-  schemaText = await (await fetch(SCHEMA_URL)).text();
+  schemaText = await fetchText(SCHEMA_URL);
   pyodide.runPython("import sys\nsys.path.insert(0, '.')");
   convert = pyodide.pyimport("render").convert_json;
   setStatus(`Ready. Python ${pyodide.runPython("import sys; sys.version.split()[0]")} via Pyodide.`);
@@ -129,5 +140,5 @@ async function main() {
 }
 
 main().catch((err) => {
-  setStatus("Failed to start: " + err);
+  setStatus("Failed to start: " + err.message);
 });

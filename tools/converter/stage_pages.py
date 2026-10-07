@@ -4,6 +4,7 @@ Usage:
     python3 tools/converter/stage_pages.py <dest>
 """
 
+import hashlib
 import json
 import pathlib
 import shutil
@@ -33,6 +34,10 @@ def stage(dest):
     slugs = sorted(p.name for p in (HERE / "fixtures").iterdir() if p.is_dir())
     presets = {slug: (ROOT / "examples" / slug / "after" / "molecule.yml").read_text() for slug in slugs}
     (dest / "presets.json").write_text(json.dumps(presets, indent=2) + "\n")
+    digest = hashlib.sha256()
+    for name in [*MODULES, SCHEMA.name, "presets.json"]:
+        digest.update((dest / name).read_bytes())
+    (dest / "build.json").write_text(json.dumps({"version": digest.hexdigest()[:16]}) + "\n")
     for path in dest.rglob("*"):
         if path.is_file() and path.read_bytes().startswith(b"---"):
             raise SystemExit(f"{path} starts with ---, which Jekyll would render as a page")
